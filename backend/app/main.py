@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.features.intake.router import router as intake_router
 from app.features.evaluation.router import router as evaluation_router
 from app.features.query.router import router as query_router
 from app.features.advisor_prep.router import router as advisor_prep_router
@@ -41,6 +42,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(intake_router, prefix="/api/v1/intake", tags=["Intake"])
 app.include_router(evaluation_router, prefix="/api/v1/evaluation", tags=["Evaluación"])
 app.include_router(query_router, prefix="/api/v1/query", tags=["Consultas"])
 app.include_router(advisor_prep_router, prefix="/api/v1/advisor-prep", tags=["Preparar Asesor"])
@@ -60,10 +62,10 @@ async def root():
         "name": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "docs": "/docs",
-        "modes": [
-            {"id": 1, "name": "Evaluar proyecto", "endpoint": "/api/v1/evaluation"},
-            {"id": 2, "name": "Duda puntual", "endpoint": "/api/v1/query"},
-            {"id": 3, "name": "Preparar reunión con asesor", "endpoint": "/api/v1/advisor-prep"},
-            {"id": 4, "name": "Ruta de cumplimiento", "endpoint": "/api/v1/compliance"},
+        "intake": "/api/v1/intake",
+        "tools": [
+            {"id": "evaluation", "name": "Evaluación Legal", "endpoint": "/api/v1/evaluation"},
+            {"id": "compliance", "name": "Ruta de Cumplimiento", "endpoint": "/api/v1/compliance"},
+            {"id": "query", "name": "Consulta Legal", "endpoint": "/api/v1/query"},
         ]
     }

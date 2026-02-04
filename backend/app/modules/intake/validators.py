@@ -29,6 +29,8 @@ def validate_input_type(value: Any, expected_type: InputType) -> bool:
         return isinstance(value, (int, float))
     elif expected_type == InputType.ROLE_SELECTOR:
         return isinstance(value, str)
+    elif expected_type == InputType.TEXT:
+        return isinstance(value, str)
     return False
 
 

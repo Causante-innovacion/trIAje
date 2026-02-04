@@ -17,7 +17,7 @@ Tool = OrchestratedToolPipeline {
 }
 """
 
-from .intake import IntakeModule
+from .intake import IntakeService, intake_service
 from .validation import ValidationModule
 from .rag import RAGModule
 from .reasoning import ReasoningModule
@@ -28,7 +28,8 @@ from .output_builder import OutputBuilder
 from .advisor_package import AdvisorPackageGenerator
 
 __all__ = [
-    "IntakeModule",
+    "IntakeService",
+    "intake_service",
     "ValidationModule",
     "RAGModule",
     "ReasoningModule",
