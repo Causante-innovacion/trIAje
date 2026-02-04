@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+body {
+  @apply bg-gradient-main min-h-screen text-gray-900 font-sans;
+}
+
+/* Cards */
+.tool-card {
+  @apply bg-white rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-all duration-200 cursor-pointer border border-gray-100;
+}
+
+.tool-card:hover {
+  @apply transform -translate-y-0.5;
+}
+
+/* Icon containers */
+.icon-container {
+  @apply w-14 h-14 rounded-xl bg-cream flex items-center justify-center;
+}
+
+.icon-container svg {
+  @apply w-6 h-6 text-gold;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply bg-gold hover:bg-gold-dark text-white font-medium px-6 py-3 rounded-full transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-full border border-gray-200 transition-colors duration-200;
+}
+
+.btn-option-yes {
+  @apply bg-gold hover:bg-gold-dark text-white font-medium px-6 py-3 rounded-full flex items-center gap-2 transition-colors duration-200;
+}
+
+.btn-option-no {
+  @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-full border border-gray-200 flex items-center gap-2 transition-colors duration-200;
+}
+
+/* Chat styles */
+.chat-container {
+  @apply flex-1 overflow-y-auto px-4 py-6;
+}
+
+.chat-message {
+  @apply max-w-3xl mx-auto mb-6;
+}
+
+.chat-bubble {
+  @apply bg-white rounded-2xl p-5 shadow-card;
+}
+
+.chat-avatar {
+  @apply w-10 h-10 rounded-full bg-cream flex items-center justify-center;
+}
+
+/* Input styles */
+.chat-input-container {
+  @apply bg-white rounded-full shadow-card border border-gray-100 flex items-center px-4 py-2;
+}
+
+.chat-input {
+  @apply flex-1 bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 px-2;
+}
+
+.send-button {
+  @apply w-10 h-10 rounded-full bg-gold hover:bg-gold-dark flex items-center justify-center transition-colors duration-200;
+}
+
+.send-button svg {
+  @apply w-5 h-5 text-white;
+}
+
+/* File upload */
+.file-upload-zone {
+  @apply border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-gold transition-colors duration-200 cursor-pointer;
+}
+
+.file-upload-zone.dragging {
+  @apply border-gold bg-gold-50;
+}
+
+/* Progress bar */
+.progress-bar {
+  @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-viable rounded-full transition-all duration-300;
+}
+
+/* Traffic light indicators */
+.traffic-light-green {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+.traffic-light-yellow {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
