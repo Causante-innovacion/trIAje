@@ -15,6 +15,7 @@ interface ProgressTrackerProps {
   completedQuestions: number
   totalQuestions: number
   blocks: Block[]
+  isFinished?: boolean
 }
 
 const colorStyles: Record<string, string> = {
@@ -27,8 +28,13 @@ const colorStyles: Record<string, string> = {
   pink: 'bg-yellow-100 text-yellow-700 border-yellow-300',
 }
 
-export function ProgressTracker({ completedQuestions, totalQuestions, blocks }: ProgressTrackerProps) {
-  const progressPercentage = Math.round((completedQuestions / totalQuestions) * 100)
+export function ProgressTracker({ completedQuestions, totalQuestions, blocks, isFinished = false }: ProgressTrackerProps) {
+  let progressPercentage = Math.round((completedQuestions / totalQuestions) * 100)
+
+  // Cap at 99% if 100% completed but not marked as finished
+  if (progressPercentage === 100 && !isFinished) {
+    progressPercentage = 99
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrollProgress, setScrollProgress] = useState(0)
   const [canScrollLeft, setCanScrollLeft] = useState(false)

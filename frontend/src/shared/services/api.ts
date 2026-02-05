@@ -63,3 +63,86 @@ export const complianceApi = {
   getQuestions: () => api.get('/compliance/questions'),
   generateRoute: (data: Record<string, unknown>) => api.post('/compliance', data),
 }
+
+// Intake Interfaces
+export interface IntakeRequest {
+  tool: 'evaluation' | 'compliance' | 'query'
+  legalProfile: {
+    // Identity
+    orgType: string
+    orgTypeOther?: string
+    orgPurpose: string
+    orgPurposeOther?: string
+    seeksProfits: boolean | null
+
+    // Formalization
+    hasLegalStatus: string | null
+    rucStatus: string | null
+    specialRegistries: string[]
+
+    // Income
+    handlesMoney: boolean | null
+    receivesForeignFunds: boolean | null
+    incomeSources: string[]
+
+    // International Cooperation
+    receivesInternationalCooperation: boolean | null
+    apciStatus: string | null
+
+    // HR
+    hiringModalities: string[]
+    contractsValid: string | null
+
+    // Accounting
+    accountingRecords: string | null
+    accountingRecordsDetail: string | null
+    availableDocuments: string[]
+
+    // Governance
+    hasGovernanceBodies: boolean | null
+    hasLegalRepresentative: string | null
+
+    // Intangibles
+    intangibleAssets: string[]
+  }
+  toolSpecific: {
+    // Evaluation
+    evaluationGoals?: string[]
+    legalAreas?: string[]
+    urgency?: string
+
+    // Compliance  
+    complianceGoal?: string
+    timeline?: string
+
+    // Query
+    queryArea?: string
+    specificQuestion?: string
+  }
+}
+
+export interface IntakeValidationResponse {
+  valid: boolean
+  errors?: {
+    field: string
+    message: string
+  }[]
+  warnings?: {
+    field: string
+    message: string
+    severity: 'low' | 'medium'
+  }[]
+  riskSignals: {
+    derivationRequired: boolean
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+    reasons: string[]
+  }
+}
+
+export const intakeApi = {
+  getQuestions: (tool?: string) => api.get(tool ? `/intake/questions/${tool}` : '/intake/questions'),
+  getOptions: () => api.get('/intake/options'),
+  validate: (data: IntakeRequest) => api.post<IntakeValidationResponse>('/intake/validate', data),
+  submit: (data: IntakeRequest) => api.post<IntakeValidationResponse>('/intake/submit', data),
+  getSummary: (tool: string) => api.get(`/intake/summary/${tool}`),
+}
