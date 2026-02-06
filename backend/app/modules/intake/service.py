@@ -557,6 +557,225 @@ class IntakeService:
 
         return list(set(intentions))  # Eliminar duplicados
 
+    # =========================================================================
+    # MULTI-ORGANIZACIÓN - Validación de proyectos con múltiples organizaciones
+    # =========================================================================
+
+    def validate_project(
+        self, request: "ProjectIntakeRequest"
+    ) -> "ProjectValidationResponse":
+        """
+        Valida un proyecto con múltiples organizaciones (1-3).
+        Retorna errores, warnings y evaluación de riesgo agregada.
+        """
+        from .schemas import (
+            ProjectIntakeRequest,
+            ProjectValidationResponse,
+            ProjectValidationError,
+            ProjectRiskAssessment,
+            OrganizationRiskAssessment,
+            NormalizedProjectIntake,
+            RiskSignal,
+        )
+
+        errors: list[ProjectValidationError] = []
+        warnings: list[ValidationWarning] = []
+        org_risks: list[OrganizationRiskAssessment] = []
+        all_intentions: list[str] = []
+
+        # Validar cada organización
+        for org in request.organizations:
+            # Crear un IntakeRequest temporal para reutilizar validación existente
+            temp_request = IntakeRequest(
+                tool=request.tool,
+                legal_profile=org.legal_profile,
+                tool_specific=request.tool_specific,
+                session_id=request.session_id,
+                organization_id=org.id,
+            )
+
+            # Validar campos requeridos
+            req_errors = self._validate_required_fields(temp_request)
+            for err in req_errors:
+                errors.append(ProjectValidationError(
+                    organization_id=org.id,
+                    organization_name=org.name,
+                    field=err.field,
+                    message=err.message,
+                    block=err.block,
+                ))
+
+            # Validar opciones de selector
+            sel_errors = self._enforce_selector_inputs(temp_request)
+            for err in sel_errors:
+                errors.append(ProjectValidationError(
+                    organization_id=org.id,
+                    organization_name=org.name,
+                    field=err.field,
+                    message=err.message,
+                    block=err.block,
+                ))
+
+            # Validar cross-field
+            cross_errors, cross_warnings = self._validate_cross_field(temp_request)
+            for err in cross_errors:
+                errors.append(ProjectValidationError(
+                    organization_id=org.id,
+                    organization_name=org.name,
+                    field=err.field,
+                    message=err.message,
+                    block=err.block,
+                ))
+            warnings.extend(cross_warnings)
+
+            # Evaluar riesgo de la organización
+            risk = self._assess_risk(temp_request)
+            org_risks.append(OrganizationRiskAssessment(
+                organization_id=org.id,
+                organization_name=org.name,
+                risk_level=risk.risk_level,
+                signals=risk.signals,
+            ))
+
+            # Detectar intenciones
+            intentions = self._detect_intentions(temp_request)
+            all_intentions.extend(intentions)
+
+        # Detectar riesgos compartidos entre organizaciones
+        shared_signals, shared_reasons = self._detect_shared_risks(request.organizations)
+
+        # Calcular riesgo agregado del proyecto
+        project_risk = self._calculate_project_risk(org_risks, shared_signals)
+        project_risk.organization_risks = org_risks
+        project_risk.shared_signals = shared_signals
+        project_risk.shared_reasons = shared_reasons
+        project_risk.detected_intentions = list(set(all_intentions))
+
+        # Normalizar si es válido
+        normalized_data = None
+        if not errors:
+            normalized_data = NormalizedProjectIntake(
+                tool=request.tool,
+                project=request.project,
+                organizations=request.organizations,
+                tool_specific=request.tool_specific,
+                risk_assessment=project_risk,
+                session_id=request.session_id,
+                intake_timestamp=datetime.utcnow(),
+                intake_version="2.0",
+                jurisdiction="PE",
+                total_organizations=len(request.organizations),
+            )
+
+        return ProjectValidationResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            risk_assessment=project_risk,
+            normalized_data=normalized_data,
+        )
+
+    def _detect_shared_risks(
+        self, organizations: list["OrganizationProfile"]
+    ) -> tuple[list[RiskSignal], list[str]]:
+        """Detecta riesgos que surgen de la interacción entre organizaciones"""
+        from .schemas import OrganizationProfile
+
+        signals: list[RiskSignal] = []
+        reasons: list[str] = []
+
+        if len(organizations) < 2:
+            return signals, reasons
+
+        # Verificar si todas las orgs manejan datos de usuarios
+        orgs_with_user_data = [
+            org for org in organizations
+            if "Bases de datos de usuarios" in org.legal_profile.intangibles.intangible_assets
+        ]
+        if len(orgs_with_user_data) > 1:
+            signals.append(RiskSignal(
+                signal_type="data_sharing_risk",
+                description=f"{len(orgs_with_user_data)} organizaciones manejan bases de datos de usuarios - verificar transferencia de datos",
+                source_field="intangible_assets",
+            ))
+            reasons.append("Múltiples organizaciones manejan datos personales. Verificar cumplimiento de Ley de Protección de Datos Personales en transferencias.")
+
+        # Verificar si hay organizaciones sin personería jurídica
+        orgs_without_legal = [
+            org for org in organizations
+            if org.legal_profile.formalization.has_legal_status == "No"
+        ]
+        if orgs_without_legal and len(organizations) > 1:
+            signals.append(RiskSignal(
+                signal_type="informal_partner_risk",
+                description=f"{len(orgs_without_legal)} organización(es) sin personería jurídica participando en proyecto conjunto",
+                source_field="has_legal_status",
+            ))
+            reasons.append("Proyecto incluye organizaciones no formalizadas. Considerar riesgos de responsabilidad y capacidad contractual.")
+
+        # Verificar si hay mezcla de orgs con y sin APCI cuando hay fondos internacionales
+        orgs_receiving_intl = [
+            org for org in organizations
+            if org.legal_profile.income.receives_foreign_funds or
+               org.legal_profile.international_cooperation.receives_international_cooperation
+        ]
+        orgs_with_apci = [
+            org for org in organizations
+            if org.legal_profile.international_cooperation.apci_status == "Registrado" or
+               "APCI" in org.legal_profile.formalization.special_registries
+        ]
+        if orgs_receiving_intl and len(orgs_with_apci) < len(orgs_receiving_intl):
+            signals.append(RiskSignal(
+                signal_type="apci_gap_risk",
+                description="No todas las organizaciones que reciben fondos internacionales están registradas en APCI",
+                source_field="apci_status",
+            ))
+            reasons.append("Verificar que cada organización que canalice fondos internacionales esté registrada en APCI.")
+
+        return signals, reasons
+
+    def _calculate_project_risk(
+        self,
+        org_risks: list["OrganizationRiskAssessment"],
+        shared_signals: list[RiskSignal],
+    ) -> "ProjectRiskAssessment":
+        """Calcula el riesgo agregado del proyecto"""
+        from .schemas import ProjectRiskAssessment
+
+        # El riesgo del proyecto es el máximo de las organizaciones
+        max_risk = RiskLevel.LOW
+        for org_risk in org_risks:
+            if org_risk.risk_level == RiskLevel.HIGH:
+                max_risk = RiskLevel.HIGH
+                break
+            elif org_risk.risk_level == RiskLevel.MEDIUM:
+                max_risk = RiskLevel.MEDIUM
+
+        # Si hay riesgos compartidos significativos, aumentar el nivel
+        if len(shared_signals) >= 2 and max_risk == RiskLevel.LOW:
+            max_risk = RiskLevel.MEDIUM
+        elif len(shared_signals) >= 2 and max_risk == RiskLevel.MEDIUM:
+            max_risk = RiskLevel.HIGH
+
+        # Determinar color de derivación
+        derivation_color = DerivationColor.GREEN
+        derivation_required = False
+
+        high_risk_count = sum(1 for r in org_risks if r.risk_level == RiskLevel.HIGH)
+        if high_risk_count >= 2 or (high_risk_count >= 1 and len(shared_signals) >= 2):
+            derivation_color = DerivationColor.RED
+            derivation_required = True
+        elif max_risk == RiskLevel.HIGH or len(shared_signals) >= 2:
+            derivation_color = DerivationColor.YELLOW
+        elif max_risk == RiskLevel.MEDIUM:
+            derivation_color = DerivationColor.YELLOW
+
+        return ProjectRiskAssessment(
+            overall_risk_level=max_risk,
+            derivation_color=derivation_color,
+            derivation_required=derivation_required,
+        )
+
 
 # Instancia singleton para uso en la aplicación
 intake_service = IntakeService()

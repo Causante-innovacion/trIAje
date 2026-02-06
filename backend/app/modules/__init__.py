@@ -7,7 +7,8 @@ Cada herramienta es un pipeline orquestado:
 Tool = OrchestratedToolPipeline {
     intake_module
     validation_module
-    rag_module
+    legal_rules (Legal Requirements Resolver)  ← NUEVO
+    rag_module (para justificar con normativa)
     reasoning_module
     gap_engine (optional)
     milestone_engine (optional)
@@ -15,6 +16,21 @@ Tool = OrchestratedToolPipeline {
     output_builder
     advisor_package_generator (conditional)
 }
+
+Flujo conceptual:
+    Ficha Legal Mínima (JSON)
+            ↓
+    Project Context (tipo, fondos, alcance)
+            ↓
+    Legal Requirements Resolver (reglas de negocio)
+            ↓
+    Requirement Coverage Checker
+            ↓
+    Estado Legal del Proyecto
+            ↓
+    RAG (solo para justificar y explicar)
+            ↓
+    Output Builder
 """
 
 from .intake import IntakeService, intake_service
@@ -26,16 +42,36 @@ from .milestone_engine import MilestoneEngine
 from .risk_engine import RiskEngine
 from .output_builder import OutputBuilder
 from .advisor_package import AdvisorPackageGenerator
+from .legal_rules import (
+    LegalRequirementsResolver,
+    resolve_requirements,
+    LegalIntention,
+    LegalRequirement,
+    LegalGap,
+    LegalRequirementsResult,
+)
 
 __all__ = [
+    # Intake
     "IntakeService",
     "intake_service",
+    # Validation
     "ValidationModule",
+    # Legal Rules (NEW)
+    "LegalRequirementsResolver",
+    "resolve_requirements",
+    "LegalIntention",
+    "LegalRequirement",
+    "LegalGap",
+    "LegalRequirementsResult",
+    # RAG
     "RAGModule",
+    # Processing
     "ReasoningModule",
     "GapEngine",
     "MilestoneEngine",
     "RiskEngine",
+    # Output
     "OutputBuilder",
     "AdvisorPackageGenerator",
 ]

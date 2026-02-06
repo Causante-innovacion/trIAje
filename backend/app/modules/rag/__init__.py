@@ -16,7 +16,12 @@ User Input → Query Normalization → Legal Intent Expansion
 - index_case_interpretation (optional)
 """
 
-from .service import RAGModule
+from .service import (
+    RAGModule,
+    initialize_rag,
+    get_rag_module,
+    shutdown_rag,
+)
 from .interfaces import (
     RAGConfig,
     RAGQuery,
@@ -24,16 +29,28 @@ from .interfaces import (
     RetrievedChunk,
     ChunkMetadata,
     Evidence,
+    IndexType,
 )
 from .confidence import RAGConfidenceCalculator
+from .adapters.chroma import ChromaDBAdapter, create_chroma_adapter
 
 __all__ = [
+    # Service
     "RAGModule",
+    "initialize_rag",
+    "get_rag_module",
+    "shutdown_rag",
+    # Interfaces
     "RAGConfig",
     "RAGQuery",
     "RAGResult",
     "RetrievedChunk",
     "ChunkMetadata",
     "Evidence",
+    "IndexType",
+    # Confidence
     "RAGConfidenceCalculator",
+    # Adapters
+    "ChromaDBAdapter",
+    "create_chroma_adapter",
 ]

@@ -13,6 +13,8 @@ from app.features.evaluation.router import router as evaluation_router
 from app.features.query.router import router as query_router
 from app.features.advisor_prep.router import router as advisor_prep_router
 from app.features.compliance.router import router as compliance_router
+from app.features.documents.router import router as documents_router
+from app.modules.rag import initialize_rag, shutdown_rag
 
 
 @asynccontextmanager
@@ -20,9 +22,19 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
     print(f"Starting GPT Legal API v{settings.VERSION}")
+
+    # Initialize RAG module with ChromaDB
+    try:
+        rag_module = await initialize_rag()
+        print(f"RAG module initialized (ChromaDB mode: {settings.CHROMA_MODE})")
+    except Exception as e:
+        print(f"Warning: Could not initialize RAG module: {e}")
+
     yield
+
     # Shutdown
     print("Shutting down GPT Legal API")
+    await shutdown_rag()
 
 
 app = FastAPI(
@@ -47,6 +59,7 @@ app.include_router(evaluation_router, prefix="/api/v1/evaluation", tags=["Evalua
 app.include_router(query_router, prefix="/api/v1/query", tags=["Consultas"])
 app.include_router(advisor_prep_router, prefix="/api/v1/advisor-prep", tags=["Preparar Asesor"])
 app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["Cumplimiento"])
+app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documentos RAG"])
 
 
 @app.get("/health")
@@ -63,9 +76,15 @@ async def root():
         "version": settings.VERSION,
         "docs": "/docs",
         "intake": "/api/v1/intake",
+        "documents": "/api/v1/documents",
         "tools": [
             {"id": "evaluation", "name": "Evaluación Legal", "endpoint": "/api/v1/evaluation"},
             {"id": "compliance", "name": "Ruta de Cumplimiento", "endpoint": "/api/v1/compliance"},
             {"id": "query", "name": "Consulta Legal", "endpoint": "/api/v1/query"},
-        ]
+        ],
+        "rag": {
+            "status": "/api/v1/documents/status",
+            "search": "/api/v1/documents/search",
+            "upload": "/api/v1/documents/upload",
+        }
     }

@@ -57,6 +57,16 @@ from .schemas import (
     ValidationWarning,
     RiskSignal,
     RiskAssessment,
+    # Multi-organization
+    OrganizationRole,
+    OrganizationProfile,
+    ProjectInfo,
+    ProjectIntakeRequest,
+    OrganizationRiskAssessment,
+    ProjectRiskAssessment,
+    NormalizedProjectIntake,
+    ProjectValidationError,
+    ProjectValidationResponse,
 )
 
 __all__ = [
@@ -105,4 +115,14 @@ __all__ = [
     "ValidationWarning",
     "RiskSignal",
     "RiskAssessment",
+    # Multi-organization
+    "OrganizationRole",
+    "OrganizationProfile",
+    "ProjectInfo",
+    "ProjectIntakeRequest",
+    "OrganizationRiskAssessment",
+    "ProjectRiskAssessment",
+    "NormalizedProjectIntake",
+    "ProjectValidationError",
+    "ProjectValidationResponse",
 ]

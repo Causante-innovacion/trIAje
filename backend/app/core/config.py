@@ -24,19 +24,31 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./gpt_legal.db")
 
-    # Vector Store (abstracto - configurar según implementación)
-    VECTOR_STORE_TYPE: str = Field(default="none")  # none, pgvector, pinecone, qdrant
-    VECTOR_STORE_URL: str | None = None
-    VECTOR_STORE_API_KEY: str | None = None
+    # Vector Store - ChromaDB
+    VECTOR_STORE_TYPE: str = Field(default="chroma")  # chroma, pgvector, pinecone
+    CHROMA_MODE: str = Field(default="local")  # local, server, memory
+    CHROMA_PERSIST_DIR: str = Field(default="./chroma_data")
+    CHROMA_HOST: str = Field(default="localhost")
+    CHROMA_PORT: int = Field(default=8000)
 
     # AI Providers
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
+    MAPLE_API_KEY: str | None = None
+    MAPLE_API_URL: str = Field(default="https://api.maple.ai/v1")
+
+    # AI Provider preference (openai, maple, anthropic)
+    AI_PROVIDER_PRIMARY: str = Field(default="openai")
+    AI_PROVIDER_FALLBACK: str = Field(default="openai")
 
     # AI Models (configurables)
     MODEL_INTAKE: str = "gpt-4o-mini"      # Tareas simples, clasificación
     MODEL_REASONING: str = "gpt-4o"         # Análisis legal
     MODEL_CREATIVITY: str = "claude-sonnet-4-20250514"  # Redacción
+
+    # Embeddings
+    EMBEDDING_PROVIDER: str = Field(default="openai")  # openai, local
+    EMBEDDING_MODEL: str = Field(default="text-embedding-3-small")
 
     # RAG Parameters (según spec)
     RAG_TOP_K_INITIAL: int = 20

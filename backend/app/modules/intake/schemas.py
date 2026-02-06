@@ -396,3 +396,119 @@ class NormalizedIntake(BaseModel):
 
 # Actualizar forward reference
 IntakeValidationResponse.model_rebuild()
+
+
+# =============================================================================
+# MULTI-ORGANIZACIÓN - Soporte para proyectos con 1-3 organizaciones
+# =============================================================================
+
+class OrganizationRole(str, Enum):
+    """Roles posibles de una organización en el proyecto"""
+    MAIN_EXECUTOR = "Ejecutor principal"
+    CO_EXECUTOR = "Co-ejecutor"
+    FUNDER = "Financiador"
+    PARTNER = "Aliado estratégico"
+    BENEFICIARY = "Beneficiario"
+
+
+class OrganizationProfile(BaseModel):
+    """Perfil completo de una organización (Ficha Legal + metadata)"""
+    id: str
+    name: str
+    role: OrganizationRole | str = OrganizationRole.MAIN_EXECUTOR
+    legal_profile: LegalProfile
+
+
+class ProjectInfo(BaseModel):
+    """Información del proyecto"""
+    id: str | None = None
+    name: str | None = None
+    description: str | None = None
+
+
+class ProjectIntakeRequest(BaseModel):
+    """
+    Request para intake de proyecto con múltiples organizaciones.
+    Soporta de 1 a 3 organizaciones por proyecto.
+    """
+    tool: ToolType
+    project: ProjectInfo | None = None
+    organizations: list[OrganizationProfile] = Field(
+        ...,
+        min_length=1,
+        max_length=3,
+        description="Lista de organizaciones (1-3)"
+    )
+    tool_specific: ToolSpecificData
+
+    # Metadata
+    session_id: str | None = None
+
+
+class OrganizationRiskAssessment(BaseModel):
+    """Evaluación de riesgo para una organización específica"""
+    organization_id: str
+    organization_name: str
+    risk_level: RiskLevel = RiskLevel.LOW
+    signals: list[RiskSignal] = Field(default_factory=list)
+
+
+class ProjectRiskAssessment(BaseModel):
+    """Evaluación de riesgo agregada del proyecto"""
+    overall_risk_level: RiskLevel = RiskLevel.LOW
+    derivation_color: DerivationColor = DerivationColor.GREEN
+    derivation_required: bool = False
+
+    # Riesgos por organización
+    organization_risks: list[OrganizationRiskAssessment] = Field(default_factory=list)
+
+    # Riesgos compartidos/interacción
+    shared_signals: list[RiskSignal] = Field(default_factory=list)
+    shared_reasons: list[str] = Field(default_factory=list)
+
+    # Intenciones detectadas
+    detected_intentions: list[str] = Field(default_factory=list)
+
+
+class NormalizedProjectIntake(BaseModel):
+    """Datos normalizados del proyecto para procesamiento por IA"""
+    tool: ToolType
+
+    # Info del proyecto
+    project: ProjectInfo | None = None
+
+    # Organizaciones con sus fichas legales
+    organizations: list[OrganizationProfile]
+
+    # Datos específicos de herramienta
+    tool_specific: ToolSpecificData
+
+    # Evaluación de riesgo agregada
+    risk_assessment: ProjectRiskAssessment
+
+    # Metadata
+    session_id: str | None = None
+    intake_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    intake_version: str = "2.0"
+    jurisdiction: str = "PE"
+    total_organizations: int = 1
+
+
+class ProjectValidationError(BaseModel):
+    """Error de validación para proyecto multi-organización"""
+    organization_id: str | None = None  # None si es error del proyecto
+    organization_name: str | None = None
+    field: str
+    message: str
+    block: str | None = None
+
+
+class ProjectValidationResponse(BaseModel):
+    """Response de validación para proyecto multi-organización"""
+    valid: bool
+    errors: list[ProjectValidationError] = Field(default_factory=list)
+    warnings: list[ValidationWarning] = Field(default_factory=list)
+    risk_assessment: ProjectRiskAssessment = Field(default_factory=ProjectRiskAssessment)
+
+    # Datos normalizados si es válido (listos para enviar a IA)
+    normalized_data: NormalizedProjectIntake | None = None

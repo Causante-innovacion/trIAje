@@ -13,6 +13,11 @@ from app.modules.intake import (
     ToolType,
     ValidOptions,
 )
+from app.modules.intake.schemas import (
+    ProjectIntakeRequest,
+    ProjectValidationResponse,
+    OrganizationRole,
+)
 
 router = APIRouter()
 
@@ -185,3 +190,79 @@ async def get_intake_summary(tool: ToolType):
         ],
         "version": question_set.version,
     }
+
+
+# =============================================================================
+# MULTI-ORGANIZACIÓN - Endpoints para proyectos con 1-3 organizaciones
+# =============================================================================
+
+@router.get("/organization-roles")
+async def get_organization_roles():
+    """
+    Obtiene los roles disponibles para organizaciones en un proyecto.
+
+    Returns:
+        Lista de roles con id y nombre
+    """
+    return [
+        {"id": role.value, "name": role.value}
+        for role in OrganizationRole
+    ]
+
+
+@router.post("/project/validate", response_model=ProjectValidationResponse)
+async def validate_project(request: ProjectIntakeRequest):
+    """
+    Valida un proyecto con múltiples organizaciones (1-3).
+
+    Realiza validación de cada organización y detecta riesgos compartidos.
+
+    Args:
+        request: ProjectIntakeRequest con lista de organizaciones
+
+    Returns:
+        ProjectValidationResponse con:
+        - valid: bool
+        - errors: lista de errores por organización
+        - warnings: lista de warnings
+        - risk_assessment: evaluación de riesgo agregada del proyecto
+        - normalized_data: datos normalizados listos para enviar a IA
+    """
+    try:
+        return intake_service.validate_project(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error validando proyecto: {str(e)}")
+
+
+@router.post("/project/submit", response_model=ProjectValidationResponse)
+async def submit_project(request: ProjectIntakeRequest):
+    """
+    Envía un proyecto con múltiples organizaciones para procesamiento.
+
+    Este es el endpoint principal para el flujo multi-organización.
+    Retorna los datos normalizados listos para enviar a la IA.
+
+    Args:
+        request: ProjectIntakeRequest con lista de organizaciones
+
+    Returns:
+        ProjectValidationResponse con normalized_data para la IA
+    """
+    try:
+        response = intake_service.validate_project(request)
+
+        if not response.valid:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "El proyecto contiene errores de validación",
+                    "errors": [e.model_dump() for e in response.errors],
+                    "warnings": [w.model_dump() for w in response.warnings],
+                }
+            )
+
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error procesando proyecto: {str(e)}")

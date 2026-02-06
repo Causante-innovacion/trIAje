@@ -1,0 +1,410 @@
+{
+  "_comment": "Archivo de prueba para APIs de IA - GPT Legal MVP",
+  "_usage": "Este JSON representa el normalized_data que sale del backend y se envía a la IA",
+
+  "example_evaluation_2_orgs": {
+    "tool": "evaluation",
+    "project": {
+      "id": "proj_eval_001",
+      "name": "Programa de Educación Digital para Jóvenes",
+      "description": "Proyecto conjunto para capacitar a 500 jóvenes en habilidades digitales"
+    },
+    "organizations": [
+      {
+        "id": "org_1",
+        "name": "AIESEC Perú",
+        "role": "Ejecutor principal",
+        "legal_profile": {
+          "identity": {
+            "org_type": "Asociación",
+            "org_type_other": null,
+            "org_purpose": "Educativo",
+            "org_purpose_other": null,
+            "seeks_profits": false
+          },
+          "formalization": {
+            "has_legal_status": "Sí",
+            "ruc_status": "Lo tengo",
+            "special_registries": ["Exonerada de Impuesto a la renta"]
+          },
+          "income": {
+            "handles_money": true,
+            "receives_foreign_funds": true,
+            "income_sources": ["Donaciones", "Cooperación internacional", "Venta de servicios o productos"]
+          },
+          "international_cooperation": {
+            "receives_international_cooperation": true,
+            "apci_status": "Registrado"
+          },
+          "human_resources": {
+            "hiring_modalities": ["Voluntariado", "Locación de servicios"],
+            "contracts_valid": "Sí"
+          },
+          "accounting": {
+            "has_accounting_records": "Sí, completos",
+            "available_documents": ["Estatuto o acta de constitución", "Estados financieros", "Libros de actas", "Memorias anuales"]
+          },
+          "governance": {
+            "has_governance_bodies": true,
+            "has_legal_representative": "Sí"
+          },
+          "intangibles": {
+            "intangible_assets": ["Software de terceros", "Bases de datos de usuarios", "Marca o símbolos distintivos"]
+          }
+        }
+      },
+      {
+        "id": "org_2",
+        "name": "Fundación Tech for Good",
+        "role": "Co-ejecutor",
+        "legal_profile": {
+          "identity": {
+            "org_type": "Fundación",
+            "org_type_other": null,
+            "org_purpose": "Tecnológico / innovación",
+            "org_purpose_other": null,
+            "seeks_profits": false
+          },
+          "formalization": {
+            "has_legal_status": "Sí",
+            "ruc_status": "Lo tengo",
+            "special_registries": ["APCI", "Exonerada de Impuesto a la renta"]
+          },
+          "income": {
+            "handles_money": true,
+            "receives_foreign_funds": true,
+            "income_sources": ["Donaciones", "Fondos privados", "Cooperación internacional"]
+          },
+          "international_cooperation": {
+            "receives_international_cooperation": true,
+            "apci_status": "Registrado"
+          },
+          "human_resources": {
+            "hiring_modalities": ["Planilla", "Locación de servicios"],
+            "contracts_valid": "Sí"
+          },
+          "accounting": {
+            "has_accounting_records": "Sí, completos",
+            "available_documents": ["Estatuto o acta de constitución", "Estados financieros", "Memorias anuales", "Libros de actas", "Plan de uso de fondos"]
+          },
+          "governance": {
+            "has_governance_bodies": true,
+            "has_legal_representative": "Sí"
+          },
+          "intangibles": {
+            "intangible_assets": ["Software propio", "Bases de datos de usuarios", "Contenido con derechos de autor"]
+          }
+        }
+      }
+    ],
+    "tool_specific": {
+      "evaluation": {
+        "evaluation_goals": ["Viabilidad legal del proyecto", "Identificación de riesgos", "Brechas regulatorias"],
+        "legal_areas": ["Cooperación internacional (APCI)", "Tributario", "Propiedad intelectual", "Laboral"],
+        "urgency": "Corto plazo (semanas)"
+      },
+      "compliance": null,
+      "query": null
+    },
+    "risk_assessment": {
+      "overall_risk_level": "MEDIUM",
+      "derivation_color": "yellow",
+      "derivation_required": false,
+      "organization_risks": [
+        {
+          "organization_id": "org_1",
+          "organization_name": "AIESEC Perú",
+          "risk_level": "MEDIUM",
+          "signals": [
+            {
+              "signal_type": "labor_risk",
+              "description": "Usa locación de servicios - verificar que no haya subordinación",
+              "source_field": "hiring_modalities"
+            }
+          ]
+        },
+        {
+          "organization_id": "org_2",
+          "organization_name": "Fundación Tech for Good",
+          "risk_level": "LOW",
+          "signals": []
+        }
+      ],
+      "shared_signals": [
+        {
+          "signal_type": "data_sharing_risk",
+          "description": "2 organizaciones manejan bases de datos de usuarios - verificar transferencia de datos",
+          "source_field": "intangible_assets"
+        }
+      ],
+      "shared_reasons": [
+        "Múltiples organizaciones manejan datos personales. Verificar cumplimiento de Ley de Protección de Datos Personales en transferencias."
+      ],
+      "detected_intentions": [
+        "viability_evaluation",
+        "international_cooperation",
+        "intellectual_property",
+        "taxation",
+        "hiring"
+      ]
+    },
+    "session_id": "sess_abc123",
+    "intake_timestamp": "2024-01-15T10:30:00Z",
+    "intake_version": "2.0",
+    "jurisdiction": "PE",
+    "total_organizations": 2
+  },
+
+  "example_compliance_1_org": {
+    "tool": "compliance",
+    "project": {
+      "id": "proj_comp_001",
+      "name": "Formalización de Colectivo Ambiental",
+      "description": "Proceso de formalización para colectivo que trabaja en conservación"
+    },
+    "organizations": [
+      {
+        "id": "org_1",
+        "name": "EcoGuardianes",
+        "role": "Ejecutor principal",
+        "legal_profile": {
+          "identity": {
+            "org_type": "Colectivo / iniciativa no formalizada",
+            "org_type_other": null,
+            "org_purpose": "Ambiental",
+            "org_purpose_other": null,
+            "seeks_profits": false
+          },
+          "formalization": {
+            "has_legal_status": "No",
+            "ruc_status": "No lo tengo",
+            "special_registries": ["Ninguno"]
+          },
+          "income": {
+            "handles_money": true,
+            "receives_foreign_funds": false,
+            "income_sources": ["Donaciones", "Venta de servicios o productos"]
+          },
+          "international_cooperation": {
+            "receives_international_cooperation": false,
+            "apci_status": "No aplica"
+          },
+          "human_resources": {
+            "hiring_modalities": ["Voluntariado"],
+            "contracts_valid": "No aplica"
+          },
+          "accounting": {
+            "has_accounting_records": "No",
+            "available_documents": ["Ninguno"]
+          },
+          "governance": {
+            "has_governance_bodies": false,
+            "has_legal_representative": "No"
+          },
+          "intangibles": {
+            "intangible_assets": ["Software de terceros", "Marca o símbolos distintivos"]
+          }
+        }
+      }
+    ],
+    "tool_specific": {
+      "evaluation": null,
+      "compliance": {
+        "compliance_goal": "Formalizar la organización",
+        "timeline": "1-3 meses"
+      },
+      "query": null
+    },
+    "risk_assessment": {
+      "overall_risk_level": "HIGH",
+      "derivation_color": "yellow",
+      "derivation_required": false,
+      "organization_risks": [
+        {
+          "organization_id": "org_1",
+          "organization_name": "EcoGuardianes",
+          "risk_level": "HIGH",
+          "signals": [
+            {
+              "signal_type": "structure_risk",
+              "description": "Maneja dinero sin personería jurídica",
+              "source_field": "has_legal_status"
+            },
+            {
+              "signal_type": "accounting_risk",
+              "description": "Maneja dinero sin registros contables",
+              "source_field": "has_accounting_records"
+            }
+          ]
+        }
+      ],
+      "shared_signals": [],
+      "shared_reasons": [],
+      "detected_intentions": [
+        "compliance_route",
+        "formalization",
+        "taxation",
+        "donations"
+      ]
+    },
+    "session_id": "sess_def456",
+    "intake_timestamp": "2024-01-16T14:00:00Z",
+    "intake_version": "2.0",
+    "jurisdiction": "PE",
+    "total_organizations": 1
+  },
+
+  "example_query_1_org": {
+    "tool": "query",
+    "project": {
+      "id": "proj_query_001",
+      "name": "Consulta sobre APCI",
+      "description": null
+    },
+    "organizations": [
+      {
+        "id": "org_1",
+        "name": "ONG Desarrollo Sostenible",
+        "role": "Ejecutor principal",
+        "legal_profile": {
+          "identity": {
+            "org_type": "ONG",
+            "org_type_other": null,
+            "org_purpose": "Asistencial / social",
+            "org_purpose_other": null,
+            "seeks_profits": false
+          },
+          "formalization": {
+            "has_legal_status": "Sí",
+            "ruc_status": "Lo tengo",
+            "special_registries": ["Exonerada de Impuesto a la renta"]
+          },
+          "income": {
+            "handles_money": true,
+            "receives_foreign_funds": false,
+            "income_sources": ["Donaciones", "Fondos públicos"]
+          },
+          "international_cooperation": {
+            "receives_international_cooperation": false,
+            "apci_status": "Necesita registro"
+          },
+          "human_resources": {
+            "hiring_modalities": ["Planilla", "Voluntariado"],
+            "contracts_valid": "Sí"
+          },
+          "accounting": {
+            "has_accounting_records": "Sí, completos",
+            "available_documents": ["Estatuto o acta de constitución", "Estados financieros", "Libros de actas"]
+          },
+          "governance": {
+            "has_governance_bodies": true,
+            "has_legal_representative": "Sí"
+          },
+          "intangibles": {
+            "intangible_assets": ["Software de terceros", "Bases de datos de usuarios"]
+          }
+        }
+      }
+    ],
+    "tool_specific": {
+      "evaluation": null,
+      "compliance": null,
+      "query": {
+        "query_area": "Cooperación internacional",
+        "specific_question": "¿Cuáles son los requisitos y el proceso para registrar nuestra ONG en la APCI? Queremos empezar a recibir cooperación técnica internacional de fundaciones europeas para un proyecto de desarrollo comunitario."
+      }
+    },
+    "risk_assessment": {
+      "overall_risk_level": "MEDIUM",
+      "derivation_color": "yellow",
+      "derivation_required": false,
+      "organization_risks": [
+        {
+          "organization_id": "org_1",
+          "organization_name": "ONG Desarrollo Sostenible",
+          "risk_level": "MEDIUM",
+          "signals": []
+        }
+      ],
+      "shared_signals": [],
+      "shared_reasons": [],
+      "detected_intentions": [
+        "international_cooperation",
+        "donations",
+        "hiring"
+      ]
+    },
+    "session_id": "sess_ghi789",
+    "intake_timestamp": "2024-01-17T09:15:00Z",
+    "intake_version": "2.0",
+    "jurisdiction": "PE",
+    "total_organizations": 1
+  },
+
+  "prompt_template": {
+    "_comment": "Template de prompt para probar con diferentes IAs",
+    "system_prompt": "Eres JUSTO, un asistente legal especializado en organizaciones civiles en Perú. Tu rol es proporcionar orientación legal precisa, identificar riesgos y recomendar acciones basándote en la normativa peruana vigente. Siempre incluyes disclaimers apropiados y recomiendas asesoría profesional cuando es necesario.",
+
+    "user_prompt_template": "TAREA: Generar {tool_name} para el siguiente proyecto.\n\nHERRAMIENTA: {tool}\n- evaluation: Evaluar viabilidad legal, identificar riesgos y brechas regulatorias\n- compliance: Generar ruta de cumplimiento paso a paso con milestones\n- query: Responder consulta legal específica\n\nINFORMACIÓN DEL PROYECTO:\n{normalized_data_json}\n\nINSTRUCCIONES:\n1. Analiza TODAS las organizaciones involucradas ({total_organizations})\n2. Identifica riesgos específicos por organización y riesgos compartidos\n3. Considera las interacciones legales entre organizaciones\n4. Aplica normativa peruana vigente\n5. Genera recomendaciones priorizadas\n\nREGLAS DE SEGURIDAD:\n- Si overall_risk_level es HIGH o derivation_required es true: Recomendar asesoría profesional obligatoria\n- Si derivation_color es 'red': Este caso REQUIERE atención de un profesional legal\n- Si derivation_color es 'yellow': Proceder con cautela y recomendar validación profesional\n- Para riesgos laborales: Advertir sobre desnaturalización de contratos\n- Para APCI: Verificar cumplimiento de registro obligatorio\n\nDISCLAIMERS OBLIGATORIOS (incluir al final):\n- 'Esta información es orientativa y no constituye asesoría legal profesional.'\n- 'Se recomienda validar esta orientación con un abogado especializado antes de tomar decisiones.'\n- Si derivation_required es true: 'IMPORTANTE: Este caso presenta complejidad que requiere atención de un profesional legal calificado.'\n\nFORMATO DE RESPUESTA: Estructurar según la herramienta solicitada.",
+
+    "expected_output_structure": {
+      "evaluation": {
+        "resumen_ejecutivo": "string - Resumen de 2-3 párrafos",
+        "viabilidad": {
+          "status": "viable | viable_con_condiciones | no_viable",
+          "traffic_light": "green | yellow | red",
+          "justificacion": "string"
+        },
+        "riesgos_identificados": [
+          {
+            "categoria": "string",
+            "descripcion": "string",
+            "organizacion_afectada": "string | 'todas'",
+            "nivel": "alto | medio | bajo",
+            "recomendacion": "string"
+          }
+        ],
+        "brechas_regulatorias": [
+          {
+            "area": "string",
+            "brecha": "string",
+            "organizacion": "string",
+            "prioridad": "alta | media | baja",
+            "accion_requerida": "string"
+          }
+        ],
+        "proximos_pasos": ["string"],
+        "requiere_asesoria_profesional": "boolean",
+        "disclaimers": ["string"]
+      },
+      "compliance": {
+        "resumen": "string",
+        "objetivo": "string",
+        "timeline_estimado": "string",
+        "milestones": [
+          {
+            "numero": "number",
+            "titulo": "string",
+            "descripcion": "string",
+            "autoridad_responsable": "string | null",
+            "documentos_requeridos": ["string"],
+            "prerequisitos": ["string"],
+            "organizacion_responsable": "string"
+          }
+        ],
+        "documentos_totales_requeridos": ["string"],
+        "advertencias": ["string"],
+        "disclaimers": ["string"]
+      },
+      "query": {
+        "respuesta": "string - Respuesta detallada a la consulta",
+        "puntos_clave": ["string"],
+        "normativa_aplicable": ["string"],
+        "recomendaciones": ["string"],
+        "temas_relacionados": ["string"],
+        "requiere_profundizacion": "boolean",
+        "disclaimers": ["string"]
+      }
+    }
+  }
+}

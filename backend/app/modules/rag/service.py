@@ -21,6 +21,7 @@ from .contradiction import ContradictionDetector
 from .confidence import RAGConfidenceCalculator
 from .protocols import InsufficientEvidenceProtocol
 from .adapters.base import VectorStoreAdapter
+from .adapters.chroma import ChromaDBAdapter, create_chroma_adapter
 
 
 class RAGModule:
@@ -61,6 +62,7 @@ class RAGModule:
     async def retrieve_and_ground(
         self,
         query: str,
+        organization_id: str | None = None,
         indices: List[IndexType] | None = None,
         top_k_initial: int | None = None,
         top_k_rerank: int | None = None,
@@ -71,6 +73,7 @@ class RAGModule:
 
         Args:
             query: Consulta del usuario
+            organization_id: ID de la organización (para buscar en sus docs privados)
             indices: Índices donde buscar
             top_k_initial: Chunks iniciales a recuperar
             top_k_rerank: Chunks finales después de rerank
@@ -111,23 +114,116 @@ class RAGModule:
                 processing_notes=["Vector store no configurado"],
             )
 
-        # 3. Buscar en vector store
-        # NOTA: En implementación real, aquí se generaría el embedding de la query
-        # query_embedding = await self._get_embedding(query)
-        # chunks = await self.vector_store.search(...)
+        # 3. Generar embedding de la query
+        from app.ai.embeddings import embed_text
+        query_embedding = await embed_text(query)
 
-        # Por ahora, retornamos resultado vacío indicando que falta implementar
-        return RAGResult(
-            query=rag_query,
-            chunks=[],
-            evidence=[],
-            confidence=0.0,
-            indices_searched=[idx.value for idx in target_indices],
-            processing_notes=[
-                "Vector store adapter no implementado",
-                "Implementar search con embeddings reales",
-            ],
+        # 4. Buscar en vector store (multi-tenant si hay organization_id)
+        if isinstance(self.vector_store, ChromaDBAdapter):
+            chunks = await self.vector_store.search_multi_tenant(
+                query_embedding=query_embedding,
+                organization_id=organization_id,
+                index_types=target_indices,
+                top_k=config.top_k_initial,
+            )
+        else:
+            index_names = [idx.value for idx in target_indices]
+            chunks = await self.vector_store.search(
+                query_embedding=query_embedding,
+                index_names=index_names,
+                top_k=config.top_k_initial,
+            )
+
+        # 5. Si no hay chunks, retornar resultado vacío
+        if not chunks:
+            return RAGResult(
+                query=rag_query,
+                chunks=[],
+                evidence=[],
+                confidence=0.0,
+                indices_searched=[idx.value for idx in target_indices],
+                processing_notes=["No se encontraron documentos relevantes"],
+            )
+
+        # 6. Procesar chunks recuperados (scoring, filtrado, etc.)
+        return await self.process_retrieved_chunks(chunks, rag_query)
+
+    async def retrieve_for_project(
+        self,
+        query: str,
+        organization_ids: List[str],
+        top_k_initial: int | None = None,
+        top_k_rerank: int | None = None,
+    ) -> RAGResult:
+        """
+        Búsqueda RAG a nivel proyecto (multi-organización).
+
+        Busca en:
+        - normativa_peru (compartido)
+        - org_{id} para cada organización del proyecto
+
+        Args:
+            query: Consulta de búsqueda
+            organization_ids: Lista de IDs de organizaciones del proyecto (1-3)
+            top_k_initial: Chunks iniciales
+            top_k_rerank: Chunks finales
+
+        Returns:
+            RAGResult con chunks de todas las fuentes
+        """
+        config = RAGConfig(
+            top_k_initial=top_k_initial or self.config.top_k_initial,
+            top_k_rerank=top_k_rerank or self.config.top_k_rerank,
+            strictness=self.config.strictness,
+            confidence_threshold=self.config.confidence_threshold,
         )
+
+        rag_query = RAGQuery(
+            original_query=query,
+            target_indices=[IndexType.NORMATIVE_PRIMARY],
+            config=config,
+        )
+
+        # Expandir query
+        expanded_terms = self.query_expander.expand(query)
+        rag_query.expanded_terms = expanded_terms
+
+        if not self.vector_store:
+            return RAGResult(
+                query=rag_query,
+                confidence=0.0,
+                processing_notes=["Vector store no configurado"],
+            )
+
+        # Generar embedding
+        from app.ai.embeddings import embed_text
+        query_embedding = await embed_text(query)
+
+        # Buscar a nivel proyecto
+        if isinstance(self.vector_store, ChromaDBAdapter):
+            chunks = await self.vector_store.search_project(
+                query_embedding=query_embedding,
+                organization_ids=organization_ids,
+                top_k=config.top_k_initial,
+            )
+        else:
+            # Fallback: buscar solo en normativa
+            chunks = await self.vector_store.search(
+                query_embedding=query_embedding,
+                index_names=["normative_primary"],
+                top_k=config.top_k_initial,
+            )
+
+        if not chunks:
+            return RAGResult(
+                query=rag_query,
+                chunks=[],
+                evidence=[],
+                confidence=0.0,
+                processing_notes=[f"No se encontraron documentos para proyecto con {len(organization_ids)} org(s)"],
+            )
+
+        return await self.process_retrieved_chunks(chunks, rag_query)
 
     async def process_retrieved_chunks(
         self,
@@ -245,3 +341,61 @@ class RAGModule:
     def should_escalate(self, rag_result: RAGResult) -> bool:
         """Determina si se debe escalar a asesor humano"""
         return rag_result.requires_escalation()
+
+
+# =============================================================================
+# Factory y instancia global
+# =============================================================================
+
+_rag_module: RAGModule | None = None
+
+
+async def initialize_rag() -> RAGModule:
+    """
+    Inicializa el módulo RAG con ChromaDB.
+    Debe llamarse al inicio de la aplicación.
+    """
+    global _rag_module
+
+    from app.core.config import settings
+
+    # Crear adapter de ChromaDB según configuración
+    adapter = create_chroma_adapter(
+        mode=settings.CHROMA_MODE,
+        persist_directory=settings.CHROMA_PERSIST_DIR,
+        host=settings.CHROMA_HOST,
+        port=settings.CHROMA_PORT,
+    )
+
+    # Inicializar ChromaDB
+    await adapter.initialize()
+
+    # Crear configuración RAG desde settings
+    config = RAGConfig(
+        top_k_initial=settings.RAG_TOP_K_INITIAL,
+        top_k_rerank=settings.RAG_TOP_K_RERANK,
+        strictness=settings.RAG_STRICTNESS,
+        confidence_threshold=settings.RAG_CONFIDENCE_THRESHOLD,
+    )
+
+    # Crear módulo RAG
+    _rag_module = RAGModule(vector_store=adapter, config=config)
+
+    return _rag_module
+
+
+def get_rag_module() -> RAGModule:
+    """Obtiene la instancia del módulo RAG"""
+    if _rag_module is None:
+        raise RuntimeError(
+            "RAG module not initialized. Call initialize_rag() first."
+        )
+    return _rag_module
+
+
+async def shutdown_rag() -> None:
+    """Cierra conexiones del módulo RAG"""
+    global _rag_module
+    if _rag_module and _rag_module.vector_store:
+        await _rag_module.vector_store.close()
+    _rag_module = None

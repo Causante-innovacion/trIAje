@@ -2,8 +2,10 @@
 """
 Adaptadores para diferentes vector stores.
 
-PARA IMPLEMENTAR:
-Los compañeros deben crear uno de estos archivos según el vector store elegido:
+Implementados:
+- chroma.py (ChromaDB) - Multi-tenant con collections compartidas y privadas
+
+Para implementar:
 - pgvector_adapter.py  (PostgreSQL + pgvector)
 - pinecone_adapter.py  (Pinecone managed)
 - qdrant_adapter.py    (Qdrant open source)
@@ -17,24 +19,30 @@ from .base import (
     ChunkMetadata,
     RetrievedChunk,
     IndexConfig,
+    IndexType,
     REQUIRED_INDICES,
 )
+from .chroma import ChromaDBAdapter, create_chroma_adapter
 
 __all__ = [
     "VectorStoreAdapter",
     "ChunkMetadata",
     "RetrievedChunk",
     "IndexConfig",
+    "IndexType",
     "REQUIRED_INDICES",
+    "ChromaDBAdapter",
+    "create_chroma_adapter",
 ]
 
 
-def get_adapter(adapter_type: str = "none") -> VectorStoreAdapter:
+def get_adapter(adapter_type: str = "chroma", **kwargs) -> VectorStoreAdapter:
     """
     Factory para obtener el adapter configurado.
 
     Args:
-        adapter_type: Tipo de adapter ("pgvector", "pinecone", "qdrant", "none")
+        adapter_type: Tipo de adapter ("chroma", "pgvector", "pinecone", "qdrant")
+        **kwargs: Argumentos adicionales para el adapter
 
     Returns:
         Instancia del adapter
@@ -42,25 +50,16 @@ def get_adapter(adapter_type: str = "none") -> VectorStoreAdapter:
     Raises:
         NotImplementedError: Si el adapter no está implementado
     """
-    if adapter_type == "none":
-        raise NotImplementedError(
-            "No hay vector store configurado. "
-            "Implementa un adapter en app/modules/rag/adapters/"
-        )
+    if adapter_type == "chroma":
+        return create_chroma_adapter(**kwargs)
 
     if adapter_type == "pgvector":
-        # from .pgvector_adapter import PgVectorAdapter
-        # return PgVectorAdapter()
         raise NotImplementedError("PgVectorAdapter no implementado aún")
 
     if adapter_type == "pinecone":
-        # from .pinecone_adapter import PineconeAdapter
-        # return PineconeAdapter()
         raise NotImplementedError("PineconeAdapter no implementado aún")
 
     if adapter_type == "qdrant":
-        # from .qdrant_adapter import QdrantAdapter
-        # return QdrantAdapter()
         raise NotImplementedError("QdrantAdapter no implementado aún")
 
     raise ValueError(f"Adapter type '{adapter_type}' no reconocido")
