@@ -96,3 +96,56 @@ class RAGStatusResponse(BaseModel):
     chroma_mode: str
     collections: list[CollectionStats]
     total_documents: int
+
+
+# ─────────────────────────────────────────────
+# Plan Estratégico - Extracción DOCX
+# ─────────────────────────────────────────────
+
+class OrganizationExtracted(BaseModel):
+    """Organización extraída del plan estratégico"""
+    name: str
+    role_raw: str
+    tasks: list[str] = Field(default_factory=list)
+
+
+class GapExtracted(BaseModel):
+    """Brecha identificada en el plan"""
+    description: str
+    ally_needed: str = ""
+    strategy: str = ""
+
+
+class FinancingPhase(BaseModel):
+    """Fase de financiamiento"""
+    phase: int
+    name: str
+
+
+class FinancingExtracted(BaseModel):
+    """Datos de financiamiento extraídos"""
+    sources_suggested_raw: list[str] = Field(default_factory=list)
+    future_allies_raw: list[str] = Field(default_factory=list)
+    phases_raw: list[FinancingPhase] = Field(default_factory=list)
+
+
+class SourceMetadata(BaseModel):
+    """Metadatos del proyecto extraídos"""
+    project_name: str
+    description: str = ""
+    problem_summary: str = ""
+    solution_summary: str = ""
+    external_dependency: int | None = None
+
+
+class RawExtractions(BaseModel):
+    """Datos crudos extraídos del plan"""
+    team_and_partners: list[OrganizationExtracted] = Field(default_factory=list)
+    financing_sources_raw: FinancingExtracted = Field(default_factory=FinancingExtracted)
+    gaps_identified: list[GapExtracted] = Field(default_factory=list)
+
+
+class PlanExtractionResponse(BaseModel):
+    """Respuesta completa de la extracción del plan estratégico"""
+    source_metadata: SourceMetadata
+    raw_extractions: RawExtractions

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { evaluationApi } from '../../shared/services/api'
 import { mapBackendToProjectEvaluation, BackendEvaluationResponse } from '../../types/evaluation.types'
+import { useChatStore } from '../../stores/chatStore'
 import { Check, ChevronLeft, Fingerprint, Gavel, Banknote, Users, BookOpen, Network, Lightbulb, Info, Lock, X, Building2, LucideIcon, Globe, ClipboardList } from 'lucide-react'
 import { OrganizationCard } from './OrganizationCard'
 import { ProgressTracker } from './ProgressTracker'
@@ -76,11 +77,11 @@ interface FormState {
   hasConfirmed: boolean
 }
 
-const MOCK_ORGANIZATIONS: Organization[] = [
-  { id: '1', name: 'AIESEC', role: 'Administrador', progress: 38, color: '#B3994C', icon: Building2 },
-  /*{ id: '2', name: 'CENDES', role: 'Editor', progress: 38, color: '#8F86A3', icon: Landmark },
-  { id: '3', name: 'LANKI', role: 'Lector', progress: 10, color: '#D7D100', icon: Home },*/
+const DEFAULT_ORGANIZATIONS: Organization[] = [
+  { id: '1', name: 'Organización 1', role: 'Ejecutor principal', progress: 0, color: '#B3994C', icon: Building2 },
 ]
+
+const ORG_COLORS = ['#B3994C', '#8F86A3', '#D7D100']
 
 const initialFormState: FormState = {
   orgType: null,
@@ -205,8 +206,25 @@ const calculateProgress = (form: FormState) => {
 
 export function LegalFormPage() {
   const navigate = useNavigate()
+  const extractedPlan = useChatStore((s) => s.extractedPlan)
+
+  // Build initial organizations from extracted plan or use defaults
+  const baseOrganizations = useMemo<Organization[]>(() => {
+    if (extractedPlan && extractedPlan.raw_extractions.team_and_partners.length > 0) {
+      return extractedPlan.raw_extractions.team_and_partners.map((org, i) => ({
+        id: String(i + 1),
+        name: org.name,
+        role: org.role_raw || 'Ejecutor principal',
+        progress: 0,
+        color: ORG_COLORS[i % ORG_COLORS.length],
+        icon: Building2,
+      }))
+    }
+    return DEFAULT_ORGANIZATIONS
+  }, [extractedPlan])
+
   const [selectedOrg, setSelectedOrg] = useState<string>('1')
-  const [organizations, setOrganizations] = useState<Organization[]>(MOCK_ORGANIZATIONS)
+  const [organizations, setOrganizations] = useState<Organization[]>(baseOrganizations)
 
   // Initialize form
   const [form, setForm] = useState<FormState>(initialFormState)
@@ -244,7 +262,7 @@ export function LegalFormPage() {
 
   // Update organizations progress on mount and when form changes (saved)
   useEffect(() => {
-    const updatedOrgs = MOCK_ORGANIZATIONS.map(org => {
+    const updatedOrgs = baseOrganizations.map(org => {
       try {
         // Use current form state for selected organization to get real-time updates
         if (org.id === selectedOrg) {

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { Message, ToolType, UploadedFile, TOOLS } from '../types/chat'
+import type { PlanExtractionResponse } from '../types/extraction.types'
 
 interface ChatStore {
   // State
@@ -11,6 +12,7 @@ interface ChatStore {
   uploadProgress: number
   sessionId: string | null
   pendingFile: UploadedFile | null
+  extractedPlan: PlanExtractionResponse | null
 
   // Actions
   startTool: (tool: ToolType) => void
@@ -23,6 +25,7 @@ interface ChatStore {
   setPendingFile: (file: UploadedFile | null) => void
   updateFileStatus: (fileId: string, status: UploadedFile['status'], progress?: number) => void
   setSessionId: (id: string) => void
+  setExtractedPlan: (data: PlanExtractionResponse | null) => void
   nextStep: () => void
   clearChat: () => void
   resetToHome: () => void
@@ -40,6 +43,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   uploadProgress: 0,
   sessionId: null,
   pendingFile: null,
+  extractedPlan: null,
 
   // Actions
   startTool: (tool) => {
@@ -125,6 +129,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setSessionId: (id) => set({ sessionId: id }),
 
+  setExtractedPlan: (data) => set({ extractedPlan: data }),
+
   nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
 
   clearChat: () => set({
@@ -145,5 +151,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     uploadProgress: 0,
     sessionId: null,
     pendingFile: null,
+    extractedPlan: null,
   }),
 }))

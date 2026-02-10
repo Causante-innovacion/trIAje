@@ -1,5 +1,6 @@
 import axios, { AxiosProgressEvent } from 'axios'
 import { ChatRequest } from '../../types/chat'
+import type { PlanExtractionResponse } from '../../types/extraction.types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -41,6 +42,17 @@ export const chatApi = {
   },
 
   getSession: (sessionId: string) => api.get(`/chat/session/${sessionId}`),
+}
+
+// Documents API - Extracción y gestión de documentos
+export const documentsApi = {
+  extractPlan: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<PlanExtractionResponse>('/documents/extract-plan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 // API endpoints por feature (legacy - para compatibilidad)

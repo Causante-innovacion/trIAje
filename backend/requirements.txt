@@ -30,6 +30,12 @@ torch>=2.0.0
 # PDF Processing (para ETL de documentos legales)
 PyMuPDF>=1.23.0
 
+# DOCX Processing (para extracción de Plan Estratégico)
+python-docx>=1.1.0
+
+# File Upload (FastAPI)
+python-multipart>=0.0.6
+
 # Utilities
 python-dotenv>=1.0.0
 httpx>=0.26.0

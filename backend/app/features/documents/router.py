@@ -3,18 +3,58 @@ Documents Feature - Router
 Endpoints para gestión de documentos y RAG.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from .schemas import (
     DocumentUploadRequest,
     DocumentUploadResponse,
     DocumentSearchRequest,
     DocumentSearchResponse,
+    PlanExtractionResponse,
     RAGStatusResponse,
 )
 from .service import document_service
 
 router = APIRouter()
+
+
+@router.post("/extract-plan", response_model=PlanExtractionResponse)
+async def extract_plan(file: UploadFile = File(...)):
+    """
+    Extrae datos estructurados de un Plan Estratégico CAUSANTE (.docx).
+
+    Acepta un archivo DOCX y retorna:
+    - source_metadata: nombre del proyecto, descripción, problema, solución
+    - raw_extractions: organizaciones, financiamiento, brechas
+
+    Args:
+        file: Archivo .docx del plan estratégico
+
+    Returns:
+        PlanExtractionResponse con los datos extraídos
+    """
+    if not file.filename or not file.filename.lower().endswith(".docx"):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se aceptan archivos .docx",
+        )
+
+    try:
+        file_bytes = await file.read()
+        if not file_bytes:
+            raise HTTPException(status_code=400, detail="Archivo vacío")
+
+        from .extraction import extract_from_bytes
+        result = extract_from_bytes(file_bytes, file.filename)
+        return PlanExtractionResponse(**result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error extrayendo datos del plan: {str(e)}",
+        )
 
 
 @router.post("/upload", response_model=DocumentUploadResponse)
