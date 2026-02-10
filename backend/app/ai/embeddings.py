@@ -103,16 +103,17 @@ class LocalEmbeddingService(EmbeddingService):
     Útil para desarrollo sin costos de API.
     """
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "paraphrase-multilingual-mpnet-base-v2"):
         self.model_name = model_name
         self._model = None
-        self._dimension = 384  # Default para MiniLM
+        self._dimension = 768  # Default para mpnet-base-v2
 
         # Dimensiones conocidas
         self._known_dimensions = {
             "all-MiniLM-L6-v2": 384,
             "all-mpnet-base-v2": 768,
             "paraphrase-multilingual-MiniLM-L12-v2": 384,
+            "paraphrase-multilingual-mpnet-base-v2": 768,
         }
 
     @property
@@ -182,8 +183,16 @@ class EmbeddingServiceFactory:
         if cls._instance is None:
             from app.core.config import settings
 
-            # Usar OpenAI si hay API key, sino local
-            if hasattr(settings, "OPENAI_API_KEY") and settings.OPENAI_API_KEY:
+            provider = getattr(settings, "EMBEDDING_PROVIDER", "openai")
+
+            if provider == "local":
+                model_name = getattr(
+                    settings,
+                    "EMBEDDING_LOCAL_MODEL",
+                    "paraphrase-multilingual-mpnet-base-v2",
+                )
+                cls._instance = LocalEmbeddingService(model_name=model_name)
+            elif hasattr(settings, "OPENAI_API_KEY") and settings.OPENAI_API_KEY:
                 cls._instance = OpenAIEmbeddingService()
             else:
                 cls._instance = LocalEmbeddingService()

@@ -75,13 +75,17 @@ class LegalRequirementsResolver:
         result.project_intentions = list(all_intentions)
 
         # Determinar si requiere asesoría profesional
+        # Según documento de diseño del semáforo:
+        # - 1-2 gaps críticos → YELLOW (viable con condiciones)
+        # - ≥3 gaps críticos → RED (requiere revisión profesional)
+        # - ≥5 gaps totales → sugiere complejidad que amerita profesional
         result.requires_professional_advice = (
-            result.critical_gaps > 0
+            result.critical_gaps >= 3
             or result.total_gaps >= 5
         )
 
         if result.requires_professional_advice:
-            if result.critical_gaps > 0:
+            if result.critical_gaps >= 3:
                 result.professional_advice_reason = (
                     f"Se detectaron {result.critical_gaps} brechas críticas que "
                     "requieren atención profesional inmediata."

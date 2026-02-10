@@ -614,8 +614,15 @@ class TestResolverSingleOrg:
         # Debe detectar intención de protección de datos (tiene base de datos)
         assert LegalIntention.DATA_PROTECTION in org.detected_intentions
 
-    def test_requires_professional_advice_when_critical(self):
-        """Debe requerir asesoría profesional cuando hay gaps críticos"""
+    def test_requires_professional_advice_when_many_critical(self):
+        """
+        Según documento de diseño del semáforo:
+        - 1-2 gaps críticos → YELLOW (viable con condiciones), sin derivación obligatoria
+        - ≥3 gaps críticos → RED (requiere revisión profesional)
+        - ≥5 gaps totales → sugiere complejidad que amerita profesional
+
+        Con 1 gap crítico y 3 totales, NO debe requerir asesoría profesional.
+        """
         project = create_test_project([
             ("org_1", "Colectivo Informal", create_informal_collective())
         ])
@@ -623,8 +630,9 @@ class TestResolverSingleOrg:
         resolver = LegalRequirementsResolver()
         result = resolver.resolve(project)
 
-        assert result.requires_professional_advice is True
-        assert result.professional_advice_reason is not None
+        # 1 gap crítico y 3 totales: no requiere derivación profesional
+        assert result.requires_professional_advice is False
+        assert result.professional_advice_reason is None
 
 
 class TestResolverMultiOrg:

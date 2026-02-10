@@ -9,34 +9,45 @@ from pydantic import BaseModel, Field
 
 class LegalIntention(str, Enum):
     """
-    Intenciones legales detectadas según documentación.
-    Cada intención representa un área legal que requiere atención.
+    Intenciones legales del GPT Legal (10 intenciones + sub-categorías internas).
+    Basado en el documento de diseño del Primer Entregable.
     """
-    # Estructura y formalización
+    # === 10 INTENCIONES PRINCIPALES (documento de diseño) ===
+
+    # 1. Formalización y registros (constitución, RUC, SUNARP)
     FORMALIZATION = "formalization"
-    GOVERNANCE = "governance"
 
-    # Financiero / Tributario
+    # 2. Evaluación de viabilidad del proyecto (requisitos mínimos)
+    VIABILITY_EVALUATION = "viability_evaluation"
+
+    # 3. Financiamiento y tributación (IGV, IR, exoneraciones)
     TAXATION = "taxation"
-    DONATIONS = "donations"
 
-    # Cooperación Internacional
-    INTERNATIONAL_COOPERATION = "international_cooperation"
-
-    # Laboral
+    # 4. Contratación de personal (modalidades laborales, voluntariado)
     HIRING = "hiring"
 
-    # Propiedad Intelectual
+    # 5. Cooperación y donaciones internacionales (APCI, beneficios fiscales)
+    INTERNATIONAL_COOPERATION = "international_cooperation"
+
+    # 6. Propiedad intelectual y contratos (software, marcas, datos personales)
     INTELLECTUAL_PROPERTY = "intellectual_property"
 
-    # Datos
+    # 7. Preparación de reuniones y documentación (actas, estatutos, memorias)
+    MEETINGS_DOCUMENTATION = "meetings_documentation"
+
+    # 8. Riesgos y gestión preventiva (riesgos fiscales, laborales, contractuales)
+    RISK_MANAGEMENT = "risk_management"
+
+    # 9. Registro como entidad receptora de donaciones (SUNAT, certificados)
+    DONATIONS = "donations"
+
+    # 10. Casos grises (situaciones complejas que requieren abogado)
+    GREY_CASES = "grey_cases"
+
+    # === SUB-CATEGORÍAS INTERNAS (usadas por reglas de negocio) ===
+    GOVERNANCE = "governance"
     DATA_PROTECTION = "data_protection"
-
-    # Contabilidad
     ACCOUNTING = "accounting"
-
-    # Evaluación general
-    VIABILITY_EVALUATION = "viability_evaluation"
     COMPLIANCE_ROUTE = "compliance_route"
 
 

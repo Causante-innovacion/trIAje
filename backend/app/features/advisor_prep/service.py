@@ -1,28 +1,16 @@
 """
 Advisor Prep Feature - Service
+(Placeholder - pendiente de implementacion completa)
 """
-
-from app.modules.intake import IntakeModule
-from app.modules.intake.schemas import IntakeData
-from app.modules.validation import ValidationModule
-from app.modules.reasoning import ReasoningModule
-from app.modules.gap_engine import GapEngine
-from app.modules.risk_engine import RiskEngine
-from app.modules.advisor_package import AdvisorPackageGenerator
 
 from .schemas import AdvisorPrepRequest, AdvisorPrepResponse, AdvisorPrepQuestions
 
 
 class AdvisorPrepService:
-    """Servicio para preparación de reunión con asesor"""
+    """Servicio para preparacion de reunion con asesor (placeholder)"""
 
     def __init__(self):
-        self.intake = IntakeModule()
-        self.validation = ValidationModule()
-        self.reasoning = ReasoningModule()
-        self.gap = GapEngine()
-        self.risk = RiskEngine()
-        self.advisor_gen = AdvisorPackageGenerator()
+        pass
 
     async def get_questions(self) -> AdvisorPrepQuestions:
         """Obtiene preguntas del intake"""

@@ -1,0 +1,49 @@
+{
+    "doc_id": "ds_003_2013_reglamento_datos_personales",
+    "titulo": "Decreto Supremo N° 003-2013-JUS - Reglamento de la Ley de Protección de Datos Personales",
+    "tipo": "norma",
+    "categoria": "propiedad_intelectual",
+    "subcategoria": "datos_personales",
+    "intenciones_aplicables": [
+        "propiedad_intelectual",
+        "riesgo_gestion"
+    ],
+    "nivel_riesgo_temas": {
+        "medidas_seguridad": "amarillo",
+        "registro_banco_datos": "verde",
+        "transferencia_internacional": "rojo",
+        "notificacion_brechas": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Procedimientos para cumplir con la Ley 29733",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Necesito un responsable de datos personales?",
+                "¿Cómo registro mi banco de datos?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "intangibles_datos"
+    ],
+    "keywords": [
+        "reglamento datos personales",
+        "medidas seguridad",
+        "banco de datos",
+        "consentimiento",
+        "APDP",
+        "registro"
+    ],
+    "entidad": "MINJUSDH",
+    "nivel_autoridad": "reglamento",
+    "url_oficial": "https://www.gob.pe/minjus",
+    "archivo_local": "knowledge_base/normas/propiedad_intelectual/ds_003_2013_reglamento_datos_personales.pdf",
+    "vigencia_desde": "2013-03-22",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Reglamento de la LPDP con procedimientos detallados de cumplimiento.",
+    "version": 1,
+    "idioma": "es"
+}

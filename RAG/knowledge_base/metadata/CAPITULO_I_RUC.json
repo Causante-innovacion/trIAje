@@ -1,0 +1,36 @@
+{
+    "doc_id": "capitulo_i_ruc",
+    "titulo": "Capítulo I - Disposiciones del RUC",
+    "tipo": "norma",
+    "categoria": "tributario",
+    "subcategoria": "ruc",
+    "intenciones_aplicables": [
+        "formalizacion",
+        "tributacion"
+    ],
+    "nivel_riesgo_temas": {
+        "inscripcion": "verde",
+        "actualizacion": "verde"
+    },
+    "articulos_clave": [],
+    "campos_ficha_legal": [
+        "estado_formalizacion"
+    ],
+    "keywords": [
+        "RUC",
+        "contribuyentes",
+        "inscripción",
+        "SUNAT",
+        "capítulo I"
+    ],
+    "entidad": "SUNAT",
+    "nivel_autoridad": "reglamento",
+    "url_oficial": "https://www.sunat.gob.pe/",
+    "archivo_local": "knowledge_base/normas/tributario/capitulo_i_ruc.pdf",
+    "vigencia_desde": null,
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Disposiciones complementarias del RUC.",
+    "version": 1,
+    "idioma": "es"
+}

@@ -1,11 +1,16 @@
 """
 Evaluation Feature - Service
-Business logic para evaluación de proyectos
+Business logic para evaluación de proyectos multi-organización.
 """
 
+from app.modules.intake.schemas import (
+    NormalizedProjectIntake,
+    ToolType,
+)
+from app.modules.intake.questions import get_question_set
+
 from .schemas import EvaluationRequest, EvaluationResponse, EvaluationQuestions
-from .pipeline import EvaluationPipeline
-from app.modules.intake import IntakeModule
+from .pipeline import EvaluationPipeline, get_evaluation_pipeline
 
 
 class EvaluationService:
@@ -14,27 +19,30 @@ class EvaluationService:
     """
 
     def __init__(self):
-        self.pipeline = EvaluationPipeline()
-        self.intake = IntakeModule()
+        self.pipeline = get_evaluation_pipeline()
 
     async def get_questions(self) -> EvaluationQuestions:
         """
         Obtiene las preguntas del intake para evaluación.
         """
-        question_set = self.intake.render_question_set(tool_id=1)
+        question_set = get_question_set(ToolType.EVALUATION)
 
-        return EvaluationQuestions(
-            questions=[
-                {
+        questions = []
+        for block in question_set.blocks:
+            for q in block.questions:
+                questions.append({
                     "id": q.id,
                     "text": q.text,
                     "type": q.input_type.value,
                     "required": q.required,
                     "options": q.options,
                     "help_text": q.help_text,
-                }
-                for q in question_set.questions
-            ],
+                    "block": block.id,
+                    "block_name": block.name,
+                })
+
+        return EvaluationQuestions(
+            questions=questions,
             tool_id=1,
             tool_name="Evaluar proyecto",
         )
@@ -42,26 +50,44 @@ class EvaluationService:
     async def evaluate(self, request: EvaluationRequest) -> EvaluationResponse:
         """
         Ejecuta la evaluación de un proyecto.
+
+        Args:
+            request: EvaluationRequest con NormalizedProjectIntake
+
+        Returns:
+            EvaluationResponse con viabilidad, gaps, y semáforo
         """
         return await self.pipeline.execute(request)
 
-    async def evaluate_civic_output(
+    async def evaluate_intake(
         self,
-        civic_generator_output: dict,
-        additional_context: dict | None = None,
+        intake: NormalizedProjectIntake,
+        include_rag: bool = True,
     ) -> EvaluationResponse:
         """
-        Evalúa la salida del Generador Cívico.
-        """
-        # Extraer datos del output del generador cívico
-        request = EvaluationRequest(
-            organization_type=civic_generator_output.get("organization_type", "Otro"),
-            has_legal_entity=civic_generator_output.get("has_legal_entity", False),
-            project_areas=civic_generator_output.get("areas", ["Otro"]),
-            funding_source=civic_generator_output.get("funding_source"),
-            urgency=civic_generator_output.get("urgency"),
-            project_description=civic_generator_output.get("description"),
-            civic_generator_output=civic_generator_output,
-        )
+        Evalúa un intake normalizado directamente.
 
+        Args:
+            intake: NormalizedProjectIntake
+            include_rag: Si buscar justificación RAG
+
+        Returns:
+            EvaluationResponse
+        """
+        request = EvaluationRequest(
+            intake=intake,
+            include_rag_justification=include_rag,
+        )
         return await self.pipeline.execute(request)
+
+
+# Instancia singleton
+_service: EvaluationService | None = None
+
+
+def get_evaluation_service() -> EvaluationService:
+    """Obtiene el servicio de evaluación"""
+    global _service
+    if _service is None:
+        _service = EvaluationService()
+    return _service

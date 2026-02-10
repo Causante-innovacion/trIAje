@@ -1,0 +1,50 @@
+{
+    "doc_id": "ley_ruc",
+    "titulo": "Ley del Registro Único de Contribuyentes (RUC)",
+    "tipo": "norma",
+    "categoria": "tributario",
+    "subcategoria": "ruc",
+    "intenciones_aplicables": [
+        "formalizacion",
+        "tributacion",
+        "viabilidad"
+    ],
+    "nivel_riesgo_temas": {
+        "obtencion_ruc": "verde",
+        "actualizacion_datos": "verde",
+        "sanciones_no_registro": "amarillo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Requisitos y procedimiento para obtener el RUC",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Qué documentos necesito para obtener el RUC?",
+                "¿Cuánto tiempo toma obtener el RUC?",
+                "¿Puedo iniciar actividades antes de obtener el RUC?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "estado_formalizacion"
+    ],
+    "keywords": [
+        "RUC",
+        "registro contribuyentes",
+        "SUNAT",
+        "inscripción tributaria",
+        "número RUC",
+        "formalización"
+    ],
+    "entidad": "SUNAT",
+    "nivel_autoridad": "ley",
+    "url_oficial": "https://www.sunat.gob.pe/",
+    "archivo_local": "knowledge_base/normas/tributario/ley_ruc.pdf",
+    "vigencia_desde": null,
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Ley principal sobre el RUC. Fundamental para preguntas de formalización tributaria.",
+    "version": 1,
+    "idioma": "es"
+}

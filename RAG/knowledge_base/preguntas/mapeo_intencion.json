@@ -1,0 +1,77 @@
+{
+  "form_001": {
+    "intencion": "formalizacion",
+    "color": "verde",
+    "pregunta_principal": "¿Cómo constituir una asociación civil u ONG?"
+  },
+  "form_002": {
+    "intencion": "formalizacion",
+    "color": "verde",
+    "pregunta_principal": "¿Cómo reservar la razón social o denominación de mi asociación?"
+  },
+  "form_003": {
+    "intencion": "formalizacion",
+    "color": "verde",
+    "pregunta_principal": "¿Qué documentos necesito para obtener el número RUC de la asociación?"
+  },
+  "form_004": {
+    "intencion": "formalizacion",
+    "color": "verde",
+    "pregunta_principal": "¿Cuántos socios se requieren como mínimo para constituir una asociación?"
+  },
+  "trib_001": {
+    "intencion": "tributacion",
+    "color": "verde",
+    "pregunta_principal": "¿Podemos cobrar por talleres y continuar como organización sin fines de lucro?"
+  },
+  "trib_002": {
+    "intencion": "tributacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿Nuestra asociación está exonerada del Impuesto a la Renta?"
+  },
+  "trib_003": {
+    "intencion": "tributacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿Qué retención de Impuesto a la Renta se aplica a los recibos por honorarios?"
+  },
+  "cont_001": {
+    "intencion": "contratacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿En qué casos conviene contratar personal por locación de servicios y cuándo en planilla?"
+  },
+  "cont_002": {
+    "intencion": "contratacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿Qué requisitos se deben cumplir para contratar a un extranjero?"
+  },
+  "coop_001": {
+    "intencion": "cooperacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿Es obligatorio inscribirse en la APCI para recibir fondos del extranjero?"
+  },
+  "coop_002": {
+    "intencion": "cooperacion",
+    "color": "amarillo",
+    "pregunta_principal": "¿Hay diferencias en el tratamiento tributario de donaciones internas y externas?"
+  },
+  "rojo_001": {
+    "intencion": "casos_grises",
+    "color": "rojo",
+    "pregunta_principal": "¿Cómo tributo si combino donaciones y venta de servicios?"
+  },
+  "rojo_002": {
+    "intencion": "casos_grises",
+    "color": "rojo",
+    "pregunta_principal": "Un trabajador reclama que fue despedido sin causa y solicita indemnización"
+  },
+  "rojo_003": {
+    "intencion": "casos_grises",
+    "color": "rojo",
+    "pregunta_principal": "Recibimos una notificación de fiscalización tributaria de SUNAT"
+  },
+  "rojo_004": {
+    "intencion": "casos_grises",
+    "color": "rojo",
+    "pregunta_principal": "Descubrimos que datos personales fueron accedidos sin autorización"
+  }
+}

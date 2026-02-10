@@ -1,22 +1,16 @@
 """
 Compliance Feature - Service
+(Placeholder - pendiente de implementacion completa)
 """
-
-from app.modules.intake import IntakeModule
-from app.modules.intake.schemas import IntakeData
-from app.modules.gap_engine import GapEngine
-from app.modules.milestone_engine import MilestoneEngine
 
 from .schemas import ComplianceRequest, ComplianceResponse, ComplianceQuestions, MilestoneResponse
 
 
 class ComplianceService:
-    """Servicio para ruta de cumplimiento"""
+    """Servicio para ruta de cumplimiento (placeholder)"""
 
     def __init__(self):
-        self.intake = IntakeModule()
-        self.gap = GapEngine()
-        self.milestone = MilestoneEngine()
+        pass
 
     async def get_questions(self) -> ComplianceQuestions:
         """Obtiene preguntas del intake"""

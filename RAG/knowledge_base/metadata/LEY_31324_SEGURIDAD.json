@@ -1,0 +1,35 @@
+{
+    "doc_id": "ley_31324",
+    "titulo": "Ley N° 31324 - Ley que fortalece la seguridad ciudadana",
+    "tipo": "norma",
+    "categoria": "cooperacion",
+    "subcategoria": "seguridad",
+    "intenciones_aplicables": [
+        "cooperacion_internacional",
+        "riesgo_gestion"
+    ],
+    "nivel_riesgo_temas": {
+        "obligaciones_entidades": "amarillo",
+        "sanciones": "rojo"
+    },
+    "articulos_clave": [],
+    "campos_ficha_legal": [
+        "cooperacion_internacional"
+    ],
+    "keywords": [
+        "seguridad ciudadana",
+        "cooperación",
+        "obligaciones",
+        "entidades extranjeras"
+    ],
+    "entidad": "Congreso",
+    "nivel_autoridad": "ley",
+    "url_oficial": "",
+    "archivo_local": "knowledge_base/normas/cooperacion/ley_31324.pdf",
+    "vigencia_desde": "2021-01-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Norma sobre seguridad ciudadana con implicaciones para entidades que reciben cooperación.",
+    "version": 1,
+    "idioma": "es"
+}

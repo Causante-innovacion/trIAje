@@ -24,10 +24,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./gpt_legal.db")
 
-    # Vector Store - ChromaDB
+    # Vector Store - ChromaDB (usa la DB poblada en RAG/chroma_db)
     VECTOR_STORE_TYPE: str = Field(default="chroma")  # chroma, pgvector, pinecone
     CHROMA_MODE: str = Field(default="local")  # local, server, memory
-    CHROMA_PERSIST_DIR: str = Field(default="./chroma_data")
+    CHROMA_PERSIST_DIR: str = Field(default="../RAG/chroma_db")
     CHROMA_HOST: str = Field(default="localhost")
     CHROMA_PORT: int = Field(default=8000)
 
@@ -46,9 +46,10 @@ class Settings(BaseSettings):
     MODEL_REASONING: str = "gpt-4o"         # Análisis legal
     MODEL_CREATIVITY: str = "claude-sonnet-4-20250514"  # Redacción
 
-    # Embeddings
-    EMBEDDING_PROVIDER: str = Field(default="openai")  # openai, local
+    # Embeddings (local = HuggingFace sentence-transformers, alineado con RAG/)
+    EMBEDDING_PROVIDER: str = Field(default="local")  # openai, local
     EMBEDDING_MODEL: str = Field(default="text-embedding-3-small")
+    EMBEDDING_LOCAL_MODEL: str = Field(default="paraphrase-multilingual-mpnet-base-v2")
 
     # RAG Parameters (según spec)
     RAG_TOP_K_INITIAL: int = 20

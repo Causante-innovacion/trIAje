@@ -1,0 +1,51 @@
+{
+    "doc_id": "ds_032_2025_reglamento_apci",
+    "titulo": "Decreto Supremo N° 032-2025-RE - Reglamento de la Ley N° 27692 (APCI)",
+    "tipo": "norma",
+    "categoria": "cooperacion",
+    "subcategoria": "apci",
+    "intenciones_aplicables": [
+        "cooperacion_internacional",
+        "formalizacion",
+        "donaciones"
+    ],
+    "nivel_riesgo_temas": {
+        "procedimiento_registro": "verde",
+        "requisitos_documentales": "verde",
+        "obligaciones_periodicas": "amarillo",
+        "fiscalizacion_apci": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Procedimiento detallado de inscripción ante APCI",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Qué documentos necesito para inscribirme en APCI?",
+                "¿Cuánto tarda la inscripción en APCI?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "cooperacion_internacional",
+        "estado_formalizacion"
+    ],
+    "keywords": [
+        "reglamento APCI",
+        "inscripción",
+        "cooperación técnica internacional",
+        "CTI",
+        "registro ONGD",
+        "procedimiento"
+    ],
+    "entidad": "APCI",
+    "nivel_autoridad": "reglamento",
+    "url_oficial": "https://www.apci.gob.pe/",
+    "archivo_local": "knowledge_base/normas/cooperacion/ds_032_2025_reglamento_apci.pdf",
+    "vigencia_desde": "2025-01-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Reglamento más actualizado de la Ley APCI. Contiene el procedimiento detallado de inscripción y obligaciones.",
+    "version": 1,
+    "idioma": "es"
+}

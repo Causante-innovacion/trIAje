@@ -1,0 +1,74 @@
+{
+    "doc_id": "REGLAMENTO_REGISTRO_PJ_2023",
+    "titulo": "Reglamento de Inscripciones del Registro de Personas Jurídicas",
+    "tipo": "norma",
+    "categoria": "civil",
+    "subcategoria": "registros_publicos",
+    "intenciones_aplicables": [
+        "formalizacion",
+        "viabilidad"
+    ],
+    "nivel_riesgo_temas": {
+        "inscripcion_primera_vez": "verde",
+        "modificacion_datos": "amarillo",
+        "rectificacion_asientos": "amarillo",
+        "oposicion_inscripcion": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "13",
+            "descripcion": "Inscripción de asociaciones",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Qué documentos necesito para inscribir una asociación?",
+                "¿Cuál es el procedimiento de inscripción?"
+            ]
+        },
+        {
+            "numero": "14",
+            "descripcion": "Contenido del estatuto",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Qué debe contener el estatuto?",
+                "¿Cuáles son los elementos obligatorios del estatuto?"
+            ]
+        },
+        {
+            "numero": "15",
+            "descripcion": "Modificaciones estatutarias",
+            "relevancia": "alta"
+        },
+        {
+            "numero": "20",
+            "descripcion": "Representantes legales",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Cómo agrego representantes legales?",
+                "¿Cómo modifico representantes en la partida?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "estado_formalizacion",
+        "gobernanza"
+    ],
+    "keywords": [
+        "SUNARP",
+        "inscripción",
+        "registro personas jurídicas",
+        "estatuto",
+        "partida registral",
+        "representantes legales",
+        "asociaciones"
+    ],
+    "entidad": "SUNARP",
+    "nivel_autoridad": "reglamento",
+    "url_oficial": "https://www.sunarp.gob.pe/",
+    "archivo_local": "knowledge_base/normas/civil/reglamento_registro_pj.pdf",
+    "vigencia_desde": "2013-01-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-04",
+    "notas": "Complementa Ley 26366. Este reglamento tiene el procedimiento ESPECÍFICO para inscribir asociaciones. Muy útil para responder preguntas verdes sobre formalización.",
+    "version": 1,
+    "idioma": "es"
+}

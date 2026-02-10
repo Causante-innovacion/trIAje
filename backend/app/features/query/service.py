@@ -1,26 +1,16 @@
 """
 Query Feature - Service
+(Placeholder - pendiente de implementacion completa)
 """
-
-from app.modules.intake import IntakeModule
-from app.modules.intake.schemas import IntakeData
-from app.modules.validation import ValidationModule
-from app.modules.rag import RAGModule
-from app.modules.reasoning import ReasoningModule
-from app.modules.output_builder import OutputBuilder
 
 from .schemas import QueryRequest, QueryResponse, QueryQuestions
 
 
 class QueryService:
-    """Servicio para consultas puntuales"""
+    """Servicio para consultas puntuales (placeholder)"""
 
     def __init__(self):
-        self.intake = IntakeModule()
-        self.validation = ValidationModule()
-        self.rag = RAGModule()
-        self.reasoning = ReasoningModule()
-        self.output = OutputBuilder()
+        pass
 
     async def get_questions(self) -> QueryQuestions:
         """Obtiene preguntas del intake"""

@@ -1,0 +1,44 @@
+{
+    "doc_id": "ds_003_2015_reglamento_voluntariado",
+    "titulo": "Decreto Supremo N° 003-2015-MIMP - Reglamento de la Ley General del Voluntariado",
+    "tipo": "norma",
+    "categoria": "laboral",
+    "subcategoria": "voluntariado",
+    "intenciones_aplicables": [
+        "contratacion"
+    ],
+    "nivel_riesgo_temas": {
+        "formalidades_convenio": "verde",
+        "obligaciones_organizacion": "amarillo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Procedimiento detallado para convenios de voluntariado",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Qué debe incluir un convenio de voluntariado?",
+                "¿Qué obligaciones tiene la organización con el voluntario?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "recursos_humanos"
+    ],
+    "keywords": [
+        "reglamento voluntariado",
+        "convenio",
+        "obligaciones",
+        "seguro voluntario"
+    ],
+    "entidad": "MIMP",
+    "nivel_autoridad": "reglamento",
+    "url_oficial": "https://www.gob.pe/mimp",
+    "archivo_local": "knowledge_base/normas/laboral/ds_003_2015_reglamento_voluntariado.pdf",
+    "vigencia_desde": "2015-01-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Reglamento del voluntariado con procedimiento detallado para convenios.",
+    "version": 1,
+    "idioma": "es"
+}

@@ -47,6 +47,9 @@ export const chatApi = {
 export const evaluationApi = {
   getQuestions: () => api.get('/evaluation/questions'),
   evaluate: (data: Record<string, unknown>) => api.post('/evaluation', data),
+  /** Evalúa un NormalizedProjectIntake directamente */
+  evaluateIntake: (intake: Record<string, unknown>) =>
+    api.post('/evaluation/intake', intake, { params: { include_rag: false } }),
 }
 
 export const queryApi = {

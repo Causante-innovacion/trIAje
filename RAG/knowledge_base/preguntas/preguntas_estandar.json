@@ -1,0 +1,194 @@
+{
+  "formalizacion": [
+    {
+      "id": "form_001",
+      "pregunta": "¿Cómo constituir una asociación civil u ONG?",
+      "variaciones": [
+        "¿Cómo constituir una asociación civil u ONG?",
+        "¿Qué pasos debo seguir para formalizar mi asociación ante notario y registrarla en Sunarp?",
+        "¿Cómo inscribir una organización en los Registros Públicos de manera virtual?",
+        "¿Cuáles son los requisitos para constituir legalmente una asociación civil en Perú?"
+      ],
+      "color": "verde",
+      "categoria": "constitucion",
+      "normas_aplicables": [
+        "CODIGO_CIVIL_2023",
+        "SUNARP_REGLAMENTO"
+      ],
+      "articulos_clave": [
+        "Código Civil Art. 80-98"
+      ]
+    },
+    {
+      "id": "form_002",
+      "pregunta": "¿Cómo reservar la razón social o denominación de mi asociación?",
+      "variaciones": [
+        "¿Cómo reservar la razón social o denominación de mi asociación?",
+        "¿Cuánto tiempo dura la reserva y se puede renovar?",
+        "¿Puedo realizar la búsqueda de nombre en línea sin pagar tasas?"
+      ],
+      "color": "verde",
+      "categoria": "reserva_nombre",
+      "normas_aplicables": [
+        "SUNARP_REGLAMENTO"
+      ],
+      "articulos_clave": []
+    },
+    {
+      "id": "form_003",
+      "pregunta": "¿Qué documentos necesito para obtener el número RUC de la asociación?",
+      "variaciones": [
+        "¿Qué documentos necesito para obtener el número RUC de la asociación?",
+        "¿Existe un plazo máximo para inscribir la asociación después de firmar la escritura?",
+        "¿Cómo agrego o modifico representantes legales en la partida registral?"
+      ],
+      "color": "verde",
+      "categoria": "ruc",
+      "normas_aplicables": [
+        "CODIGO_TRIBUTARIO",
+        "SUNAT_RUC"
+      ],
+      "articulos_clave": []
+    },
+    {
+      "id": "form_004",
+      "pregunta": "¿Cuántos socios se requieren como mínimo para constituir una asociación?",
+      "variaciones": [
+        "¿Cuántos socios se requieren como mínimo para constituir una asociación?",
+        "¿Cuál es la diferencia entre una asociación, una fundación y una empresa social?",
+        "¿Pueden ser socios personas jurídicas o extranjeras?"
+      ],
+      "color": "verde",
+      "categoria": "socios",
+      "normas_aplicables": [
+        "CODIGO_CIVIL_2023"
+      ],
+      "articulos_clave": [
+        "Código Civil Art. 80"
+      ]
+    }
+  ],
+  "tributacion": [
+    {
+      "id": "trib_001",
+      "pregunta": "¿Podemos cobrar por talleres y continuar como organización sin fines de lucro?",
+      "variaciones": [
+        "¿Podemos cobrar por talleres y continuar como organización sin fines de lucro?",
+        "¿Cómo afecta el IGV a los servicios que brindamos?",
+        "¿Debemos emitir facturas electrónicas o recibos por honorarios?"
+      ],
+      "color": "verde",
+      "categoria": "ingresos_servicios",
+      "normas_aplicables": [
+        "LEY_IGV",
+        "LEY_IR"
+      ],
+      "articulos_clave": [
+        "Ley IGV Art. 1-3",
+        "Ley IR Art. 19"
+      ]
+    },
+    {
+      "id": "trib_002",
+      "pregunta": "¿Nuestra asociación está exonerada del Impuesto a la Renta?",
+      "variaciones": [
+        "¿Nuestra asociación está exonerada del Impuesto a la Renta?",
+        "¿Cuáles son los requisitos y condiciones para mantener la exoneración?",
+        "¿Debemos declarar la renta anual aunque no tengamos utilidades?"
+      ],
+      "color": "amarillo",
+      "categoria": "exoneraciones",
+      "normas_aplicables": [
+        "LEY_IR"
+      ],
+      "articulos_clave": [
+        "Ley IR Art. 19"
+      ]
+    },
+    {
+      "id": "trib_003",
+      "pregunta": "¿Qué retención de Impuesto a la Renta se aplica a los recibos por honorarios?",
+      "variaciones": [
+        "¿Qué retención de Impuesto a la Renta se aplica a los recibos por honorarios de servicios profesionales?",
+        "¿Qué régimen tributario conviene a una asociación?",
+        "¿Cómo manejar actividades gravadas y no gravadas en la misma organización?"
+      ],
+      "color": "amarillo",
+      "categoria": "retenciones",
+      "normas_aplicables": [
+        "LEY_IR",
+        "CODIGO_TRIBUTARIO"
+      ],
+      "articulos_clave": []
+    }
+  ],
+  "contratacion": [
+    {
+      "id": "cont_001",
+      "pregunta": "¿En qué casos conviene contratar personal por locación de servicios y cuándo en planilla?",
+      "variaciones": [
+        "¿En qué casos conviene contratar personal por locación de servicios y cuándo en planilla?",
+        "¿Cómo formalizar un convenio de voluntariado y qué beneficios implica?",
+        "¿Qué derechos laborales deben otorgarse a un trabajador en planilla?"
+      ],
+      "color": "amarillo",
+      "categoria": "modalidades_contratacion",
+      "normas_aplicables": [
+        "REGIMEN_LABORAL",
+        "CODIGO_CIVIL"
+      ],
+      "articulos_clave": []
+    },
+    {
+      "id": "cont_002",
+      "pregunta": "¿Qué requisitos se deben cumplir para contratar a un extranjero?",
+      "variaciones": [
+        "¿Qué requisitos se deben cumplir para contratar a un extranjero como trabajador o consultor?",
+        "¿Qué riesgos existen si contratamos familiares sin un contrato formal?",
+        "¿Cómo se calcula y declara Essalud y ONP para nuestros trabajadores?"
+      ],
+      "color": "amarillo",
+      "categoria": "personal_extranjero",
+      "normas_aplicables": [
+        "LEY_MIGRACIONES",
+        "REGIMEN_LABORAL"
+      ],
+      "articulos_clave": []
+    }
+  ],
+  "cooperacion": [
+    {
+      "id": "coop_001",
+      "pregunta": "¿Es obligatorio inscribirse en la APCI para recibir fondos del extranjero?",
+      "variaciones": [
+        "¿Es obligatorio inscribirse en la APCI para recibir fondos del extranjero?",
+        "¿Qué documentos debemos presentar?",
+        "¿Cuánto tarda la aprobación del registro y qué beneficios ofrece?"
+      ],
+      "color": "amarillo",
+      "categoria": "registro_apci",
+      "normas_aplicables": [
+        "LEY_APCI",
+        "REGLAMENTO_APCI"
+      ],
+      "articulos_clave": []
+    },
+    {
+      "id": "coop_002",
+      "pregunta": "¿Hay diferencias en el tratamiento tributario de donaciones internas y externas?",
+      "variaciones": [
+        "¿Hay diferencias en el tratamiento tributario de donaciones internas y externas?",
+        "¿Cómo solicitamos la devolución del IGV en proyectos financiados con cooperación internacional?",
+        "¿Existen límites de monto para recibir donaciones sin registrarse?"
+      ],
+      "color": "amarillo",
+      "categoria": "donaciones",
+      "normas_aplicables": [
+        "LEY_IR",
+        "LEY_IGV",
+        "LEY_APCI"
+      ],
+      "articulos_clave": []
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+    "doc_id": "UNIQUE_ID",
+    "titulo": "Título completo del documento legal",
+    "tipo": "norma | procedimiento | respuesta_modelo",
+    "categoria": "tributario | civil | laboral | cooperacion | propiedad_intelectual",
+    "subcategoria": "impuesto_renta | igv | registros | etc",
+    "intenciones_aplicables": [
+        "formalizacion",
+        "tributacion",
+        "contratacion"
+    ],
+    "nivel_riesgo_temas": {
+        "exoneraciones_ir": "amarillo",
+        "declaracion_anual": "verde",
+        "perdida_exoneracion": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "19",
+            "descripcion": "Ingresos de las entidades sin fines de lucro",
+            "relevancia": "critica | alta | media | baja",
+            "preguntas_frecuentes": [
+                "¿Mi asociación está exonerada del IR?",
+                "¿Podemos generar ingresos por servicios?"
+            ]
+        },
+        {
+            "numero": "28",
+            "descripcion": "Exoneraciones para asociaciones",
+            "relevancia": "alta"
+        }
+    ],
+    "campos_ficha_legal": [
+        "fuentes_ingreso",
+        "estado_formalizacion",
+        "info_contable"
+    ],
+    "keywords": [
+        "impuesto",
+        "renta",
+        "exoneraciones",
+        "asociaciones",
+        "sin fines de lucro"
+    ],
+    "entidad": "SUNAT | SUNARP | APCI | INDECOPI | Congreso",
+    "nivel_autoridad": "ley | reglamento | resolucion | directiva",
+    "url_oficial": "https://www.sunat.gob.pe/legislacion/...",
+    "archivo_local": "knowledge_base/normas/tributario/ley_renta.pdf",
+    "vigencia_desde": "2023-01-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-02",
+    "notas": "Información adicional relevante. Ej: Revisar especialmente Art. 19 para consultas sobre generación de ingresos por ONGs.",
+    "version": 1,
+    "idioma": "es"
+}

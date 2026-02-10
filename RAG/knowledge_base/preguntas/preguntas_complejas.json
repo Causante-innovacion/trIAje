@@ -1,0 +1,47 @@
+[
+  {
+    "id": "rojo_001",
+    "pregunta": "¿Cómo tributo si combino donaciones y venta de servicios?",
+    "color": "rojo",
+    "categoria": "tributario_complejo",
+    "razon_complejidad": "Combina múltiples fuentes de ingreso con tratamientos tributarios diferentes",
+    "normas_aplicables": [
+      "LEY_IR",
+      "LEY_IGV"
+    ],
+    "derivar_a": "abogado_tributario"
+  },
+  {
+    "id": "rojo_002",
+    "pregunta": "Un trabajador reclama que fue despedido sin causa y solicita indemnización",
+    "color": "rojo",
+    "categoria": "laboral_conflicto",
+    "razon_complejidad": "Conflicto laboral activo, requiere estrategia legal específica",
+    "normas_aplicables": [
+      "REGIMEN_LABORAL"
+    ],
+    "derivar_a": "abogado_laboral"
+  },
+  {
+    "id": "rojo_003",
+    "pregunta": "Recibimos una notificación de fiscalización tributaria de SUNAT",
+    "color": "rojo",
+    "categoria": "fiscalizacion",
+    "razon_complejidad": "Procedimiento administrativo con plazos y consecuencias legales",
+    "normas_aplicables": [
+      "CODIGO_TRIBUTARIO"
+    ],
+    "derivar_a": "abogado_tributario"
+  },
+  {
+    "id": "rojo_004",
+    "pregunta": "Descubrimos que datos personales fueron accedidos sin autorización",
+    "color": "rojo",
+    "categoria": "proteccion_datos_incidente",
+    "razon_complejidad": "Incidente de seguridad con obligaciones legales de notificación",
+    "normas_aplicables": [
+      "LEY_PROTECCION_DATOS"
+    ],
+    "derivar_a": "abogado_datos_personales"
+  }
+]

@@ -1,0 +1,62 @@
+{
+    "doc_id": "ley_27692_apci",
+    "titulo": "Ley N° 27692 - Ley de Creación de la Agencia Peruana de Cooperación Internacional (APCI)",
+    "tipo": "norma",
+    "categoria": "cooperacion",
+    "subcategoria": "apci",
+    "intenciones_aplicables": [
+        "cooperacion_internacional",
+        "formalizacion",
+        "donaciones"
+    ],
+    "nivel_riesgo_temas": {
+        "registro_apci": "amarillo",
+        "obligaciones_reporte": "amarillo",
+        "sanciones_incumplimiento": "rojo",
+        "requisitos_inscripcion": "verde"
+    },
+    "articulos_clave": [
+        {
+            "numero": "1-5",
+            "descripcion": "Creación, objeto y funciones de la APCI",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Qué es la APCI?",
+                "¿Cuáles son las funciones de la APCI?"
+            ]
+        },
+        {
+            "numero": "14-21",
+            "descripcion": "Registro de ONGD y ENIEX",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿Es obligatorio inscribirse en la APCI?",
+                "¿Qué diferencia hay entre ONGD y ENIEX?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "cooperacion_internacional",
+        "estado_formalizacion"
+    ],
+    "keywords": [
+        "APCI",
+        "cooperación internacional",
+        "ONGD",
+        "ENIEX",
+        "IPREDA",
+        "registro",
+        "fondos extranjeros",
+        "cooperación técnica"
+    ],
+    "entidad": "APCI",
+    "nivel_autoridad": "ley",
+    "url_oficial": "https://www.apci.gob.pe/",
+    "archivo_local": "knowledge_base/normas/cooperacion/ley_27692_apci.pdf",
+    "vigencia_desde": "2002-04-12",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Ley marco de la APCI. Fundamental para preguntas sobre registro de ONGs que reciben cooperación internacional.",
+    "version": 1,
+    "idioma": "es"
+}

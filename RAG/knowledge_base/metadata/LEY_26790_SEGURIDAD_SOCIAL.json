@@ -1,0 +1,48 @@
+{
+    "doc_id": "ley_26790_seguridad_social",
+    "titulo": "Ley N° 26790 - Ley de Modernización de la Seguridad Social en Salud",
+    "tipo": "norma",
+    "categoria": "laboral",
+    "subcategoria": "seguridad_social",
+    "intenciones_aplicables": [
+        "contratacion",
+        "riesgo_gestion"
+    ],
+    "nivel_riesgo_temas": {
+        "afiliacion_essalud": "verde",
+        "aportes": "amarillo",
+        "incumplimiento": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Obligaciones de afiliación a EsSalud",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Es obligatorio afiliar a mis trabajadores a EsSalud?",
+                "¿Cómo se calcula el aporte a EsSalud?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "recursos_humanos"
+    ],
+    "keywords": [
+        "EsSalud",
+        "seguridad social",
+        "salud",
+        "aportes",
+        "afiliación",
+        "trabajadores"
+    ],
+    "entidad": "ESSALUD",
+    "nivel_autoridad": "ley",
+    "url_oficial": "http://www.essalud.gob.pe/",
+    "archivo_local": "knowledge_base/normas/laboral/ley_26790_seguridad_social.pdf",
+    "vigencia_desde": "1997-05-17",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Ley de EsSalud. Aplica a asociaciones con personal en planilla.",
+    "version": 1,
+    "idioma": "es"
+}

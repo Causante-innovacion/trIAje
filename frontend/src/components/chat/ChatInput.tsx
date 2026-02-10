@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
-import { Paperclip, Send, Square } from 'lucide-react'
+import { Send, Square } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
+import { ActionMenu } from './ActionMenu'
 
 interface ChatInputProps {
   onSend: (message: string) => void
@@ -31,14 +32,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
     <div className="border-t border-gray-100 bg-white/80 backdrop-blur-sm px-4 py-4">
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
         <div className="chat-input-container">
-          <button
-            type="button"
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            title="Adjuntar archivo"
-            disabled={isDisabled}
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
+          <ActionMenu />
 
           <input
             ref={inputRef}

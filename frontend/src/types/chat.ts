@@ -1,6 +1,6 @@
 // Types for GPT Legal Chat System
 
-export type ToolType = 'evaluation' | 'compliance' | 'advisor' | null
+export type ToolType = 'evaluation' | 'compliance' | 'query' | 'advisor' | null
 
 export type MessageSender = 'justo' | 'user'
 
@@ -67,24 +67,62 @@ export interface ChatResponse {
   result?: EvaluationResult | ComplianceResult | AdvisorPackage
 }
 
-// Results types
+// Results types - aligned with backend EvaluationResponse
+export interface GapDetail {
+  id: string
+  organization_id?: string
+  organization_name?: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  intention: string
+  description: string
+  impact: string
+  recommendation: string
+  legal_basis?: string[]
+}
+
+export interface OrganizationEvaluation {
+  organization_id: string
+  organization_name: string
+  role: string
+  requirements_fulfilled: number
+  requirements_partial: number
+  requirements_not_fulfilled: number
+  gaps: GapDetail[]
+  detected_intentions: string[]
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH'
+}
+
+export interface RiskSummary {
+  overall_level: 'LOW' | 'MEDIUM' | 'HIGH'
+  derivation_color: 'green' | 'yellow' | 'red'
+  requires_professional_advice: boolean
+  professional_advice_reason?: string
+  risk_factors: string[]
+}
+
 export interface EvaluationResult {
-  viability: 'viable' | 'inviable_with_alternatives'
+  viability: 'viable' | 'viable_with_conditions' | 'not_viable' | 'requires_review'
   viability_explanation: string
-  traffic_light: 'green' | 'yellow'
-  risk_assessment: {
-    level: string
-    factors: string[]
-  }
-  gaps_found: Array<{
-    requirement: string
-    status: string
-    priority: string
-  }>
-  alternatives: string[]
+  traffic_light: 'green' | 'yellow' | 'red'
+  organizations: OrganizationEvaluation[]
+  shared_gaps: GapDetail[]
+  risk_summary: RiskSummary
+  total_requirements: number
+  total_gaps: number
+  critical_gaps: number
+  project_intentions: string[]
   next_steps: string[]
-  escalation_recommended: boolean
+  alternatives: string[]
+  path_to_viability?: string
+  evidence_sources: Array<{
+    title: string
+    authority_level: number
+    url?: string
+    relevance: string
+  }>
   confidence_level: string
+  assumptions: string[]
+  limitations: string[]
   disclaimers: string[]
 }
 

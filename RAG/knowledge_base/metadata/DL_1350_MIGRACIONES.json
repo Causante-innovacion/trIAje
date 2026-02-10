@@ -1,0 +1,48 @@
+{
+    "doc_id": "dl_1350_migraciones",
+    "titulo": "Decreto Legislativo N° 1350 - Ley de Migraciones",
+    "tipo": "norma",
+    "categoria": "laboral",
+    "subcategoria": "migraciones",
+    "intenciones_aplicables": [
+        "contratacion",
+        "riesgo_gestion"
+    ],
+    "nivel_riesgo_temas": {
+        "contratacion_extranjeros": "amarillo",
+        "permisos_trabajo": "amarillo",
+        "incumplimiento_migratorio": "rojo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "general",
+            "descripcion": "Requisitos para contratar personal extranjero",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Qué requisitos debo cumplir para contratar a un extranjero?",
+                "¿Qué visa necesita un trabajador extranjero?"
+            ]
+        }
+    ],
+    "campos_ficha_legal": [
+        "recursos_humanos"
+    ],
+    "keywords": [
+        "migraciones",
+        "extranjeros",
+        "visa trabajo",
+        "contratación extranjeros",
+        "permiso laboral",
+        "calidad migratoria"
+    ],
+    "entidad": "MIGRACIONES",
+    "nivel_autoridad": "decreto_legislativo",
+    "url_oficial": "https://www.migraciones.gob.pe/",
+    "archivo_local": "knowledge_base/normas/laboral/dl_1350_migraciones.pdf",
+    "vigencia_desde": "2017-01-07",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Ley de migraciones con requisitos para contratación de personal extranjero. Relevante para ONGs con cooperantes internacionales.",
+    "version": 1,
+    "idioma": "es"
+}

@@ -1,0 +1,44 @@
+{
+    "doc_id": "SUNAT_LIR_2023",
+    "titulo": "Texto Único Ordenado de la Ley del Impuesto a la Renta",
+    "tipo": "norma",
+    "categoria": "tributario",
+    "subcategoria": "impuesto_renta",
+    "entidad": "SUNAT",
+    "nivel_riesgo": "alto",
+    "vigencia_desde": "2023-01-01",
+    "vigencia_hasta": null,
+    "url_oficial": "https://www.sunat.gob.pe/legislacion/renta/ley/fdetalle.htm",
+    "archivo_local": "knowledge_base/normas/sunat/ley_renta.pdf",
+    "ultima_verificacion": "2024-01-15",
+    "keywords": [
+        "impuesto",
+        "renta",
+        "ingresos",
+        "exoneraciones",
+        "asociaciones",
+        "sin fines de lucro",
+        "donaciones"
+    ],
+    "aplicable_a": [
+        "asociacion",
+        "ong",
+        "fundacion",
+        "colectivo"
+    ],
+    "articulos_clave": [
+        {
+            "numero": "19",
+            "descripcion": "Ingresos de las entidades sin fines de lucro",
+            "relevancia": "critica"
+        },
+        {
+            "numero": "28",
+            "descripcion": "Exoneraciones para asociaciones",
+            "relevancia": "alta"
+        }
+    ],
+    "notas": "Revisar especialmente Art. 19 para consultas sobre generación de ingresos por parte de ONGs. Verificar que los estatutos de la organización permitan actividades económicas.",
+    "version": 1,
+    "idioma": "es"
+}

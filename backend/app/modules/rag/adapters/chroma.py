@@ -37,8 +37,8 @@ class ChromaDBAdapter(VectorStoreAdapter):
     ```
     """
 
-    # Nombre de la collection compartida
-    SHARED_COLLECTION = "normativa_peru"
+    # Nombre de la collection compartida (alineado con RAG/chroma_db)
+    SHARED_COLLECTION = "leyes_peru"
 
     def __init__(
         self,
@@ -93,18 +93,25 @@ class ChromaDBAdapter(VectorStoreAdapter):
             return False
 
     async def _ensure_shared_collection(self) -> None:
-        """Asegura que la collection compartida existe"""
+        """Asegura que la collection compartida existe (respeta config existente)"""
         try:
-            self._collections[self.SHARED_COLLECTION] = self._client.get_or_create_collection(
+            # Primero intentar obtener la collection existente (creada por RAG/ ETL)
+            self._collections[self.SHARED_COLLECTION] = self._client.get_collection(
                 name=self.SHARED_COLLECTION,
-                metadata={
-                    "description": "Normativa legal peruana compartida",
-                    "type": "shared",
-                    "hnsw:space": "cosine",
-                }
             )
-        except Exception as e:
-            print(f"Error creando collection compartida: {e}")
+        except Exception:
+            # Si no existe, crearla
+            try:
+                self._collections[self.SHARED_COLLECTION] = self._client.create_collection(
+                    name=self.SHARED_COLLECTION,
+                    metadata={
+                        "description": "Normativa legal peruana compartida",
+                        "type": "shared",
+                        "hnsw:space": "cosine",
+                    }
+                )
+            except Exception as e:
+                print(f"Error creando collection compartida: {e}")
 
     async def _get_org_collection(self, organization_id: str) -> Any:
         """Obtiene o crea la collection de una organización"""

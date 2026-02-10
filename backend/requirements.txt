@@ -23,8 +23,12 @@ langchain>=0.1.0
 langchain-openai>=0.0.5
 langchain-community>=0.0.20
 
-# Embeddings (local option)
+# Embeddings (local - HuggingFace, alineado con RAG/chroma_db)
 sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# PDF Processing (para ETL de documentos legales)
+PyMuPDF>=1.23.0
 
 # Utilities
 python-dotenv>=1.0.0

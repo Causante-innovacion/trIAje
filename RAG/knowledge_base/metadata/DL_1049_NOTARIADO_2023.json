@@ -1,0 +1,62 @@
+{
+    "doc_id": "DL_1049_NOTARIADO_2023",
+    "titulo": "Decreto Legislativo del Notariado",
+    "tipo": "norma",
+    "categoria": "civil",
+    "subcategoria": "notariado",
+    "intenciones_aplicables": [
+        "formalizacion"
+    ],
+    "nivel_riesgo_temas": {
+        "escritura_publica": "verde",
+        "parte_notarial": "verde",
+        "costos_notariales": "verde",
+        "errores_escritura": "amarillo"
+    },
+    "articulos_clave": [
+        {
+            "numero": "25",
+            "descripcion": "Escritura pública - definición y requisitos",
+            "relevancia": "critica",
+            "preguntas_frecuentes": [
+                "¿En qué consiste la escritura pública?",
+                "¿Qué debe contener una escritura pública?"
+            ]
+        },
+        {
+            "numero": "51",
+            "descripcion": "Parte notarial",
+            "relevancia": "alta",
+            "preguntas_frecuentes": [
+                "¿Qué es el parte notarial?",
+                "¿Quién presenta el parte notarial a SUNARP?"
+            ]
+        },
+        {
+            "numero": "26",
+            "descripcion": "Contenido de la escritura pública",
+            "relevancia": "alta"
+        }
+    ],
+    "campos_ficha_legal": [
+        "estado_formalizacion"
+    ],
+    "keywords": [
+        "notario",
+        "escritura pública",
+        "parte notarial",
+        "testimonio",
+        "fe pública",
+        "minuta"
+    ],
+    "entidad": "Colegio de Notarios",
+    "nivel_autoridad": "ley",
+    "url_oficial": "https://www.congreso.gob.pe/",
+    "archivo_local": "knowledge_base/normas/civil/dl_1049_notariado.pdf",
+    "vigencia_desde": "2008-07-01",
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-04",
+    "notas": "Especialmente relevante para entender el proceso de escritura pública en constitución de asociaciones. Ver Arts. 25, 26 y 51.",
+    "version": 1,
+    "idioma": "es"
+}

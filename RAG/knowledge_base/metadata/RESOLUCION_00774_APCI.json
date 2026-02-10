@@ -1,0 +1,33 @@
+{
+    "doc_id": "resolucion_00774_apci",
+    "titulo": "Resolución N° 00774 - APCI (Normativa complementaria)",
+    "tipo": "norma",
+    "categoria": "cooperacion",
+    "subcategoria": "apci",
+    "intenciones_aplicables": [
+        "cooperacion_internacional"
+    ],
+    "nivel_riesgo_temas": {
+        "cumplimiento_normativo": "amarillo"
+    },
+    "articulos_clave": [],
+    "campos_ficha_legal": [
+        "cooperacion_internacional"
+    ],
+    "keywords": [
+        "APCI",
+        "resolución",
+        "cooperación internacional",
+        "normativa complementaria"
+    ],
+    "entidad": "APCI",
+    "nivel_autoridad": "resolucion",
+    "url_oficial": "https://www.apci.gob.pe/",
+    "archivo_local": "knowledge_base/normas/cooperacion/resolucion_00774_apci.pdf",
+    "vigencia_desde": null,
+    "vigencia_hasta": null,
+    "ultima_verificacion": "2026-02-09",
+    "notas": "Resolución complementaria de APCI.",
+    "version": 1,
+    "idioma": "es"
+}

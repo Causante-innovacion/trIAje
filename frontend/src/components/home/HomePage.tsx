@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Paperclip, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { ToolCard } from './ToolCard'
+import { ActionMenu } from '../chat/ActionMenu'
 import { TOOLS, ToolType } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
 
@@ -71,13 +72,7 @@ export function HomePage() {
         {/* Chat input */}
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">
           <div className="chat-input-container">
-            <button
-              type="button"
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Adjuntar archivo"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            <ActionMenu />
             <input
               type="text"
               value={inputValue}

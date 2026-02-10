@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { intakeApi, IntakeRequest } from '../../shared/services/api'
-import { Check, ChevronLeft, Fingerprint, Gavel, Banknote, Users, BookOpen, Network, Lightbulb, Info, Lock, X, Building2, Landmark, Home, LucideIcon, Globe, ClipboardList } from 'lucide-react'
+import { evaluationApi } from '../../shared/services/api'
+import { mapBackendToProjectEvaluation, BackendEvaluationResponse } from '../../types/evaluation.types'
+import { Check, ChevronLeft, Fingerprint, Gavel, Banknote, Users, BookOpen, Network, Lightbulb, Info, Lock, X, Building2, LucideIcon, Globe, ClipboardList } from 'lucide-react'
 import { OrganizationCard } from './OrganizationCard'
 import { ProgressTracker } from './ProgressTracker'
 import { FormBlock } from './FormBlock'
@@ -77,8 +78,8 @@ interface FormState {
 
 const MOCK_ORGANIZATIONS: Organization[] = [
   { id: '1', name: 'AIESEC', role: 'Administrador', progress: 38, color: '#B3994C', icon: Building2 },
-  { id: '2', name: 'CENDES', role: 'Editor', progress: 38, color: '#8F86A3', icon: Landmark },
-  { id: '3', name: 'LANKI', role: 'Lector', progress: 10, color: '#D7D100', icon: Home },
+  /*{ id: '2', name: 'CENDES', role: 'Editor', progress: 38, color: '#8F86A3', icon: Landmark },
+  { id: '3', name: 'LANKI', role: 'Lector', progress: 10, color: '#D7D100', icon: Home },*/
 ]
 
 const initialFormState: FormState = {
@@ -380,6 +381,59 @@ export function LegalFormPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  /** Maps flat FormState to nested backend LegalProfile structure */
+  const buildLegalProfile = (f: FormState) => ({
+    identity: {
+      org_type: f.orgType || null,
+      org_type_other: f.orgTypeOther || null,
+      org_purpose: f.orgPurpose || null,
+      org_purpose_other: f.orgPurposeOther || null,
+      seeks_profits: f.seeksProfits,
+    },
+    formalization: {
+      has_legal_status: f.hasLegalStatus,
+      ruc_status: f.ruc,
+      special_registries: f.additionalRegistries,
+    },
+    income: {
+      handles_money: f.handlesMoney,
+      receives_foreign_funds: f.receivesForeignFunds,
+      income_sources: f.incomeSources,
+    },
+    international_cooperation: {
+      receives_international_cooperation: f.receivesInternationalCooperation,
+      apci_status: f.apciStatus,
+    },
+    human_resources: {
+      hiring_modalities: f.hiringModalities,
+      contracts_valid: f.contractsValid,
+    },
+    accounting: {
+      has_accounting_records: f.hasAccountingRecords === 'Sí' && f.accountingRecordsDetail
+        ? `Sí, ${f.accountingRecordsDetail.toLowerCase()}`
+        : f.hasAccountingRecords,
+      available_documents: f.availableDocuments,
+    },
+    governance: {
+      has_governance_bodies: f.governanceBodies,
+      has_legal_representative: f.hasLegalRepresentative,
+    },
+    intangibles: {
+      intangible_assets: f.intangibleAssets,
+    },
+  })
+
+  /** Builds the tool_specific payload in backend format */
+  const buildToolSpecific = (f: FormState) => {
+    if (f.tool === 'evaluation') {
+      return { evaluation: { evaluation_goals: f.toolSpecific.evaluationGoals || [], legal_areas: f.toolSpecific.legalAreas || [], urgency: f.toolSpecific.urgency || null } }
+    }
+    if (f.tool === 'compliance') {
+      return { compliance: { compliance_goal: f.toolSpecific.complianceGoal || null, timeline: f.toolSpecific.timeline || null } }
+    }
+    return { query: { query_area: f.toolSpecific.queryArea || null, specific_question: f.toolSpecific.specificQuestion || null } }
+  }
+
   const handleSubmit = async () => {
     if (completedQuestions !== totalQuestions || !form.hasConfirmed) return
 
@@ -391,53 +445,63 @@ export function LegalFormPage() {
     try {
       localStorage.setItem(getStorageKey(selectedOrg), JSON.stringify(completedForm))
 
-      // Map FormState to IntakeRequest
-      const payload: IntakeRequest = {
-        tool: form.tool,
-        legalProfile: {
-          orgType: form.orgType || '',
-          orgTypeOther: form.orgTypeOther,
-          orgPurpose: form.orgPurpose || '',
-          orgPurposeOther: form.orgPurposeOther,
-          seeksProfits: form.seeksProfits,
+      // Check if ALL organizations are completed
+      const allOrgsCompleted = organizations.every(org => {
+        if (org.id === selectedOrg) return true
+        return org.progress === 100
+      })
 
-          hasLegalStatus: form.hasLegalStatus,
-          rucStatus: form.ruc,
-          specialRegistries: form.additionalRegistries,
+      if (form.tool === 'evaluation' && allOrgsCompleted) {
+        // Collect all org FormStates from localStorage
+        const orgProfiles = organizations.map(org => {
+          const savedJson = org.id === selectedOrg
+            ? JSON.stringify(completedForm)
+            : localStorage.getItem(getStorageKey(org.id))
+          const orgForm: FormState = savedJson ? JSON.parse(savedJson) : completedForm
 
-          handlesMoney: form.handlesMoney,
-          receivesForeignFunds: form.receivesForeignFunds,
-          incomeSources: form.incomeSources,
+          return {
+            id: org.id,
+            name: org.name,
+            role: org.role,
+            legal_profile: buildLegalProfile(orgForm),
+          }
+        })
 
-          receivesInternationalCooperation: form.receivesInternationalCooperation,
-          apciStatus: form.apciStatus,
+        // Build NormalizedProjectIntake for backend
+        const projectIntake = {
+          tool: form.tool,
+          organizations: orgProfiles,
+          tool_specific: buildToolSpecific(completedForm),
+          risk_assessment: {
+            overall_risk_level: 'LOW',
+            derivation_color: 'green',
+            derivation_required: false,
+            organization_risks: [],
+            shared_signals: [],
+            shared_reasons: [],
+            detected_intentions: [],
+          },
+          total_organizations: organizations.length,
+        }
 
-          hiringModalities: form.hiringModalities,
-          contractsValid: form.contractsValid,
+        // Call evaluation endpoint
+        const response = await evaluationApi.evaluateIntake(projectIntake)
+        const backendData: BackendEvaluationResponse = response.data
 
-          accountingRecords: form.hasAccountingRecords,
-          accountingRecordsDetail: form.accountingRecordsDetail,
-          availableDocuments: form.availableDocuments,
+        // Map to display type
+        const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
+        const evaluationData = mapBackendToProjectEvaluation(backendData, orgNames)
 
-          hasGovernanceBodies: form.governanceBodies,
-          hasLegalRepresentative: form.hasLegalRepresentative,
-
-          intangibleAssets: form.intangibleAssets
-        },
-        toolSpecific: form.toolSpecific
+        navigate('/evaluation', { state: { evaluationData } })
+      } else if (!allOrgsCompleted) {
+        // Stay on page for user to fill next org
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        navigate('/chat')
       }
-
-      await intakeApi.submit(payload)
-
-      // Clear persistence on success (optional, or keep it as completed record)
-      localStorage.removeItem(getStorageKey(selectedOrg))
-
-      // Navigate to success or chat page
-      navigate('/chat')
 
     } catch (error) {
       console.error('Error submitting intake:', error)
-      // Could add toast notification here
     } finally {
       setIsSubmitting(false)
     }
@@ -734,7 +798,7 @@ export function LegalFormPage() {
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
                   <MultiSelectChips
-                    options={['Donaciones', 'Venta de servicios o productos', 'Fondos públicos', 'Fondos privados', 'Aún no recibe ingresos']}
+                    options={['Donaciones', 'Venta de servicios o productos', 'Fondos públicos', 'Fondos privados', 'Cooperación internacional', 'Aún no recibe ingresos']}
                     value={form.incomeSources}
                     onChange={(val) => updateForm('incomeSources', val)}
                     disabled={form.isCompleted}
@@ -780,7 +844,7 @@ export function LegalFormPage() {
                       <Lightbulb className="w-4 h-4 text-yellow-400" />
                     </div>
                     <SingleSelect
-                      options={['Registrado', 'Necesita', 'No aplica']}
+                      options={['Registrado', 'Necesita registro', 'No aplica']}
                       value={form.apciStatus}
                       onChange={(val) => updateForm('apciStatus', val)}
                       columns={3}
@@ -809,7 +873,7 @@ export function LegalFormPage() {
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
                   <MultiSelectChips
-                    options={['Planilla (DL 728)', 'Locación de Servicios', 'Volutariado', 'Practicantes', 'Ninguno']}
+                    options={['Planilla', 'Locación de servicios', 'Voluntariado', 'Prácticas', 'Ninguno']}
                     value={form.hiringModalities}
                     onChange={(val) => updateForm('hiringModalities', val)}
                     disabled={form.isCompleted}
@@ -818,13 +882,10 @@ export function LegalFormPage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2">
-                        <span className={getQuestionNumberClass(form.contractsValid !== null)}>13</span>
-                        <span className="text-sm font-semibold">¿Los contratos o acuerdos están actualmente vigentes?</span>
-                      </label>
-                      <Lightbulb className="w-4 h-4 text-yellow-400" />
-                    </div>
+                    <label className="flex items-center gap-2">
+                      <span className={getQuestionNumberClass(form.contractsValid !== null)}>13</span>
+                      <span className="text-sm font-semibold">¿Los contratos o acuerdos están actualmente vigentes?</span>
+                    </label>
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
                   <SingleSelect
@@ -960,7 +1021,7 @@ export function LegalFormPage() {
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
                   <MultiSelectChips
-                    options={['Estatuto o acta de constitución', 'Libros de actas', 'Estados financieros', 'Ninguno']}
+                    options={['Estatuto o acta de constitución', 'Libros de actas', 'Estados financieros', 'Memorias anuales', 'Plan de uso de fondos', 'Ninguno']}
                     value={form.availableDocuments}
                     onChange={(val) => updateForm('availableDocuments', val)}
                     disabled={form.isCompleted}
@@ -1030,7 +1091,7 @@ export function LegalFormPage() {
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
                   <MultiSelectChips
-                    options={['Software propio', 'Software de terceros', 'Bases de datos de usuarios', 'Marca o símbolos distintivos', 'Ninguno']}
+                    options={['Software propio', 'Software de terceros', 'Bases de datos de usuarios', 'Marca o símbolos distintivos', 'Contenido con derechos de autor', 'Ninguno']}
                     value={form.intangibleAssets}
                     onChange={(val) => updateForm('intangibleAssets', val)}
                     disabled={form.isCompleted}
@@ -1059,7 +1120,7 @@ export function LegalFormPage() {
                         </label>
                       </div>
                       <MultiSelectChips
-                        options={['Formalización', 'Gestión de riesgos', 'Preparación para auditoría', 'Mejora de gobernanza']}
+                        options={['Viabilidad legal del proyecto', 'Identificación de riesgos', 'Brechas regulatorias', 'Análisis tributario', 'Evaluación general']}
                         value={form.toolSpecific.evaluationGoals || []}
                         onChange={(val) => updateToolSpecific('evaluationGoals', val)}
                         disabled={form.isCompleted}
@@ -1073,7 +1134,7 @@ export function LegalFormPage() {
                         </label>
                       </div>
                       <MultiSelectChips
-                        options={['Tributario', 'Laboral', 'Corporativo', 'Propiedad Intelectual', 'Protección de Datos']}
+                        options={['Tributario', 'Cooperación internacional (APCI)', 'Laboral', 'Propiedad intelectual', 'Contratos', 'Formalización', 'Gobernanza']}
                         value={form.toolSpecific.legalAreas || []}
                         onChange={(val) => updateToolSpecific('legalAreas', val)}
                         disabled={form.isCompleted}
@@ -1087,7 +1148,7 @@ export function LegalFormPage() {
                         </label>
                       </div>
                       <SingleSelect
-                        options={['Alta', 'Media', 'Baja']}
+                        options={['Inmediato (días)', 'Corto plazo (semanas)', 'Mediano plazo (meses)', 'Solo planificación']}
                         value={form.toolSpecific.urgency || null}
                         onChange={(val) => updateToolSpecific('urgency', val)}
                         disabled={form.isCompleted}
@@ -1105,15 +1166,10 @@ export function LegalFormPage() {
                           <span className="text-sm font-semibold">Objetivo de cumplimiento</span>
                         </label>
                       </div>
-                      <input
-                        type="text"
-                        className={clsx(
-                          "w-full rounded-xl border-gray-200 text-sm py-3 px-4",
-                          form.isCompleted && "opacity-50 cursor-not-allowed"
-                        )}
-                        placeholder="Ej. Cumplir normativa de protección de datos"
-                        value={form.toolSpecific.complianceGoal || ''}
-                        onChange={(e) => updateToolSpecific('complianceGoal', e.target.value)}
+                      <SingleSelect
+                        options={['Formalizar la organización', 'Registrar en APCI', 'Cumplir obligaciones SUNAT', 'Regularizar situación laboral', 'Obtener exoneración de IR', 'Inscribirse como receptora de donaciones']}
+                        value={form.toolSpecific.complianceGoal || null}
+                        onChange={(val) => updateToolSpecific('complianceGoal', val)}
                         disabled={form.isCompleted}
                       />
                     </div>
@@ -1125,7 +1181,7 @@ export function LegalFormPage() {
                         </label>
                       </div>
                       <SingleSelect
-                        options={['Inmediato', '1-3 meses', '3-6 meses', '+6 meses']}
+                        options={['Lo antes posible', '1-3 meses', '3-6 meses', 'Sin prisa específica']}
                         value={form.toolSpecific.timeline || null}
                         onChange={(val) => updateToolSpecific('timeline', val)}
                         disabled={form.isCompleted}
@@ -1144,7 +1200,7 @@ export function LegalFormPage() {
                         </label>
                       </div>
                       <SingleSelect
-                        options={['Tributario', 'Laboral', 'Corporativo', 'Contratos', 'Otros']}
+                        options={['Formalización y registros', 'Tributación', 'Contratación de personal', 'Cooperación internacional', 'Propiedad intelectual', 'Donaciones', 'Gobernanza', 'Otro']}
                         value={form.toolSpecific.queryArea || null}
                         onChange={(val) => updateToolSpecific('queryArea', val)}
                         disabled={form.isCompleted}

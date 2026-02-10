@@ -30,3 +30,25 @@ coverage/
 # Cache
 .cache/
 .claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+venv_new/
+
+# ChromaDB (datos locales, se regeneran con ETL)
+RAG/chroma_db/
+chroma_db/
+backend/chroma_data/
+
+# RAG virtual environments
+RAG/venv/
+RAG/venv_new/
+
+# Documentos fuente (pesados, no van al repo)
+Documentos Legales/
+
+# Misc
+nul
