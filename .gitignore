@@ -32,9 +32,15 @@ coverage/
 .claude/
 
 # Python
-__pycache__/
-*.pyc
-*.pyo
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 venv/
 venv_new/
 
