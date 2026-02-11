@@ -46,7 +46,7 @@ services:
   chroma-ui:
     image: ghcr.io/chroma-core/chroma-ui:latest
     container_name: gpt_legal_chroma_ui
-    ports:
+    # ports:
      # - "3000:3000"               # 🔓 ABIERTO PARA DESARROLLO (Cerrar en producción final)
     environment:
       - CHROMA_URL=http://chromadb:8000
