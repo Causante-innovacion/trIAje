@@ -1,26 +1,31 @@
-# frontend/Dockerfile
+# backend/Dockerfile
 
-# --- ETAPA 1: EL COCINERO (Node.js) ---
-FROM node:20-alpine as build
+# 1. Usamos una base ligera de Python (como comprar la masa de pizza hecha)
+FROM python:3.11-slim
+
+# 2. Creamos una carpeta de trabajo dentro de la caja
 WORKDIR /app
 
-# Primero las dependencias (para aprovechar la caché de Docker y ir rápido)
-COPY package.json package-lock.json ./
-RUN npm install
+# 3. Instalamos herramientas básicas de Linux (el cuchillo y el tenedor)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Ahora sí, cocinamos el código fuente
+# 4. Copiamos la lista de ingredientes (requirements.txt)
+# Asegúrate de que requirements.txt está en la misma carpeta que este Dockerfile
+COPY requirements.txt .
+
+# 5. Instalamos las librerías de Python
+# Agregamos --no-cache-dir para mantener la imagen ligera
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 6. Copiamos todo el resto del código a la caja
 COPY . .
-RUN npm run build
-# (Al terminar esto, tendremos una carpeta 'dist' con la web lista)
 
-# --- ETAPA 2: EL MESERO (Nginx) ---
-FROM nginx:alpine
+# 7. Abrimos una ventanita (puerto) para que pueda hablar hacia afuera
+EXPOSE 8000
 
-# Tomamos solo la carpeta 'dist' del Cocinero y la ponemos en el plato del Mesero
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Le damos instrucciones al Mesero de cómo servir (configuración)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# 8. ¡A cocinar! (Comando para encender el servidor)
+# Usamos uvicorn directamente como en la guía
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
