@@ -49,13 +49,6 @@ export function Header() {
             {/* Added GPT Legal text as per previous design, can remove if user insists on exact code */}
             <span className="text-lg font-semibold text-gray-900 hidden sm:block">GPT Legal</span>
           </Link>
-
-          <div className="hidden md:flex items-center gap-2">
-            <span className="text-gray-300 font-light">|</span>
-            <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
-              Aplicaciones
-            </span>
-          </div>
         </div>
 
         {/* Dynamic Right Content */}

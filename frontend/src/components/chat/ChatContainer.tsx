@@ -5,7 +5,7 @@ import { documentsApi } from '../../shared/services/api'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { Avatar } from '../ui/Avatar'
-import { ProjectInfoCard } from './ProjectInfoCard'
+import { ProjectInfoCard, ProjectInfo } from './ProjectInfoCard'
 import { OrganizationsDetected } from './OrganizationsDetected'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
 
@@ -63,8 +63,9 @@ export function ChatContainer() {
     setExtractedPlan,
   } = useChatStore()
 
-  const [projectInfo, setProjectInfo] = useState<ReturnType<typeof buildProjectInfo> | null>(null)
+  const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null)
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
+  const [isEditingProjectInfo, setIsEditingProjectInfo] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -204,12 +205,19 @@ export function ChatContainer() {
   }
 
   const handleProjectInfoEdit = () => {
-    addUserMessage('Necesito corregir algo')
-    setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
-      addJustoMessage('Entendido. ¿Qué información necesitas corregir?')
-    }, 1000)
+    setIsEditingProjectInfo(true)
+    // Removed old logic: addUserMessage('Necesito corregir algo') ...
+  }
+
+  const handleProjectInfoSave = (newData: ProjectInfo) => {
+    setProjectInfo(newData)
+    setIsEditingProjectInfo(false)
+    // Optional: Add a system message confirming update?
+    // For now, just update the view.
+  }
+
+  const handleProjectInfoCancel = () => {
+    setIsEditingProjectInfo(false)
   }
 
   const handleStartLegalForms = () => {
@@ -256,6 +264,9 @@ export function ChatContainer() {
                 data={data}
                 onConfirm={handleProjectInfoConfirm}
                 onEdit={handleProjectInfoEdit}
+                isEditing={isEditingProjectInfo}
+                onSave={handleProjectInfoSave}
+                onCancel={handleProjectInfoCancel}
               />
             </div>
           </div>
