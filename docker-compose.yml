@@ -14,7 +14,7 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CHROMA_TOKEN=${CHROMA_TOKEN}
+      - CHROMA_TOKEN=chroma-gptlegal-tk-X9f2vLm8qRs4wYp7
     volumes:
       - ./backend_data:/app/data  
     depends_on:
@@ -42,7 +42,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.token_authn.TokenAuthenticationServerProvider
-      - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_TOKEN}
+      - CHROMA_SERVER_AUTHN_CREDENTIALS=chroma-gptlegal-tk-X9f2vLm8qRs4wYp7
       - CHROMA_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
     restart: unless-stopped
 
