@@ -42,18 +42,16 @@ services:
       - IS_PERSISTENT=TRUE
     restart: unless-stopped
 
-  # 📊 VISUALIZACIÓN DE CHROMADB
-  chromadb_visualization:
-    image: fengzhichao/chromadb-admin:latest
-    container_name: gpt_legal_chromadb_visualization
+  # 📊 VISUALIZACIÓN DE CHROMADB (chromadb-admin)
+  chromadb-admin:
+    build: https://github.com/flanker/chromadb-admin.git
+    container_name: gpt_legal_chromadb_admin
     ports:
-      - "3001:3001"
-    environment:
-      - CHROMA_URL=http://chromadb:8000
+      - "3001:3001"               # 🌐 Puerto para acceder a ChromaDB Admin
     depends_on:
       - chromadb
     networks:
-      - default
+      - gpt_legal_network
     restart: unless-stopped
 
 
