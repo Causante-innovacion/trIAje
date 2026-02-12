@@ -50,8 +50,6 @@ services:
       - "3001:3001"               # 🌐 Puerto para acceder a ChromaDB Admin
     depends_on:
       - chromadb
-    networks:
-      - gpt_legal_network
     restart: unless-stopped
 
 
