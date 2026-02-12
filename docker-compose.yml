@@ -14,7 +14,7 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CHROMA_TOKEN=chroma-gptlegal-tk-X9f2vLm8qRs4wYp7
+      - CHROMA_TOKEN=${CHROMA_TOKEN}
     volumes:
       - ./backend_data:/app/data  
     depends_on:
@@ -41,17 +41,25 @@ services:
       - chromadb_data:/chroma/chroma 
     environment:
       - IS_PERSISTENT=TRUE
+      # 🔐 Autenticación por Token
       - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.token_authn.TokenAuthenticationServerProvider
-      - CHROMA_SERVER_AUTHN_CREDENTIALS=chroma-gptlegal-tk-X9f2vLm8qRs4wYp7
+      - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_TOKEN}
       - CHROMA_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
+      # 🛡️ Autorización (solo usuarios autenticados pueden operar)
+      - CHROMA_SERVER_AUTHZ_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
     restart: unless-stopped
 
   # 📊 VISUALIZACIÓN DE CHROMADB (chromadb-admin)
   chromadb-admin:
     build: https://github.com/flanker/chromadb-admin.git
     container_name: gpt_legal_chromadb_admin
-    ports:
-      - "3001:3001"               # 🌐 Puerto para acceder a ChromaDB Admin
+    # ports:
+      # - "3001:3001"             # 🔒 CERRADO POR SEGURIDAD por defecto.
+                                  # Descomenta solo cuando necesites inspeccionar ChromaDB.
+    environment:
+      # chromadb-admin necesita saber dónde está Chroma y su token
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
     depends_on:
       - chromadb
     restart: unless-stopped

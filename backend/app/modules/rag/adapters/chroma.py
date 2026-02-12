@@ -71,13 +71,25 @@ class ChromaDBAdapter(VectorStoreAdapter):
 
             if self.host and self.port:
                 # Modo servidor (producción)
-                client_kwargs = {
-                    "host": self.host,
-                    "port": self.port,
+                settings_kwargs = {
+                    "anonymized_telemetry": False,
                 }
+
+                # Configurar autenticación nativa del SDK si hay token
                 if self.token:
-                    client_kwargs["headers"] = {"Authorization": f"Bearer {self.token}"}
-                self._client = chromadb.HttpClient(**client_kwargs)
+                    settings_kwargs["chroma_client_auth_provider"] = (
+                        "chromadb.auth.token_authn.TokenAuthClientProvider"
+                    )
+                    settings_kwargs["chroma_client_auth_credentials"] = self.token
+                    settings_kwargs["chroma_auth_token_transport_header"] = (
+                        "AUTHORIZATION"
+                    )
+
+                self._client = chromadb.HttpClient(
+                    host=self.host,
+                    port=self.port,
+                    settings=Settings(**settings_kwargs),
+                )
             elif self.persist_directory:
                 # Modo persistente local (desarrollo)
                 self._client = chromadb.PersistentClient(
@@ -89,6 +101,9 @@ class ChromaDBAdapter(VectorStoreAdapter):
                 self._client = chromadb.Client(
                     settings=Settings(anonymized_telemetry=False),
                 )
+
+            # Verificar conectividad (falla rápido si token inválido)
+            self._client.heartbeat()
 
             # Crear collection compartida si no existe
             await self._ensure_shared_collection()
