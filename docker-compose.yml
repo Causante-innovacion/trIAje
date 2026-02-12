@@ -42,17 +42,18 @@ services:
       - IS_PERSISTENT=TRUE
     restart: unless-stopped
 
-  # 👁️ EL VISOR DE MEMORIA (Bonus Track)
-  # chroma-ui:
-  #   image: ghcr.io/chroma-core/chroma-ui:latest
-  #   container_name: gpt_legal_chroma_ui
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - CHROMA_URL=http://chromadb:8000
-  #   depends_on:
-  #     - chromadb
-  #   restart: unless-stopped
+  # 📊 VISUALIZACIÓN DE CHROMADB
+  chromadb_visualization:
+    image: fengzhichao/chromadb-admin:latest
+    container_name: gpt_legal_chromadb_visualization
+    ports:
+      - "3001:3001"
+    environment:
+      - CHROMA_URL=http://chromadb:8000
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+
 
 # Aquí definimos los volúmenes persistentes
 volumes:

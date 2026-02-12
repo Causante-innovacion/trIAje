@@ -16,7 +16,8 @@ export function TrafficLightCard({ organization }: TrafficLightCardProps) {
                     borderColor: 'border-green-400',
                     iconColor: 'text-green-600',
                     textColor: 'text-green-800',
-                    label: 'VIABLE'
+                    label: 'VIABLE',
+                    glowClass: 'hover:shadow-[0_0_20px_rgba(34,197,94,0.15)]'
                 }
             case 'yellow':
                 return {
@@ -25,7 +26,8 @@ export function TrafficLightCard({ organization }: TrafficLightCardProps) {
                     borderColor: 'border-yellow-400',
                     iconColor: 'text-yellow-600',
                     textColor: 'text-yellow-800',
-                    label: 'VIABLE CON AJUSTES NECESARIOS'
+                    label: 'VIABLE CON AJUSTES NECESARIOS',
+                    glowClass: 'hover:shadow-[0_0_20px_rgba(234,179,8,0.15)]'
                 }
             case 'red':
                 return {
@@ -34,7 +36,8 @@ export function TrafficLightCard({ organization }: TrafficLightCardProps) {
                     borderColor: 'border-red-400',
                     iconColor: 'text-red-600',
                     textColor: 'text-red-800',
-                    label: 'REQUIERE ATENCIÓN URGENTE'
+                    label: 'REQUIERE ATENCIÓN URGENTE',
+                    glowClass: 'hover:shadow-[0_0_20px_rgba(239,68,68,0.15)]'
                 }
         }
     }
@@ -44,20 +47,30 @@ export function TrafficLightCard({ organization }: TrafficLightCardProps) {
 
     return (
         <div className={clsx(
-            'rounded-xl border-2 p-6',
+            'rounded-2xl border-2 p-6 animate-fade-in transition-all duration-300 hover:-translate-y-0.5',
             config.bgColor,
-            config.borderColor
+            config.borderColor,
+            config.glowClass
         )}>
             <div className="flex items-start gap-4">
-                <Icon className={clsx('w-8 h-8 flex-shrink-0', config.iconColor)} />
+                <div className={clsx(
+                    'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+                    config.bgColor
+                )}>
+                    <Icon className={clsx('w-7 h-7', config.iconColor)} />
+                </div>
                 <div className="flex-1">
                     <h3 className="font-bold text-lg text-gray-900 mb-1">
                         {organization.name}
                     </h3>
-                    <p className={clsx('text-sm font-semibold mb-2', config.textColor)}>
+                    <span className={clsx(
+                        'inline-block px-3 py-1 rounded-full text-xs font-bold mb-3',
+                        config.textColor,
+                        config.bgColor
+                    )}>
                         {config.label}
-                    </p>
-                    <p className="text-sm text-gray-700">
+                    </span>
+                    <p className="text-sm text-gray-700 leading-relaxed">
                         {organization.message}
                     </p>
                 </div>

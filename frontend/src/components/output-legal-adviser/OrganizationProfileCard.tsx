@@ -15,7 +15,7 @@ export function OrganizationProfileCard({ profile, fundingDescription }: Organiz
         }
         const c = config[status as keyof typeof config]
         return (
-            <span className={clsx('px-3 py-1 rounded text-xs font-bold', c.bg, c.text)}>
+            <span className={clsx('px-3 py-1 rounded-full text-xs font-bold', c.bg, c.text)}>
                 {c.label}
             </span>
         )
@@ -29,51 +29,47 @@ export function OrganizationProfileCard({ profile, fundingDescription }: Organiz
             unknown: 'Unknown'
         }
         return (
-            <span className="px-3 py-1 rounded bg-gray-100 text-gray-700 text-xs font-semibold">
+            <span className="px-3 py-1 rounded-full bg-cream text-gray-700 text-xs font-semibold">
                 {labels[stage as keyof typeof labels] || 'Unknown'}
             </span>
         )
     }
 
     return (
-        <div className="bg-yellow-50 rounded-xl border-2 border-yellow-400 p-6">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="bg-yellow-400 w-5 h-5 transform rotate-45 rounded-sm" />
-                <h3 className="text-lg font-bold text-gray-900">Perfil de la Organización</h3>
+        <div className="bg-gold/5 rounded-2xl border-2 border-gold/30 p-8 animate-slide-up transition-all duration-300 hover:shadow-card-hover">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
+                <h3 className="text-lg font-bold text-gray-900">Perfil de la Organizacion</h3>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div>
-                    <p className="text-xs text-gray-600 mb-1">ENTIDAD</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Entidad</p>
                     <p className="font-bold text-sm text-gray-900">{profile.entityName}</p>
                 </div>
                 <div>
-                    <p className="text-xs text-gray-600 mb-2">ESTADO LEGAL</p>
-                    <div className="flex gap-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Estado Legal</p>
+                    <div className="flex gap-2 flex-wrap">
                         {getStatusBadge('green')}
                         {getStatusBadge('yellow')}
                         {getStatusBadge('red')}
                     </div>
                 </div>
                 <div>
-                    <p className="text-xs text-gray-600 mb-2">ETAPA</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Etapa</p>
                     {getStageBadge(profile.stage)}
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg p-4 border border-yellow-200">
-                <p className="text-xs text-gray-600 mb-2">FINANCIAMIENTO CRÍTICO</p>
-                <p className="text-sm text-gray-700 mb-2">{fundingDescription}</p>
+            <div className="bg-white rounded-xl p-5 border border-gold/20">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Financiamiento Critico</p>
+                <p className="text-sm text-gray-700 mb-3 leading-relaxed">{fundingDescription}</p>
                 <div className="flex items-center gap-2">
                     {profile.fundingTypes.includes('extranjero') && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded">
-                            USD Internacional
-                        </span>
+                        <span className="badge-info">USD Internacional</span>
                     )}
                     {profile.fundingTypes.includes('nacional') && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded">
-                            Nacional
-                        </span>
+                        <span className="badge bg-purple-100 text-purple-700">Nacional</span>
                     )}
                 </div>
             </div>

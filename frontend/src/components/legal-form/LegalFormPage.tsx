@@ -548,32 +548,22 @@ export function LegalFormPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Page Title */}
+        <section className="mb-8">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-4"
           >
-            <ChevronLeft className="w-5 h-5" />
-            <div className="flex items-center gap-2">
-              <div className="bg-yellow-400 w-5 h-5 transform rotate-45 rounded-sm" />
-              <span className="font-bold text-lg">Ficha Legal Mínima</span>
-            </div>
+            <ChevronLeft className="w-4 h-4" />
+            Volver
           </button>
-
           <div className="flex items-center gap-3">
-            <img
-              src="https://causante.org/wp-content/uploads/2025/03/causante-logo.webp"
-              alt="GPT Legal"
-              className="h-6"
-            />
-            <span className="font-semibold text-gray-900">GPT Legal</span>
+            <div className="bg-gold w-6 h-6 transform rotate-45 rounded-sm" />
+            <h1 className="font-heading text-2xl md:text-3xl font-bold text-gray-900">Ficha Legal Mínima</h1>
           </div>
-        </div>
-      </header>
+        </section>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Organization Selector */}
         <section className="mb-10">
           <h2 className="font-heading text-xl font-semibold mb-4">Seleccionar Organización</h2>
