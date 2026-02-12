@@ -53,9 +53,8 @@ services:
   chromadb-admin:
     build: https://github.com/flanker/chromadb-admin.git
     container_name: gpt_legal_chromadb_admin
-    # ports:
-      # - "3001:3001"             # 🔒 CERRADO POR SEGURIDAD por defecto.
-                                  # Descomenta solo cuando necesites inspeccionar ChromaDB.
+    ports:
+      - "3001:3001"               # ⚠️ SOLO DESARROLLO - Cierra en producción
     environment:
       # chromadb-admin necesita saber dónde está Chroma y su token
       - CHROMADB_HOST=chromadb
