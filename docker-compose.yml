@@ -35,8 +35,8 @@ services:
   chromadb:
     image: chromadb/chroma:latest
     container_name: gpt_legal_chromadb
-    # ports:
-      # - "8001:8000"             # 🔒 CERRADO POR SEGURIDAD. Solo el Backend debe hablar con él.
+    ports:
+      - "8001:8000"               # ⚠️ SOLO DESARROLLO - Cierra en producción
     volumes:
       - chromadb_data:/chroma/chroma 
     environment:
@@ -45,8 +45,7 @@ services:
       - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.token_authn.TokenAuthenticationServerProvider
       - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_TOKEN}
       - CHROMA_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
-      # 🛡️ Autorización (solo usuarios autenticados pueden operar)
-      - CHROMA_SERVER_AUTHZ_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
+
     restart: unless-stopped
 
   # 📊 VISUALIZACIÓN DE CHROMADB (chromadb-admin)
