@@ -33,7 +33,7 @@ services:
 
   # 🧠 LA CAJA DE LA MEMORIA (ChromaDB)
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.5.5
     container_name: gpt_legal_chromadb
     ports:
       - "8001:8000"               # ⚠️ SOLO DESARROLLO - Cierra en producción
