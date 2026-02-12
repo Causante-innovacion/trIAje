@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Message, ToolType, UploadedFile, TOOLS } from '../types/chat'
+import { Message, ToolType, UploadedFile, TOOLS, ChatClassification, LegalSource, SuggestedAction } from '../types/chat'
 import type { PlanExtractionResponse } from '../types/extraction.types'
 
 interface ChatStore {
@@ -13,19 +13,42 @@ interface ChatStore {
   sessionId: string | null
   pendingFile: UploadedFile | null
   extractedPlan: PlanExtractionResponse | null
+  conversationId: string | null
+
+  // Intelligent chat state
+  lastClassification: ChatClassification | null
+  lastSources: LegalSource[]
+  lastActions: SuggestedAction[]
+  error: string | null
+
+  // Initial message to send on mount (for home page → chat transition)
+  pendingInitialMessage: string | null
 
   // Actions
   startTool: (tool: ToolType) => void
+  startIntelligentChat: (initialMessage?: string) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
   addJustoMessage: (content: string, options?: Message['options']) => void
   addUserMessage: (content: string) => void
+  addIntelligentResponse: (
+    content: string,
+    classification: ChatClassification,
+    sources: LegalSource[],
+    actions: SuggestedAction[],
+    disclaimers: string[]
+  ) => void
+  addErrorMessage: (content: string, errorType: Message['metadata'] extends infer M ? M extends { errorType?: infer E } ? E : never : never) => void
   setProcessing: (status: boolean) => void
   setTyping: (status: boolean) => void
   setUploadProgress: (progress: number) => void
   setPendingFile: (file: UploadedFile | null) => void
   updateFileStatus: (fileId: string, status: UploadedFile['status'], progress?: number) => void
   setSessionId: (id: string) => void
+  setConversationId: (id: string) => void
   setExtractedPlan: (data: PlanExtractionResponse | null) => void
+  setError: (error: string | null) => void
+  clearError: () => void
+  consumePendingMessage: () => string | null
   nextStep: () => void
   clearChat: () => void
   resetToHome: () => void
@@ -44,6 +67,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   sessionId: null,
   pendingFile: null,
   extractedPlan: null,
+  conversationId: null,
+
+  // Intelligent chat state
+  lastClassification: null,
+  lastSources: [],
+  lastActions: [],
+  error: null,
+  pendingInitialMessage: null,
 
   // Actions
   startTool: (tool) => {
@@ -55,6 +86,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       currentStep: 1,
       messages: [],
       sessionId: generateId(),
+      error: null,
+      lastClassification: null,
+      lastSources: [],
+      lastActions: [],
     })
 
     // Add initial message from JUSTO after a small delay for natural feel
@@ -66,6 +101,27 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ] : undefined
       )
     }, 300)
+  },
+
+  startIntelligentChat: (initialMessage?: string) => {
+    set({
+      currentTool: 'chat',
+      currentStep: 1,
+      messages: [],
+      sessionId: generateId(),
+      error: null,
+      lastClassification: null,
+      lastSources: [],
+      lastActions: [],
+      pendingInitialMessage: initialMessage || null,
+    })
+
+    const toolConfig = TOOLS.find(t => t.id === 'chat')
+    if (toolConfig && !initialMessage) {
+      setTimeout(() => {
+        get().addJustoMessage(toolConfig.initialMessage)
+      }, 300)
+    }
   },
 
   addMessage: (message) => {
@@ -101,6 +157,31 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     })
   },
 
+  addIntelligentResponse: (content, classification, sources, actions, disclaimers) => {
+    set({ lastClassification: classification, lastSources: sources, lastActions: actions })
+    get().addMessage({
+      sender: 'justo',
+      content,
+      contentType: 'semaphore_response',
+      metadata: {
+        classification,
+        sources,
+        actions,
+        disclaimers,
+        toolContext: 'chat',
+      },
+    })
+  },
+
+  addErrorMessage: (content, errorType) => {
+    get().addMessage({
+      sender: 'justo',
+      content,
+      contentType: 'error',
+      metadata: { errorType: errorType as 'network' | 'server' | 'validation' | 'timeout' },
+    })
+  },
+
   setProcessing: (status) => set({ isProcessing: status }),
 
   setTyping: (status) => set({ isTyping: status }),
@@ -129,7 +210,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setSessionId: (id) => set({ sessionId: id }),
 
+  setConversationId: (id) => set({ conversationId: id }),
+
   setExtractedPlan: (data) => set({ extractedPlan: data }),
+
+  setError: (error) => set({ error }),
+
+  clearError: () => set({ error: null }),
+
+  consumePendingMessage: () => {
+    const msg = get().pendingInitialMessage
+    set({ pendingInitialMessage: null })
+    return msg
+  },
 
   nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
 
@@ -140,6 +233,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     isTyping: false,
     uploadProgress: 0,
     pendingFile: null,
+    error: null,
+    lastClassification: null,
+    lastSources: [],
+    lastActions: [],
   }),
 
   resetToHome: () => set({
@@ -152,5 +249,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     sessionId: null,
     pendingFile: null,
     extractedPlan: null,
+    conversationId: null,
+    lastClassification: null,
+    lastSources: [],
+    lastActions: [],
+    error: null,
+    pendingInitialMessage: null,
   }),
 }))

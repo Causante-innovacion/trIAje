@@ -7,14 +7,18 @@ import { ToolType } from '../../types/chat'
 export function ChatPage() {
   const navigate = useNavigate()
   const { tool } = useParams<{ tool?: string }>()
-  const { currentTool, startTool } = useChatStore()
+  const { currentTool, startTool, startIntelligentChat } = useChatStore()
 
   useEffect(() => {
     // If we have a tool param but no current tool, start that tool
     if (tool && !currentTool) {
-      const validTools: ToolType[] = ['evaluation', 'compliance', 'advisor']
+      const validTools: ToolType[] = ['evaluation', 'compliance', 'advisor', 'chat']
       if (validTools.includes(tool as ToolType)) {
-        startTool(tool as ToolType)
+        if (tool === 'chat') {
+          startIntelligentChat()
+        } else {
+          startTool(tool as ToolType)
+        }
       } else {
         navigate('/')
       }
@@ -24,7 +28,7 @@ export function ChatPage() {
     if (!tool && !currentTool) {
       navigate('/')
     }
-  }, [tool, currentTool, startTool, navigate])
+  }, [tool, currentTool, startTool, startIntelligentChat, navigate])
 
   if (!currentTool) {
     return null // Will redirect

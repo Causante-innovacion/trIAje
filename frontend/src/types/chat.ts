@@ -1,10 +1,17 @@
 // Types for GPT Legal Chat System
 
-export type ToolType = 'evaluation' | 'compliance' | 'query' | 'advisor' | null
+export type ToolType = 'evaluation' | 'compliance' | 'query' | 'advisor' | 'chat' | null
 
 export type MessageSender = 'justo' | 'user'
 
-export type MessageContentType = 'text' | 'options' | 'file_upload' | 'file_uploaded' | 'progress'
+export type MessageContentType =
+  | 'text'
+  | 'options'
+  | 'file_upload'
+  | 'file_uploaded'
+  | 'progress'
+  | 'semaphore_response'
+  | 'error'
 
 export interface MessageOption {
   id: string
@@ -23,6 +30,52 @@ export interface UploadedFile {
   extractedData?: Record<string, unknown>
 }
 
+// =============================================================================
+// INTELLIGENT CHAT TYPES (matching backend schemas)
+// =============================================================================
+
+export type SemaphoreLevel = 'verde' | 'amarillo' | 'rojo'
+
+export type ActionType = 'upload_file' | 'derive_to_advisor' | 'provide_context' | 'none'
+
+export interface ChatClassification {
+  intention: string
+  intention_name: string
+  semaphore: SemaphoreLevel
+  confidence: number
+  gatillos_detected: string[]
+  context_required: string[]
+}
+
+export interface LegalSource {
+  title: string
+  article?: string
+  authority?: string
+  url?: string
+}
+
+export interface SuggestedAction {
+  type: ActionType
+  label: string
+  description: string
+  endpoint?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface IntelligentChatResponse {
+  message: string
+  classification: ChatClassification
+  sources: LegalSource[]
+  actions: SuggestedAction[]
+  disclaimers: string[]
+  conversation_id?: string
+  timestamp: string
+}
+
+// =============================================================================
+// MESSAGE (extended for intelligent chat)
+// =============================================================================
+
 export interface Message {
   id: string
   sender: MessageSender
@@ -35,8 +88,17 @@ export interface Message {
     step?: number
     toolContext?: ToolType
     requiresResponse?: boolean
+    classification?: ChatClassification
+    sources?: LegalSource[]
+    actions?: SuggestedAction[]
+    disclaimers?: string[]
+    errorType?: 'network' | 'server' | 'validation' | 'timeout'
   }
 }
+
+// =============================================================================
+// CHAT REQUEST / RESPONSE (legacy tool-based)
+// =============================================================================
 
 export interface ChatState {
   messages: Message[]
@@ -170,6 +232,13 @@ export interface Tool {
 
 export const TOOLS: Tool[] = [
   {
+    id: 'chat',
+    name: 'Consulta libre',
+    description: 'Escribe cualquier consulta legal y nuestro sistema clasificará tu intención y te dará la orientación adecuada.',
+    icon: 'message-circle',
+    initialMessage: '¡Hola! Soy **JUSTO**, tu asistente legal inteligente.\n\nPuedes preguntarme cualquier cosa sobre temas legales para organizaciones civiles en Perú: formalización, tributación, contratación, propiedad intelectual, y más.\n\n¿En qué puedo ayudarte hoy?'
+  },
+  {
     id: 'evaluation',
     name: 'Evaluar proyecto',
     description: 'Analizamos riesgos legales y la viabilidad técnica de tus iniciativas sociales con rigor jurídico.',
@@ -191,3 +260,6 @@ export const TOOLS: Tool[] = [
     initialMessage: '¡Excelente! Te ayudaré a preparar todo para tu reunión con el asesor legal.\n\n¿Cuál es el tema principal que quieres tratar en la reunión?'
   }
 ]
+
+// Max message length
+export const MAX_MESSAGE_LENGTH = 500
