@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = Field(default="../RAG/chroma_db")
     CHROMA_HOST: str = Field(default="localhost")
     CHROMA_PORT: int = Field(default=8000)
+    CHROMA_TOKEN: str | None = None
 
     # AI Providers
     OPENAI_API_KEY: str | None = None

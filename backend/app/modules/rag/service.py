@@ -365,6 +365,7 @@ async def initialize_rag() -> RAGModule:
         persist_directory=settings.CHROMA_PERSIST_DIR,
         host=settings.CHROMA_HOST,
         port=settings.CHROMA_PORT,
+        token=settings.CHROMA_TOKEN,
     )
 
     # Inicializar ChromaDB

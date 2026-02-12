@@ -45,6 +45,7 @@ class ChromaDBAdapter(VectorStoreAdapter):
         persist_directory: str | None = None,
         host: str | None = None,
         port: int | None = None,
+        token: str | None = None,
     ):
         """
         Inicializa el adapter.
@@ -53,10 +54,12 @@ class ChromaDBAdapter(VectorStoreAdapter):
             persist_directory: Ruta para persistencia local (desarrollo)
             host: Host del servidor ChromaDB (producción)
             port: Puerto del servidor ChromaDB (producción)
+            token: Token de autenticación para ChromaDB (producción)
         """
         self.persist_directory = persist_directory
         self.host = host
         self.port = port
+        self.token = token
         self._client = None
         self._collections: dict[str, Any] = {}
 
@@ -68,10 +71,13 @@ class ChromaDBAdapter(VectorStoreAdapter):
 
             if self.host and self.port:
                 # Modo servidor (producción)
-                self._client = chromadb.HttpClient(
-                    host=self.host,
-                    port=self.port,
-                )
+                client_kwargs = {
+                    "host": self.host,
+                    "port": self.port,
+                }
+                if self.token:
+                    client_kwargs["headers"] = {"Authorization": f"Bearer {self.token}"}
+                self._client = chromadb.HttpClient(**client_kwargs)
             elif self.persist_directory:
                 # Modo persistente local (desarrollo)
                 self._client = chromadb.PersistentClient(
@@ -436,6 +442,7 @@ def create_chroma_adapter(
     persist_directory: str = "./chroma_data",
     host: str = "localhost",
     port: int = 8000,
+    token: str | None = None,
 ) -> ChromaDBAdapter:
     """
     Crea un ChromaDBAdapter según el modo.
@@ -445,12 +452,13 @@ def create_chroma_adapter(
         persist_directory: Ruta para modo local
         host: Host para modo servidor
         port: Puerto para modo servidor
+        token: Token de autenticación para modo servidor
 
     Returns:
         ChromaDBAdapter configurado
     """
     if mode == "server":
-        return ChromaDBAdapter(host=host, port=port)
+        return ChromaDBAdapter(host=host, port=port, token=token)
     elif mode == "local":
         return ChromaDBAdapter(persist_directory=persist_directory)
     else:  # memory
