@@ -52,6 +52,8 @@ services:
       - CHROMA_URL=http://chromadb:8000
     depends_on:
       - chromadb
+    networks:
+      - default
     restart: unless-stopped
 
 
