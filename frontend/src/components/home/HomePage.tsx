@@ -1,32 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Send } from 'lucide-react'
-import { ToolCard } from './ToolCard'
 import { ActionMenu } from '../chat/ActionMenu'
-import { TOOLS, ToolType, MAX_MESSAGE_LENGTH } from '../../types/chat'
+import { MAX_MESSAGE_LENGTH } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { startTool, startIntelligentChat } = useChatStore()
+  const { startIntelligentChat } = useChatStore()
   const [inputValue, setInputValue] = useState('')
 
   const isOverLimit = inputValue.length > MAX_MESSAGE_LENGTH
-
-  const handleToolSelect = (toolId: ToolType) => {
-    if (toolId === 'chat') {
-      startIntelligentChat()
-    } else {
-      startTool(toolId)
-    }
-    navigate('/chat')
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isOverLimit) return
 
-    // Free text goes to intelligent chat with the message as pending
     startIntelligentChat(inputValue.trim())
     navigate('/chat')
   }
@@ -51,29 +40,6 @@ export function HomePage() {
             normativo diseñado para organizaciones civiles.
           </p>
         </div>
-
-        {/* Tool cards */}
-        <div className="flex flex-col md:flex-row gap-6 mb-12 w-full justify-center flex-wrap">
-          {TOOLS.map((tool) => (
-            <ToolCard
-              key={tool.id}
-              id={tool.id}
-              name={tool.name}
-              description={tool.description}
-              icon={tool.icon}
-              onClick={handleToolSelect}
-            />
-          ))}
-        </div>
-
-        {/* Free text hint */}
-        <p className="text-gray-600 mb-6 text-center">
-          También puedes escribir libremente.{' '}
-          <span className="text-gold">
-            Nuestro asistente clasificará tu intención
-          </span>{' '}
-          y te orientará según el tema legal.
-        </p>
 
         {/* Chat input */}
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">

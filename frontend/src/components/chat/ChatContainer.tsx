@@ -71,6 +71,7 @@ export function ChatContainer() {
   const [projectInfo, setProjectInfo] = useState<ReturnType<typeof buildProjectInfo> | null>(null)
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
   const [showFileUpload, setShowFileUpload] = useState(false)
+  const [isEditingProjectInfo, setIsEditingProjectInfo] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)

@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, BarChart2, ClipboardCheck, Users } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { useChatStore } from '../../stores/chatStore'
+import { Plus, FileUp } from 'lucide-react'
 import clsx from 'clsx'
 
-export function ActionMenu() {
+interface ActionMenuProps {
+    onFileSelect?: (file: File) => void
+}
+
+export function ActionMenu({ onFileSelect }: ActionMenuProps) {
     const [isOpen, setIsOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
-    const navigate = useNavigate()
-    const { startTool } = useChatStore()
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -20,14 +21,31 @@ export function ActionMenu() {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    const handleAction = (tool: 'evaluation' | 'compliance' | 'advisor') => {
-        startTool(tool)
-        navigate(`/chat/${tool}`)
+    const handleUploadClick = () => {
+        fileInputRef.current?.click()
         setIsOpen(false)
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (files && files.length > 0 && onFileSelect) {
+            onFileSelect(files[0])
+        }
+        // Reset input so the same file can be selected again
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
     }
 
     return (
         <div className="relative" ref={menuRef}>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx"
+                onChange={handleFileChange}
+                className="hidden"
+            />
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
@@ -42,42 +60,23 @@ export function ActionMenu() {
             </button>
 
             {isOpen && (
-                <div className="absolute bottom-14 left-0 w-72 bg-gray-900 rounded-xl shadow-xl p-2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="absolute bottom-14 left-0 w-64 bg-gray-900 rounded-xl shadow-xl p-2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
                     <div className="space-y-1">
                         <button
-                            onClick={() => handleAction('evaluation')}
+                            onClick={handleUploadClick}
                             className="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors group text-left"
                         >
                             <div className="w-10 h-10 rounded-lg bg-yellow-900/30 flex items-center justify-center text-yellow-500 group-hover:bg-yellow-900/50 group-hover:text-yellow-400 transition-colors">
-                                <BarChart2 className="w-5 h-5" />
+                                <FileUp className="w-5 h-5" />
                             </div>
-                            <span className="text-gray-200 font-medium group-hover:text-white">
-                                Evaluar proyecto
-                            </span>
-                        </button>
-
-                        <button
-                            onClick={() => handleAction('compliance')}
-                            className="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors group text-left"
-                        >
-                            <div className="w-10 h-10 rounded-lg bg-yellow-900/30 flex items-center justify-center text-yellow-500 group-hover:bg-yellow-900/50 group-hover:text-yellow-400 transition-colors">
-                                <ClipboardCheck className="w-5 h-5" />
+                            <div>
+                                <span className="text-gray-200 font-medium group-hover:text-white block">
+                                    Subir archivo
+                                </span>
+                                <span className="text-gray-500 text-xs">
+                                    PDF, DOCX — máx. 10 MB
+                                </span>
                             </div>
-                            <span className="text-gray-200 font-medium group-hover:text-white">
-                                Ruta de cumplimiento
-                            </span>
-                        </button>
-
-                        <button
-                            onClick={() => handleAction('advisor')}
-                            className="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors group text-left"
-                        >
-                            <div className="w-10 h-10 rounded-lg bg-yellow-900/30 flex items-center justify-center text-yellow-500 group-hover:bg-yellow-900/50 group-hover:text-yellow-400 transition-colors">
-                                <Users className="w-5 h-5" />
-                            </div>
-                            <span className="text-gray-200 font-medium group-hover:text-white">
-                                Preparar reunión
-                            </span>
                         </button>
                     </div>
                 </div>
@@ -85,3 +84,4 @@ export function ActionMenu() {
         </div>
     )
 }
+
