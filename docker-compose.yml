@@ -44,15 +44,6 @@ services:
 
     restart: unless-stopped
 
-  chroma-ui:
-    image: renatoviolin/chromadb-admin:latest
-    container_name: gpt_legal_ui
-    ports:
-      - "127.0.0.1:3000:3000" # Solo escucha en localhost (seguro)
-    environment:
-      - CHROMA_URL=http://chromadb:8000 # Se conecta internamente al otro contenedor
-    depends_on:
-      - chromadb
 
 
 
