@@ -6,13 +6,17 @@ import { ProgressBar } from '../ui/ProgressBar'
 import { SemaphoreBadge } from './SemaphoreBadge'
 import { SourcesCitation } from './SourcesCitation'
 import { ActionCard } from './ActionCard'
+import { MarkdownRenderer } from '../ui/MarkdownRenderer'
 import { AlertCircle, WifiOff, ServerCrash, Clock } from 'lucide-react'
+import { useTypewriter } from '../../hooks/useTypewriter'
 
 interface ChatMessageProps {
   message: Message
   onOptionSelect?: (value: string) => void
   onFileUpload?: (file: File) => void
   onFileUploadRequest?: () => void
+  /** If true, animate the text with a typewriter effect */
+  animate?: boolean
 }
 
 function ErrorIcon({ type }: { type?: string }) {
@@ -24,7 +28,25 @@ function ErrorIcon({ type }: { type?: string }) {
   }
 }
 
-export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest }: ChatMessageProps) {
+/** Renders text with optional typewriter animation + Markdown */
+function AnimatedText({ text, animate }: { text: string; animate: boolean }) {
+  const { visibleText, isAnimating } = useTypewriter(text, {
+    enabled: animate,
+    wordsPerTick: 3,
+    speed: 25,
+  })
+
+  return (
+    <div className="leading-relaxed">
+      <MarkdownRenderer content={visibleText} />
+      {isAnimating && (
+        <span className="inline-block w-1.5 h-4 bg-gold/60 ml-0.5 animate-pulse rounded-sm" />
+      )}
+    </div>
+  )
+}
+
+export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, animate = false }: ChatMessageProps) {
   const isJusto = message.sender === 'justo'
 
   // Render message content based on type
@@ -71,8 +93,8 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
                 </div>
               )}
 
-            {/* Main message text */}
-            <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+            {/* Main message text — with typewriter effect */}
+            <AnimatedText text={message.content} animate={animate} />
 
             {/* Sources */}
             {message.metadata?.sources && message.metadata.sources.length > 0 && (
@@ -123,7 +145,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
       case 'options':
         return (
           <>
-            <div className="whitespace-pre-wrap">{message.content}</div>
+            <AnimatedText text={message.content} animate={animate} />
             {message.options && (
               <OptionButtons
                 options={message.options}
@@ -193,7 +215,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
 
       // ── Default text ──
       default:
-        return <div className="whitespace-pre-wrap">{message.content}</div>
+        return <AnimatedText text={message.content} animate={animate} />
     }
   }
 

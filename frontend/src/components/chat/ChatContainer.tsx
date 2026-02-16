@@ -258,7 +258,13 @@ export function ChatContainer() {
     sendMessage(message)
   }
 
+  // Find the last justo message ID for animation
+  const lastJustoMessageId = [...messages].reverse().find(m => m.sender === 'justo')?.id
+
   const renderMessage = (message: typeof messages[0]) => {
+    // Should this message animate?
+    const shouldAnimate = message.id === lastJustoMessageId && message.sender === 'justo'
+
     // Special rendering for project info card
     if (message.content === 'project_info_card' && message.sender === 'justo') {
       const data = projectInfo ?? {
@@ -329,6 +335,7 @@ export function ChatContainer() {
         onOptionSelect={handleOptionSelect}
         onFileUpload={handleFileUpload}
         onFileUploadRequest={handleFileUploadRequest}
+        animate={shouldAnimate}
       />
     )
   }
