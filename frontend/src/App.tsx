@@ -40,7 +40,7 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/gpt-legal">
       <Header />
       <Routes>
         <Route path="/legal-form" element={<LegalFormPage />} />
