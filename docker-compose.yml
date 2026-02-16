@@ -41,10 +41,6 @@ services:
       - chromadb_data:/chroma/chroma 
     environment:
       - IS_PERSISTENT=TRUE
-      # 🔐 Autenticación por Token
-      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.token_authn.TokenAuthenticationServerProvider
-      - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_TOKEN}
-      - CHROMA_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
 
     restart: unless-stopped
 
