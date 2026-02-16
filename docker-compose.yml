@@ -35,8 +35,8 @@ services:
   chromadb:
     image: chromadb/chroma:latest
     container_name: gpt_legal_chromadb
-    # ports:
-      # - "8001:8000"             # 🔒 CERRADO POR SEGURIDAD. Solo el Backend debe hablar con él.
+    ports:
+      "127.0.0.1:8001:8000"          
     volumes:
       - chromadb_data:/chroma/chroma 
     environment:
