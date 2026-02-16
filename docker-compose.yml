@@ -26,17 +26,17 @@ services:
     build: ./frontend
     container_name: gpt_legal_frontend
     ports:
-      - "5173:80"                 # 🌍 ESTE ES EL ÚNICO PUERTO PÚBLICO
+      - "8090:80"                 # 🌍 ESTE ES EL ÚNICO PUERTO PÚBLICO
     depends_on:
       - backend
     restart: unless-stopped
 
   # 🧠 LA CAJA DE LA MEMORIA (ChromaDB)
   chromadb:
-    image: chromadb/chroma:0.5.5
+    image: chromadb/chroma:latest
     container_name: gpt_legal_chromadb
-    ports:
-      - "8001:8000"               # ⚠️ SOLO DESARROLLO - Cierra en producción
+    # ports:
+      # - "8001:8000"             # 🔒 CERRADO POR SEGURIDAD. Solo el Backend debe hablar con él.
     volumes:
       - chromadb_data:/chroma/chroma 
     environment:
@@ -48,19 +48,7 @@ services:
 
     restart: unless-stopped
 
-  # 📊 VISUALIZACIÓN DE CHROMADB (chromadb-admin)
-  chromadb-admin:
-    build: https://github.com/flanker/chromadb-admin.git
-    container_name: gpt_legal_chromadb_admin
-    ports:
-      - "3001:3001"               # ⚠️ SOLO DESARROLLO - Cierra en producción
-    environment:
-      # chromadb-admin necesita saber dónde está Chroma y su token
-      - CHROMADB_HOST=chromadb
-      - CHROMADB_PORT=8000
-    depends_on:
-      - chromadb
-    restart: unless-stopped
+
 
 
 # Aquí definimos los volúmenes persistentes
