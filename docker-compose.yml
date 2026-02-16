@@ -36,7 +36,7 @@ services:
     image: chromadb/chroma:latest
     container_name: gpt_legal_chromadb
     ports:
-      "127.0.0.1:8001:8000"          
+      - "127.0.0.1:8001:8000"          
     volumes:
       - chromadb_data:/chroma/chroma 
     environment:
