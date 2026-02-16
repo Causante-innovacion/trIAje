@@ -1,0 +1,324 @@
+"""
+Chat Feature - Clasificador de Intenciones y Semáforo.
+
+Implementa un sistema híbrido:
+1. Detección de gatillos por reglas (determinista, rápido)
+2. Clasificación de intención por keywords + LLM fallback
+3. Clasificación de semáforo según gatillos y contexto
+
+Para modificar las reglas, editar config.py (no este archivo).
+"""
+
+import re
+import json
+import unicodedata
+from typing import Optional, Tuple, List
+
+from app.ai.router import AIRouter
+from app.core.config import settings
+
+from .config import (
+    Intention,
+    Semaphore,
+    INTENTIONS,
+    GATILLOS,
+    AMBER_CONTEXT_FIELDS,
+    PROJECT_ANALYSIS_TRIGGERS,
+)
+from .schemas import ChatClassification
+
+
+# =============================================================================
+# PROMPT PARA CLASIFICACIÓN CON LLM
+# =============================================================================
+
+_INTENTION_DESCRIPTIONS = "\n".join(
+    f"- {intent.value}: {cfg.name} — {cfg.description}"
+    for intent, cfg in INTENTIONS.items()
+    if intent != Intention.FUERA_DE_ALCANCE
+)
+
+CLASSIFICATION_SYSTEM_PROMPT = f"""Eres un clasificador de consultas legales para organizaciones civiles en Perú.
+
+Tu tarea es clasificar el mensaje del usuario en UNA de las siguientes intenciones:
+
+{_INTENTION_DESCRIPTIONS}
+- fuera_de_alcance: La consulta NO está relacionada con ningún tema legal de los anteriores.
+
+También debes determinar el nivel de semáforo:
+- verde: Consulta informativa general que se puede responder directamente con normativa.
+- amarillo: La consulta requiere contexto adicional del usuario para ser respondida correctamente.
+- rojo: La consulta involucra un riesgo legal grave, un proceso de fiscalización/sanción activo, o situaciones que requieren un abogado.
+
+Responde EXCLUSIVAMENTE en JSON con este formato:
+{{
+    "intention": "<id_de_intencion>",
+    "semaphore": "<verde|amarillo|rojo>",
+    "confidence": <0.0 a 1.0>,
+    "reasoning": "<explicación breve>"
+}}"""
+
+
+def _normalize(text: str) -> str:
+    """Normaliza texto: lowercase + quitar acentos para matching robusto."""
+    text = text.lower()
+    # Descomponer caracteres acentuados y filtrar marcas de combinación
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+class IntentionClassifier:
+    """
+    Clasifica la intención del mensaje del usuario.
+    Usa keywords primero, LLM como fallback.
+    """
+
+    @staticmethod
+    def classify_by_keywords(message: str) -> Tuple[Optional[Intention], float]:
+        """
+        Clasifica por coincidencia de keywords (rápido, sin costo).
+        Retorna (intención, confianza) o (None, 0.0) si no hay match claro.
+        """
+        message_norm = _normalize(message)
+        scores: dict[Intention, int] = {}
+
+        for intention, config in INTENTIONS.items():
+            if intention == Intention.FUERA_DE_ALCANCE:
+                continue
+            score = 0
+            for kw in config.keywords:
+                if _normalize(kw) in message_norm:
+                    score += 1
+            if score > 0:
+                scores[intention] = score
+
+        if not scores:
+            return None, 0.0
+
+        best = max(scores, key=scores.get)  # type: ignore
+        total_keywords = len(INTENTIONS[best].keywords)
+        confidence = min(scores[best] / max(total_keywords * 0.2, 1), 1.0)
+
+        return best, confidence
+
+    @staticmethod
+    async def classify_by_llm(message: str) -> Tuple[Intention, float]:
+        """
+        Clasifica usando el LLM (gpt-4o-mini) como fallback.
+        """
+        ai_router = AIRouter()
+
+        schema = {
+            "type": "object",
+            "properties": {
+                "intention": {"type": "string"},
+                "semaphore": {"type": "string"},
+                "confidence": {"type": "number"},
+                "reasoning": {"type": "string"},
+            },
+            "required": ["intention", "semaphore", "confidence"],
+        }
+
+        try:
+            result = await ai_router.intake_json(
+                prompt=f"Clasifica esta consulta del usuario:\n\n\"{message}\"",
+                schema=schema,
+                system_prompt=CLASSIFICATION_SYSTEM_PROMPT,
+            )
+
+            intention_str = result.get("intention", "fuera_de_alcance")
+            confidence = float(result.get("confidence", 0.5))
+
+            try:
+                intention = Intention(intention_str)
+            except ValueError:
+                intention = Intention.FUERA_DE_ALCANCE
+                confidence = 0.3
+
+            return intention, confidence
+
+        except Exception:
+            return Intention.FUERA_DE_ALCANCE, 0.0
+
+    @staticmethod
+    async def classify(message: str) -> Tuple[Intention, float]:
+        """
+        Clasificación híbrida: keywords primero, LLM si no hay match claro.
+        """
+        intention, confidence = IntentionClassifier.classify_by_keywords(message)
+
+        if intention and confidence >= 0.35:
+            return intention, confidence
+
+        llm_intention, llm_confidence = await IntentionClassifier.classify_by_llm(message)
+
+        if intention and confidence > 0:
+            if llm_intention == intention:
+                return intention, min(confidence + llm_confidence * 0.5, 1.0)
+            if llm_confidence > confidence:
+                return llm_intention, llm_confidence
+            return intention, confidence
+
+        return llm_intention, llm_confidence
+
+
+class SemaphoreClassifier:
+    """
+    Clasifica el semáforo (Verde/Amarillo/Rojo) del mensaje.
+    Prioridad: Gatillos ROJO > Contexto AMARILLO > VERDE por defecto.
+    """
+
+    @staticmethod
+    def detect_gatillos(message: str, intention: Intention) -> List[str]:
+        """
+        Detecta gatillos ROJO en el mensaje (por reglas, determinista).
+        Busca en los gatillos de la intención detectada + gatillos globales.
+        Usa normalización sin acentos para matching robusto.
+        """
+        message_norm = _normalize(message)
+        detected: List[str] = []
+
+        # Buscar en gatillos de la intención detectada
+        intention_gatillos = GATILLOS.get(intention, [])
+        for gatillo in intention_gatillos:
+            for phrase in gatillo.trigger_phrases:
+                if _normalize(phrase) in message_norm:
+                    detected.append(phrase)
+
+        # Buscar en TODOS los gatillos (puede cruzar intenciones)
+        for intent, gatillo_list in GATILLOS.items():
+            if intent == intention:
+                continue
+            for gatillo in gatillo_list:
+                for phrase in gatillo.trigger_phrases:
+                    if _normalize(phrase) in message_norm and phrase not in detected:
+                        detected.append(phrase)
+
+        return detected
+
+    @staticmethod
+    def _is_specific_case(message: str) -> bool:
+        """
+        Determina si el usuario habla de un CASO ESPECÍFICO (no una pregunta general).
+        Solo los casos específicos justifican pedir contexto adicional.
+        """
+        message_lower = message.lower()
+        # Indicadores de que el usuario tiene un caso concreto
+        specificity_indicators = [
+            # Posesivos → habla de SU situación
+            r"\b(mi|mis|nuestro|nuestra|nuestros|nuestras)\b",
+            # Verbos en primera persona con problema concreto
+            r"\b(tengo|tenemos|recibí|recibimos|nos llegó|nos notificaron|me notificaron)\b",
+            # Palabras de problema/situación
+            r"\b(problema|error|observación|conflicto|multa|notificación|denuncia|demanda)\b",
+            # Verbos que implican acción en curso
+            r"\b(estoy|estamos|necesito|necesitamos|quiero|queremos)\s+(haciendo|tramitando|cambiando|corrigiendo|resolviendo)",
+            # Situación concreta
+            r"\b(caso|situación|incidente|suceso)\b",
+        ]
+        return any(re.search(p, message_lower) for p in specificity_indicators)
+
+    @staticmethod
+    def needs_context(message: str, intention: Intention) -> List[str]:
+        """
+        Determina si el mensaje necesita contexto adicional (AMARILLO).
+        Solo retorna preguntas si el usuario tiene un caso específico
+        que requiere más datos para ser respondido correctamente.
+        """
+        # Solo pedir contexto si el usuario habla de un caso específico
+        if not SemaphoreClassifier._is_specific_case(message):
+            return []
+
+        context_fields = AMBER_CONTEXT_FIELDS.get(intention, [])
+        if not context_fields:
+            return []
+
+        message_lower = message.lower()
+
+        # Verificar si el mensaje ya proporciona contexto relevante
+        prompts_needed: List[str] = []
+        for field in context_fields:
+            field_keywords = field.field_name.replace("_", " ").split()
+            has_context = any(kw in message_lower for kw in field_keywords)
+            if not has_context:
+                prompts_needed.append(field.example_prompt)
+
+        return prompts_needed
+
+    @staticmethod
+    def _is_informative_question(message: str) -> bool:
+        """
+        Determina si el mensaje es una pregunta informativa general
+        que se puede responder directamente sin pedir más contexto.
+        """
+        message_lower = message.lower().strip()
+
+        informative_patterns = [
+            # "¿Qué es/son/significa/requisitos/necesito/pasos/documentos...?"
+            r"¿?qu[ée]\s+(es|son|significa|requisitos|necesito|pasos|documentos?|debo|hay que|implica|incluye|se necesita|se requiere)",
+            # "¿Cómo + verbo?" (constituir, formalizar, hacer, crear, registrar, etc.)
+            r"¿?c[óo]mo\s+\w+",
+            # "¿Cuál/Cuáles es/son...?"
+            r"¿?cu[áa]l(es)?\s+(es|son|ser[íi]a)",
+            # "¿Cuánto cuesta/vale/dura/tarda...?"
+            r"¿?cu[áa]nto\s+(cuesta|vale|dura|tarda|demora|tiempo)",
+            # "¿Cuándo debo/tengo/hay/se...?"
+            r"¿?cu[áa]ndo\s+(debo|tengo|hay|se\s+debe|es\s+necesario)",
+            # "¿Dónde debo/puedo/tengo...?"
+            r"¿?d[óo]nde\s+(debo|puedo|tengo|se\s+puede|se\s+hace|se\s+tramita|se\s+registra)",
+            # "¿Puedo + infinitivo?" / "¿Se puede...?"
+            r"¿?(puedo|se\s+puede|es\s+posible|es\s+legal|es\s+obligatorio|es\s+necesario)\s+\w+",
+            # "¿Necesito + algo?"
+            r"¿?necesito\s+\w+",
+            # "Diferencia entre X e Y"
+            r"diferencia\s+entre",
+            # Verbos imperativos: "Explica/Describe/Dime..."
+            r"^(explica|describe|dime|cuéntame|indícame|detalla)",
+            # "Quiero saber/entender/conocer..."
+            r"quiero\s+(saber|entender|conocer|aprender|informarme)",
+        ]
+
+        return any(re.search(p, message_lower) for p in informative_patterns)
+
+    @staticmethod
+    def classify(
+        message: str,
+        intention: Intention,
+    ) -> Tuple[Semaphore, List[str], List[str]]:
+        """
+        Clasifica el semáforo completo.
+        Retorna (semáforo, gatillos_detectados, contexto_requerido).
+        """
+        # 1. ROJO: detectar gatillos
+        gatillos = SemaphoreClassifier.detect_gatillos(message, intention)
+        if gatillos:
+            return Semaphore.ROJO, gatillos, []
+
+        # 2. FUERA DE ALCANCE: no es rojo ni amarillo
+        if intention == Intention.FUERA_DE_ALCANCE:
+            return Semaphore.VERDE, [], []
+
+        # 3. Si es una pregunta informativa general → VERDE directo
+        if SemaphoreClassifier._is_informative_question(message):
+            return Semaphore.VERDE, [], []
+
+        # 4. AMARILLO: verificar si necesita contexto (solo para casos específicos)
+        context_needed = SemaphoreClassifier.needs_context(message, intention)
+        if context_needed:
+            return Semaphore.AMARILLO, [], context_needed
+
+        # 5. VERDE por defecto
+        return Semaphore.VERDE, [], []
+
+
+class ProjectAnalysisDetector:
+    """Detecta si el usuario quiere analizar un proyecto completo."""
+
+    @staticmethod
+    def is_project_analysis(message: str) -> bool:
+        """Verifica si el mensaje indica análisis de proyecto."""
+        message_lower = message.lower()
+        return any(
+            trigger in message_lower
+            for trigger in PROJECT_ANALYSIS_TRIGGERS
+        )

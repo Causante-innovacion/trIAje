@@ -3,25 +3,31 @@ import { useNavigate } from 'react-router-dom'
 import { Send } from 'lucide-react'
 import { ToolCard } from './ToolCard'
 import { ActionMenu } from '../chat/ActionMenu'
-import { TOOLS, ToolType } from '../../types/chat'
+import { TOOLS, ToolType, MAX_MESSAGE_LENGTH } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { startTool } = useChatStore()
+  const { startTool, startIntelligentChat } = useChatStore()
   const [inputValue, setInputValue] = useState('')
 
+  const isOverLimit = inputValue.length > MAX_MESSAGE_LENGTH
+
   const handleToolSelect = (toolId: ToolType) => {
-    startTool(toolId)
+    if (toolId === 'chat') {
+      startIntelligentChat()
+    } else {
+      startTool(toolId)
+    }
     navigate('/chat')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || isOverLimit) return
 
-    // For free text, we'll start with evaluation tool context but handle as general query
-    startTool('evaluation')
+    // Free text goes to intelligent chat with the message as pending
+    startIntelligentChat(inputValue.trim())
     navigate('/chat')
   }
 
@@ -47,7 +53,7 @@ export function HomePage() {
         </div>
 
         {/* Tool cards */}
-        <div className="flex flex-col md:flex-row gap-6 mb-12 w-full justify-center">
+        <div className="flex flex-col md:flex-row gap-6 mb-12 w-full justify-center flex-wrap">
           {TOOLS.map((tool) => (
             <ToolCard
               key={tool.id}
@@ -64,9 +70,9 @@ export function HomePage() {
         <p className="text-gray-600 mb-6 text-center">
           También puedes escribir libremente.{' '}
           <span className="text-gold">
-            Nuestro asistente sugerirá la mejor herramienta
+            Nuestro asistente clasificará tu intención
           </span>{' '}
-          según tu consulta.
+          y te orientará según el tema legal.
         </p>
 
         {/* Chat input */}
@@ -82,6 +88,12 @@ export function HomePage() {
               className="chat-input"
             />
             <div className="flex items-center gap-2">
+              {/* Character counter */}
+              {inputValue.length > MAX_MESSAGE_LENGTH * 0.8 && (
+                <span className={`text-xs tabular-nums ${isOverLimit ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                  {inputValue.length}/{MAX_MESSAGE_LENGTH}
+                </span>
+              )}
               <span className="text-xs text-gray-400 uppercase tracking-wide hidden sm:block">
                 Presiona<br />
                 <strong>Enter</strong>
@@ -89,7 +101,7 @@ export function HomePage() {
               <button
                 type="submit"
                 className="send-button"
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isOverLimit}
               >
                 <Send className="w-5 h-5" />
               </button>

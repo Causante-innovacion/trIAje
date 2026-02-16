@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
+import { useChat } from '../../hooks/useChat'
 import { documentsApi } from '../../shared/services/api'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { Avatar } from '../ui/Avatar'
 import { ProjectInfoCard, ProjectInfo } from './ProjectInfoCard'
 import { OrganizationsDetected } from './OrganizationsDetected'
+import { FileUpload } from './FileUpload'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
 
 // Builds ProjectInfoCard data from extracted plan
@@ -61,14 +63,18 @@ export function ChatContainer() {
     currentTool,
     extractedPlan,
     setExtractedPlan,
+    consumePendingMessage,
   } = useChatStore()
 
-  const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null)
+  const { sendMessage } = useChat()
+
+  const [projectInfo, setProjectInfo] = useState<ReturnType<typeof buildProjectInfo> | null>(null)
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
-  const [isEditingProjectInfo, setIsEditingProjectInfo] = useState(false)
+  const [showFileUpload, setShowFileUpload] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const hasSentPending = useRef(false)
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -87,6 +93,20 @@ export function ChatContainer() {
       setOrganizations(buildOrganizations(extractedPlan))
     }
   }, [extractedPlan, projectInfo])
+
+  // Send pending message from home page (intelligent chat)
+  useEffect(() => {
+    if (currentTool === 'chat' && !hasSentPending.current) {
+      hasSentPending.current = true
+      const pending = consumePendingMessage()
+      if (pending) {
+        // Small delay so the UI renders first
+        setTimeout(() => {
+          sendMessage(pending)
+        }, 400)
+      }
+    }
+  }, [currentTool, consumePendingMessage, sendMessage])
 
   const handleOptionSelect = (value: string) => {
     const selectedOption = messages
@@ -125,6 +145,9 @@ export function ChatContainer() {
 
   const handleFileUpload = async (file: File) => {
     const fileId = Math.random().toString(36).substring(2)
+
+    // Hide inline upload UI
+    setShowFileUpload(false)
 
     // Show upload message
     useChatStore.getState().addMessage({
@@ -224,17 +247,14 @@ export function ChatContainer() {
     navigate('/legal-form')
   }
 
+  const handleFileUploadRequest = useCallback(() => {
+    setShowFileUpload(true)
+    setTimeout(scrollToBottom, 100)
+  }, [])
+
   const handleSendMessage = (message: string) => {
-    addUserMessage(message)
-    setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
-      addJustoMessage(
-        'Gracias por tu mensaje. Estoy analizando tu consulta para darte la mejor orientación posible.\n\n' +
-        'Basándome en la normativa peruana vigente, te puedo ayudar con información general. ' +
-        'Sin embargo, para un análisis más detallado, te recomiendo seleccionar una de las herramientas específicas.'
-      )
-    }, 1500)
+    // Use the unified sendMessage from useChat
+    sendMessage(message)
   }
 
   const renderMessage = (message: typeof messages[0]) => {
@@ -307,6 +327,7 @@ export function ChatContainer() {
         message={message}
         onOptionSelect={handleOptionSelect}
         onFileUpload={handleFileUpload}
+        onFileUploadRequest={handleFileUploadRequest}
       />
     )
   }
@@ -320,6 +341,26 @@ export function ChatContainer() {
       >
         <div className="max-w-3xl mx-auto">
           {messages.map(renderMessage)}
+
+          {/* Inline file upload (triggered by action card) */}
+          {showFileUpload && (
+            <div className="chat-message animate-fade-in">
+              <div className="flex items-start gap-4">
+                <Avatar size="md" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+                    JUSTO
+                  </p>
+                  <div className="chat-bubble">
+                    <p className="mb-3 text-sm text-gray-600">
+                      Sube tu archivo aquí para que pueda analizarlo:
+                    </p>
+                    <FileUpload onFileSelect={handleFileUpload} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Typing indicator */}
           {isTyping && (

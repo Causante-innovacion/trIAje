@@ -14,6 +14,7 @@ from app.features.query.router import router as query_router
 from app.features.advisor_prep.router import router as advisor_prep_router
 from app.features.compliance.router import router as compliance_router
 from app.features.documents.router import router as documents_router
+from app.features.chat.router import router as chat_router
 from app.modules.rag import initialize_rag, shutdown_rag
 
 
@@ -60,6 +61,7 @@ app.include_router(query_router, prefix="/api/v1/query", tags=["Consultas"])
 app.include_router(advisor_prep_router, prefix="/api/v1/advisor-prep", tags=["Preparar Asesor"])
 app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["Cumplimiento"])
 app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documentos RAG"])
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["Chat"])
 
 
 @app.get("/health")
@@ -81,6 +83,7 @@ async def root():
             {"id": "evaluation", "name": "Evaluación Legal", "endpoint": "/api/v1/evaluation"},
             {"id": "compliance", "name": "Ruta de Cumplimiento", "endpoint": "/api/v1/compliance"},
             {"id": "query", "name": "Consulta Legal", "endpoint": "/api/v1/query"},
+            {"id": "chat", "name": "Chat Inteligente", "endpoint": "/api/v1/chat"},
         ],
         "rag": {
             "status": "/api/v1/documents/status",

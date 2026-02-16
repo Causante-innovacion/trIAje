@@ -1,5 +1,5 @@
 import axios, { AxiosProgressEvent } from 'axios'
-import { ChatRequest } from '../../types/chat'
+import { ChatRequest, IntelligentChatResponse } from '../../types/chat'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -9,6 +9,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 90000, // 90s — chat chains multiple LLM calls
 })
 
 // Interceptor para manejo de errores
@@ -20,9 +21,20 @@ api.interceptors.response.use(
   }
 )
 
-// Chat API - Principal endpoint conversacional
+// Chat API - Intelligent chat endpoint
 export const chatApi = {
+  /** Send a message to the intelligent chat (classification + semaphore) */
+  sendIntelligentMessage: (data: { message: string; conversation_id?: string; context?: Record<string, string> }) =>
+    api.post<IntelligentChatResponse>('/chat/message', data),
+
+  /** Legacy tool-based chat */
   sendMessage: (data: ChatRequest) => api.post('/chat', data),
+
+  /** List all intentions (reference) */
+  getIntentions: () => api.get('/chat/intentions'),
+
+  /** List all gatillos (reference) */
+  getGatillos: () => api.get('/chat/gatillos'),
 
   uploadDocument: (
     file: File,

@@ -23,9 +23,15 @@ export default {
           DEFAULT: '#f5f7f0',
           light: '#f8faf5',
         },
-        // Semáforo de viabilidad
+        // Semáforo de viabilidad (legacy)
         viable: '#22c55e',
         inviable: '#eab308',
+        // Semáforo de chat inteligente
+        semaphore: {
+          green: '#059669',
+          yellow: '#d97706',
+          red: '#dc2626',
+        },
       },
       fontFamily: {
         heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
@@ -57,6 +63,20 @@ export default {
         slideDown: {
           '0%': { opacity: '0', transform: 'translateY(-10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-in': 'slideIn 0.3s ease-out both',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateX(-8px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
       },
     },

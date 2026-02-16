@@ -72,6 +72,10 @@ body {
   @apply w-10 h-10 rounded-full bg-gold hover:bg-gold-dark flex items-center justify-center transition-colors duration-200;
 }
 
+.send-button:disabled {
+  @apply bg-gray-200 cursor-not-allowed;
+}
+
 .send-button svg {
   @apply w-5 h-5 text-white;
 }
@@ -94,7 +98,7 @@ body {
   @apply h-full bg-viable rounded-full transition-all duration-300;
 }
 
-/* Traffic light indicators */
+/* Traffic light indicators (legacy) */
 .traffic-light-green {
   @apply bg-green-100 text-green-800 border-green-200;
 }
