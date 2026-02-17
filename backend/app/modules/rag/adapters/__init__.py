@@ -4,7 +4,6 @@ Adaptadores para diferentes vector stores.
 
 Implementados:
 - qdrant.py (Qdrant) - Multi-tenant con collections compartidas y privadas + Dashboard GUI
-- chroma.py (ChromaDB) - Legacy (disponible como respaldo)
 
 Cada adapter debe implementar la interfaz VectorStoreAdapter de base.py
 """
@@ -36,7 +35,7 @@ def get_adapter(adapter_type: str = "qdrant", **kwargs) -> VectorStoreAdapter:
     Factory para obtener el adapter configurado.
 
     Args:
-        adapter_type: Tipo de adapter ("qdrant", "chroma", "pgvector")
+        adapter_type: Tipo de adapter ("qdrant", "pgvector")
         **kwargs: Argumentos adicionales para el adapter
 
     Returns:
@@ -47,10 +46,6 @@ def get_adapter(adapter_type: str = "qdrant", **kwargs) -> VectorStoreAdapter:
     """
     if adapter_type == "qdrant":
         return create_qdrant_adapter(**kwargs)
-
-    if adapter_type == "chroma":
-        from .chroma import create_chroma_adapter
-        return create_chroma_adapter(**kwargs)
 
     if adapter_type == "pgvector":
         raise NotImplementedError("PgVectorAdapter no implementado aún")

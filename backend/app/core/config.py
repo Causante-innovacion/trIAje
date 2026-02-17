@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./gpt_legal.db")
 
     # Vector Store - Qdrant (dashboard: http://localhost:6333/dashboard)
-    VECTOR_STORE_TYPE: str = Field(default="qdrant")  # qdrant, chroma, pgvector
+    VECTOR_STORE_TYPE: str = Field(default="qdrant")  # qdrant, pgvector
     QDRANT_HOST: str = Field(default="localhost")
     QDRANT_PORT: int = Field(default=6333)
     QDRANT_API_KEY: str | None = None
