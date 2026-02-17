@@ -94,7 +94,7 @@ class CollectionStats(BaseModel):
 class RAGStatusResponse(BaseModel):
     """Estado del sistema RAG"""
     healthy: bool
-    chroma_mode: str
+    vector_store_type: str
     collections: list[CollectionStats]
     total_documents: int
 

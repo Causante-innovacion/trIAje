@@ -110,7 +110,7 @@ class DocumentService:
 
         1. Genera chunks del documento
         2. Genera embeddings para cada chunk
-        3. Indexa en ChromaDB
+        3. Indexa en Qdrant
         """
         rag = get_rag_module()
 
@@ -132,7 +132,7 @@ class DocumentService:
         chunks = self._chunk_text(
             request.content,
             chunk_size=request.chunk_size,
-            chunk_overlap=request.chunk_overlap,
+            overlap=request.chunk_overlap,
         )
 
         if not chunks:
@@ -157,7 +157,7 @@ class DocumentService:
             intention=request.intention,
         )
 
-        # Indexar en ChromaDB
+        # Indexar en Qdrant
         chunk_ids = await adapter.index_document(
             doc_id=doc_id,
             chunks=chunks,
@@ -247,7 +247,7 @@ class DocumentService:
         except RuntimeError:
             return RAGStatusResponse(
                 healthy=False,
-                chroma_mode=settings.VECTOR_STORE_TYPE,
+                vector_store_type=settings.VECTOR_STORE_TYPE,
                 collections=[],
                 total_documents=0,
             )
@@ -255,7 +255,7 @@ class DocumentService:
         if not isinstance(rag.vector_store, QdrantAdapter):
             return RAGStatusResponse(
                 healthy=False,
-                chroma_mode=settings.VECTOR_STORE_TYPE,
+                vector_store_type=settings.VECTOR_STORE_TYPE,
                 collections=[],
                 total_documents=0,
             )
@@ -282,7 +282,7 @@ class DocumentService:
 
         return RAGStatusResponse(
             healthy=healthy,
-            chroma_mode=settings.VECTOR_STORE_TYPE,
+            vector_store_type=settings.VECTOR_STORE_TYPE,
             collections=collections,
             total_documents=total_chunks,
         )

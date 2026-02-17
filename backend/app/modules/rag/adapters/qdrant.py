@@ -23,7 +23,7 @@ class QdrantAdapter(VectorStoreAdapter):
     Adapter de Qdrant para GPT Legal.
 
     Arquitectura multi-tenant:
-    - Collection 'leyes_peru': Corpus compartido de normativa legal
+    - Collection 'legal_documents': Corpus compartido de normativa legal
     - Collection 'org_{org_id}': Documentos privados de cada organización
 
     Dashboard: http://localhost:6333/dashboard
@@ -142,7 +142,7 @@ class QdrantAdapter(VectorStoreAdapter):
             # Crear payload index para filtrado eficiente
             self._client.create_payload_index(
                 collection_name=config.name,
-                field_name="intention",
+                field_name="intenciones",
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
 

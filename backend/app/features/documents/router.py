@@ -88,7 +88,7 @@ async def search_documents(request: DocumentSearchRequest):
     """
     Busca documentos usando RAG.
 
-    Realiza búsqueda semántica en las colecciones de ChromaDB.
+    Realiza búsqueda semántica en las colecciones de Qdrant.
 
     - Si se especifica organization_id: busca en normativa + docs de la org
     - Sin organization_id: busca solo en normativa compartida
@@ -114,7 +114,7 @@ async def get_rag_status():
 
     Retorna información sobre:
     - Salud del sistema
-    - Modo de ChromaDB (local, server, memory)
+    - Tipo de Vector Store (qdrant)
     - Colecciones disponibles y estadísticas
 
     Returns:
@@ -156,7 +156,7 @@ async def delete_document(doc_id: str):
 @router.get("/collections")
 async def list_collections():
     """
-    Lista las colecciones disponibles en ChromaDB.
+    Lista las colecciones disponibles en Qdrant.
 
     Returns:
         Lista de nombres de colecciones
