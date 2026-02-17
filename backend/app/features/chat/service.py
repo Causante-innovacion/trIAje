@@ -108,7 +108,8 @@ class ChatService:
             if rag_module:
                 rag_result = await rag_module.retrieve_and_ground(
                     query=message,
-                    top_k_initial=5,
+                    top_k_initial=10,
+                    intention_filter=classification.intention.value,
                 )
 
                 if rag_result and rag_result.chunks:

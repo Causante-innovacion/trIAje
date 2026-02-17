@@ -43,10 +43,10 @@ class QdrantAdapter(VectorStoreAdapter):
     """
 
     # Nombre de la collection compartida
-    SHARED_COLLECTION = "leyes_peru"
+    SHARED_COLLECTION = "legal_documents"
 
     # Dimensión por defecto de los embeddings
-    DEFAULT_DIMENSION = 1536  # OpenAI text-embedding-3-small
+    DEFAULT_DIMENSION = 768  # paraphrase-multilingual-mpnet-base-v2
 
     def __init__(
         self,
@@ -184,6 +184,7 @@ class QdrantAdapter(VectorStoreAdapter):
                     "normative_weight": metadata.normative_weight,
                     "chunk_index": i,
                     "content": chunk_text,
+                    "source": metadata.title, # Alias para compatibilidad con script RAG
                 }
 
                 # Campos opcionales
@@ -193,8 +194,11 @@ class QdrantAdapter(VectorStoreAdapter):
                     payload["url"] = metadata.url
                 if metadata.anchor:
                     payload["anchor"] = metadata.anchor
+                
+                # Mapear intention -> intenciones para compatibilidad con script RAG
                 if metadata.intention:
                     payload["intention"] = metadata.intention
+                    payload["intenciones"] = metadata.intention
 
                 points.append(
                     models.PointStruct(
@@ -305,7 +309,7 @@ class QdrantAdapter(VectorStoreAdapter):
         if "intention" in filters:
             conditions.append(
                 models.FieldCondition(
-                    key="intention",
+                    key="intenciones", # Cambiado de 'intention' a 'intenciones'
                     match=models.MatchValue(value=filters["intention"]),
                 )
             )

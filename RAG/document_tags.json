@@ -1,0 +1,290 @@
+{
+    "_comment": "Mapeo de documentos PDF a sus intenciones correspondientes. Cada PDF puede tener múltiples intenciones.",
+    "_version": "1.0",
+    "_last_updated": "2026-02-17",
+    "Codigo_Civil_DL295.pdf": {
+        "intenciones": [
+            "formalizacion",
+            "contratacion",
+            "preparacion_asesoria",
+            "gobernanza",
+            "alianzas"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "civil"
+    },
+    "Ley_General_Sociedades_Ley26887.pdf": {
+        "intenciones": [
+            "formalizacion",
+            "gobernanza",
+            "alianzas"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "civil"
+    },
+    "Reglamento_Inscripcion_PPJJ_RS038-2013.pdf": {
+        "intenciones": [
+            "formalizacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "civil"
+    },
+    "Ley_Creacion_SNSRP_Ley26366.pdf": {
+        "intenciones": [
+            "formalizacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "civil"
+    },
+    "DL_1049_Notariado.pdf": {
+        "intenciones": [
+            "formalizacion",
+            "preparacion_asesoria"
+        ],
+        "tipo": "complementario",
+        "categoria": "civil"
+    },
+    "codigo_ninos_adolescentes_ley27337.pdf": {
+        "intenciones": [
+            "permisos"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "civil"
+    },
+    "Codigo_Tributario_TUO_DS133-2013.pdf": {
+        "intenciones": [
+            "identidad_ruc"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "Ley_RUC_DL943.pdf": {
+        "intenciones": [
+            "identidad_ruc"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "Reglamento_Ley_RUC_RS210-2004.pdf": {
+        "intenciones": [
+            "identidad_ruc"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "Ley_Impuesto_Renta_TUO_DS179-2004.pdf": {
+        "intenciones": [
+            "tributacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "DL_1549_prorroga_exoneracion_impuesto_renta.pdf": {
+        "intenciones": [
+            "tributacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "DS_055-99-EF_TUO_IGV_ISC.pdf": {
+        "intenciones": [
+            "tributacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "tributario"
+    },
+    "formulario_2119_SUNAT_inscripcion_entidades_exoneradas.pdf": {
+        "intenciones": [
+            "tributacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "tributario"
+    },
+    "guia_inscripcion_sunat__ruc_persona_juridica.pdf": {
+        "intenciones": [
+            "identidad_ruc"
+        ],
+        "tipo": "complementario",
+        "categoria": "tributario"
+    },
+    "Ley_32301_modifica_ley27692_creacion_apci.pdf": {
+        "intenciones": [
+            "donaciones"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "cooperacion"
+    },
+    "Ley_Creacion_APCI_Ley27692.pdf": {
+        "intenciones": [
+            "donaciones"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "cooperacion"
+    },
+    "Ley_28905_facilitacion_despacho_mercancias_donadas.pdf": {
+        "intenciones": [
+            "donaciones"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "cooperacion"
+    },
+    "Ley_General_Voluntariado_Ley28238.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "laboral"
+    },
+    "Ley_modificatoria_ley_voluntariado_29094.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "laboral"
+    },
+    "DS_003-2015-MIMP_reglamento_ley_voluntariado.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "laboral"
+    },
+    "Ley_Modalidades_Formativas_Ley28518.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "laboral"
+    },
+    "Ley_Productividad_Competitividad_Laboral_TUO_DS003-97.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "laboral"
+    },
+    "Ley_Fomento_Empleo_DL_728.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "laboral"
+    },
+    "Ley_Formacion_Laboral.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "laboral"
+    },
+    "Ley_Seguridad_Salud_Trabajo_ley29783.pdf": {
+        "intenciones": [
+            "contratacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "laboral"
+    },
+    "Ley_Derechos_Autor_DL822.pdf": {
+        "intenciones": [
+            "propiedad_intelectual"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "propiedad_intelectual"
+    },
+    "DL_1075_regimen_comun_propiedad_industrial.pdf": {
+        "intenciones": [
+            "propiedad_intelectual"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "propiedad_intelectual"
+    },
+    "Decision_486_regimen_comun_propiedad_industrial.pdf": {
+        "intenciones": [
+            "propiedad_intelectual",
+            "marca_identidad"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "propiedad_intelectual"
+    },
+    "Decision_351_derecho_autor.pdf": {
+        "intenciones": [
+            "propiedad_intelectual"
+        ],
+        "tipo": "complementario",
+        "categoria": "propiedad_intelectual"
+    },
+    "guia_indecopi_registro_marcas.pdf": {
+        "intenciones": [
+            "marca_identidad"
+        ],
+        "tipo": "complementario",
+        "categoria": "propiedad_intelectual"
+    },
+    "tupa_indecopi_vigente.pdf": {
+        "intenciones": [
+            "marca_identidad"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "propiedad_intelectual"
+    },
+    "Ley_31814_uso_intleigencia_artificial.pdf": {
+        "intenciones": [
+            "propiedad_intelectual",
+            "seguridad_informacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "propiedad_intelectual"
+    },
+    "DS_115-2025-PCM_Ley31814.pdf": {
+        "intenciones": [
+            "propiedad_intelectual",
+            "seguridad_informacion"
+        ],
+        "tipo": "complementario",
+        "categoria": "propiedad_intelectual"
+    },
+    "Ley_Proteccion_Datos_Personales_Ley29733.pdf": {
+        "intenciones": [
+            "datos_personales",
+            "seguridad_informacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "datos_personales"
+    },
+    "DS_016-2024-JUS_nuevo_reglamento_ley29733.pdf": {
+        "intenciones": [
+            "datos_personales"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "datos_personales"
+    },
+    "Ley_delitos_informaticos_ley_30096.pdf": {
+        "intenciones": [
+            "seguridad_informacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "datos_personales"
+    },
+    "Ley_modificatoria_ley30171.pdf": {
+        "intenciones": [
+            "seguridad_informacion"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "datos_personales"
+    },
+    "Ley_29571_proteccion_defensa_consumidor.pdf": {
+        "intenciones": [
+            "datos_personales"
+        ],
+        "tipo": "complementario",
+        "categoria": "datos_personales"
+    },
+    "Ley_Proc_Admin_Gral_LPAG_DS004-2019.pdf": {
+        "intenciones": [
+            "preparacion_asesoria",
+            "permisos"
+        ],
+        "tipo": "obligatorio",
+        "categoria": "administrativo"
+    }
+}
