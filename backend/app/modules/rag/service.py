@@ -21,7 +21,7 @@ from .contradiction import ContradictionDetector
 from .confidence import RAGConfidenceCalculator
 from .protocols import InsufficientEvidenceProtocol
 from .adapters.base import VectorStoreAdapter
-from .adapters.chroma import ChromaDBAdapter, create_chroma_adapter
+from .adapters.qdrant import QdrantAdapter, create_qdrant_adapter
 
 
 class RAGModule:
@@ -67,6 +67,7 @@ class RAGModule:
         top_k_initial: int | None = None,
         top_k_rerank: int | None = None,
         strictness: int | None = None,
+        intention_filter: str | None = None,
     ) -> RAGResult:
         """
         Ejecuta el pipeline RAG completo.
@@ -78,9 +79,7 @@ class RAGModule:
             top_k_initial: Chunks iniciales a recuperar
             top_k_rerank: Chunks finales después de rerank
             strictness: Nivel de strictness (1-5)
-
-        Returns:
-            RAGResult con chunks, confidence, etc.
+            intention_filter: Opcional. Filtrar por intención (metadato)
         """
         # Configurar parámetros
         config = RAGConfig(
@@ -118,13 +117,19 @@ class RAGModule:
         from app.ai.embeddings import embed_text
         query_embedding = await embed_text(query)
 
+        # Preparar filtros
+        search_filters = {}
+        if intention_filter:
+            search_filters["intention"] = intention_filter
+
         # 4. Buscar en vector store (multi-tenant si hay organization_id)
-        if isinstance(self.vector_store, ChromaDBAdapter):
+        if isinstance(self.vector_store, QdrantAdapter):
             chunks = await self.vector_store.search_multi_tenant(
                 query_embedding=query_embedding,
                 organization_id=organization_id,
                 index_types=target_indices,
                 top_k=config.top_k_initial,
+                filters=search_filters,
             )
         else:
             index_names = [idx.value for idx in target_indices]
@@ -132,6 +137,7 @@ class RAGModule:
                 query_embedding=query_embedding,
                 index_names=index_names,
                 top_k=config.top_k_initial,
+                filters=search_filters,
             )
 
         # 5. Si no hay chunks, retornar resultado vacío
@@ -200,7 +206,7 @@ class RAGModule:
         query_embedding = await embed_text(query)
 
         # Buscar a nivel proyecto
-        if isinstance(self.vector_store, ChromaDBAdapter):
+        if isinstance(self.vector_store, QdrantAdapter):
             chunks = await self.vector_store.search_project(
                 query_embedding=query_embedding,
                 organization_ids=organization_ids,
@@ -352,23 +358,21 @@ _rag_module: RAGModule | None = None
 
 async def initialize_rag() -> RAGModule:
     """
-    Inicializa el módulo RAG con ChromaDB.
+    Inicializa el módulo RAG con Qdrant.
     Debe llamarse al inicio de la aplicación.
     """
     global _rag_module
 
     from app.core.config import settings
 
-    # Crear adapter de ChromaDB según configuración
-    adapter = create_chroma_adapter(
-        mode=settings.CHROMA_MODE,
-        persist_directory=settings.CHROMA_PERSIST_DIR,
-        host=settings.CHROMA_HOST,
-        port=settings.CHROMA_PORT,
-        token=settings.CHROMA_TOKEN,
+    # Crear adapter de Qdrant según configuración
+    adapter = create_qdrant_adapter(
+        host=settings.QDRANT_HOST,
+        port=settings.QDRANT_PORT,
+        api_key=settings.QDRANT_API_KEY,
     )
 
-    # Inicializar ChromaDB
+    # Inicializar Qdrant
     await adapter.initialize()
 
     # Crear configuración RAG desde settings

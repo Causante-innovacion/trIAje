@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     # Initialize RAG module with ChromaDB
     try:
         rag_module = await initialize_rag()
-        print(f"RAG module initialized (ChromaDB mode: {settings.CHROMA_MODE})")
+        print(f"RAG module initialized (Qdrant: {settings.QDRANT_HOST}:{settings.QDRANT_PORT})")
     except Exception as e:
         print(f"Warning: Could not initialize RAG module: {e}")
 

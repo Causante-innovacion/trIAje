@@ -37,6 +37,7 @@ class DocumentUploadRequest(BaseModel):
     jurisdiction: str = Field(default="PE", description="Jurisdicción (PE=Perú)")
     validity_date: str | None = Field(None, description="Fecha de vigencia (YYYY-MM-DD)")
     url: str | None = Field(None, description="URL de referencia")
+    intention: str | None = Field(None, description="Intención asociada (e.g., 'tributacion')")
 
     # Chunking options
     chunk_size: int = Field(default=600, description="Tamaño máximo de chunk (tokens)")

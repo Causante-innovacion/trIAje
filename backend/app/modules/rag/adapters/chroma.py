@@ -204,6 +204,8 @@ class ChromaDBAdapter(VectorStoreAdapter):
                     meta["url"] = metadata.url
                 if metadata.anchor:
                     meta["anchor"] = metadata.anchor
+                if metadata.intention:
+                    meta["intention"] = metadata.intention
 
                 metadatas.append(meta)
 
@@ -247,6 +249,8 @@ class ChromaDBAdapter(VectorStoreAdapter):
                     where["jurisdiction"] = filters["jurisdiction"]
                 if "authority_level_min" in filters:
                     where["authority_level"] = {"$gte": filters["authority_level_min"]}
+                if "intention" in filters:
+                    where["intention"] = filters["intention"]
 
             try:
                 results = collection.query(
