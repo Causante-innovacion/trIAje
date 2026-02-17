@@ -241,8 +241,8 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
   return (
     <div className="chat-message">
       <div className="flex justify-end">
-        <div className="bg-gold text-white rounded-2xl px-5 py-3 max-w-lg">
-          <div className="whitespace-pre-wrap">{message.content}</div>
+        <div className="bg-black text-white rounded-3xl px-5 py-3 max-w-lg">
+          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
         </div>
       </div>
     </div>

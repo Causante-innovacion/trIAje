@@ -42,7 +42,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gold hover:text-yellow-600 underline underline-offset-2 transition-colors"
+                            className="text-causante-ocre hover:text-causante-yellow underline underline-offset-2 transition-colors"
                         >
                             {children}
                         </a>
@@ -84,7 +84,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                     ),
                     // Blockquotes
                     blockquote: ({ children }) => (
-                        <blockquote className="border-l-3 border-gold bg-cream/50 pl-3 py-1 my-2 text-gray-700 italic rounded-r">
+                        <blockquote className="border-l-3 border-causante-ocre bg-cream/50 pl-3 py-1 my-2 text-gray-700 italic rounded-r">
                             {children}
                         </blockquote>
                     ),

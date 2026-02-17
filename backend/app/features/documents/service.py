@@ -17,7 +17,7 @@ from .schemas import (
     CollectionStats,
     RAGStatusResponse,
 )
-from app.modules.rag import get_rag_module, ChromaDBAdapter
+from app.modules.rag import get_rag_module, QdrantAdapter
 from app.modules.rag.adapters.base import ChunkMetadata, IndexType
 from app.ai.embeddings import embed_text, embed_texts
 
@@ -114,10 +114,10 @@ class DocumentService:
         """
         rag = get_rag_module()
 
-        if not isinstance(rag.vector_store, ChromaDBAdapter):
-            raise RuntimeError("Vector store no es ChromaDB")
+        if not isinstance(rag.vector_store, QdrantAdapter):
+            raise RuntimeError("Vector store no es Qdrant")
 
-        adapter: ChromaDBAdapter = rag.vector_store
+        adapter: QdrantAdapter = rag.vector_store
 
         # Generar ID único para el documento
         doc_id = f"doc_{uuid.uuid4().hex[:12]}"
@@ -126,7 +126,7 @@ class DocumentService:
         if request.organization_id:
             collection_name = f"org_{request.organization_id}"
         else:
-            collection_name = ChromaDBAdapter.SHARED_COLLECTION
+            collection_name = QdrantAdapter.SHARED_COLLECTION
 
         # Crear chunks
         chunks = self._chunk_text(
@@ -154,6 +154,7 @@ class DocumentService:
             validity_date=request.validity_date,
             url=request.url,
             normative_weight=request.authority_level,
+            intention=request.intention,
         )
 
         # Indexar en ChromaDB
@@ -182,10 +183,10 @@ class DocumentService:
         """
         rag = get_rag_module()
 
-        if not isinstance(rag.vector_store, ChromaDBAdapter):
-            raise RuntimeError("Vector store no es ChromaDB")
+        if not isinstance(rag.vector_store, QdrantAdapter):
+            raise RuntimeError("Vector store no es Qdrant")
 
-        adapter: ChromaDBAdapter = rag.vector_store
+        adapter: QdrantAdapter = rag.vector_store
 
         # Generar embedding de la query
         query_embedding = await embed_text(request.query)
@@ -199,17 +200,17 @@ class DocumentService:
                 top_k=request.top_k,
             )
             collections_searched = [
-                ChromaDBAdapter.SHARED_COLLECTION,
+                QdrantAdapter.SHARED_COLLECTION,
                 f"org_{request.organization_id}"
             ]
         else:
             # Solo normativa compartida
             results = await adapter.search(
                 query_embedding=query_embedding,
-                index_names=[ChromaDBAdapter.SHARED_COLLECTION],
+                index_names=[QdrantAdapter.SHARED_COLLECTION],
                 top_k=request.top_k,
             )
-            collections_searched = [ChromaDBAdapter.SHARED_COLLECTION]
+            collections_searched = [QdrantAdapter.SHARED_COLLECTION]
 
         # Convertir a ChunkResult
         chunk_results = [
@@ -246,20 +247,20 @@ class DocumentService:
         except RuntimeError:
             return RAGStatusResponse(
                 healthy=False,
-                chroma_mode=settings.CHROMA_MODE,
+                chroma_mode=settings.VECTOR_STORE_TYPE,
                 collections=[],
                 total_documents=0,
             )
 
-        if not isinstance(rag.vector_store, ChromaDBAdapter):
+        if not isinstance(rag.vector_store, QdrantAdapter):
             return RAGStatusResponse(
                 healthy=False,
-                chroma_mode=settings.CHROMA_MODE,
+                chroma_mode=settings.VECTOR_STORE_TYPE,
                 collections=[],
                 total_documents=0,
             )
 
-        adapter: ChromaDBAdapter = rag.vector_store
+        adapter: QdrantAdapter = rag.vector_store
 
         # Verificar salud
         healthy = await adapter.health_check()
@@ -281,7 +282,7 @@ class DocumentService:
 
         return RAGStatusResponse(
             healthy=healthy,
-            chroma_mode=settings.CHROMA_MODE,
+            chroma_mode=settings.VECTOR_STORE_TYPE,
             collections=collections,
             total_documents=total_chunks,
         )
@@ -290,8 +291,8 @@ class DocumentService:
         """Elimina un documento por su ID"""
         rag = get_rag_module()
 
-        if not isinstance(rag.vector_store, ChromaDBAdapter):
-            raise RuntimeError("Vector store no es ChromaDB")
+        if not isinstance(rag.vector_store, QdrantAdapter):
+            raise RuntimeError("Vector store no es Qdrant")
 
         return await rag.vector_store.delete_document(doc_id)
 
