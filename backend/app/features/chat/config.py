@@ -66,6 +66,7 @@ class AmberContextField(BaseModel):
     field_name: str
     field_description: str
     example_prompt: str
+    trigger_keywords: List[str] = []  # Si definidos, el campo solo aplica si alguno aparece en el mensaje
 
 
 # =============================================================================
@@ -91,11 +92,13 @@ INTENTIONS: Dict[Intention, IntentionConfig] = {
     Intention.IDENTIDAD_RUC: IntentionConfig(
         id=Intention.IDENTIDAD_RUC,
         name="Identidad Tributaria y RUC",
-        description="Obtención del RUC, modificación de datos en ficha RUC, y transición entre persona natural y jurídica.",
+        description="Obtención del RUC, modificación de datos en ficha RUC, baja provisional o definitiva, reactivación de RUC, y transición entre persona natural y jurídica.",
         keywords=[
             "RUC", "SUNAT", "ficha RUC", "domicilio fiscal", "representante legal",
             "registro contribuyente", "clave SOL", "persona natural", "persona jurídica",
-            "inscripción tributaria",
+            "inscripción tributaria", "baja de RUC", "baja provisional", "baja temporal",
+            "dar de baja", "suspensión de RUC", "cancelación de RUC", "reactivar RUC",
+            "estado baja", "baja definitiva", "reactivación de RUC",
         ],
         example_questions=[
             "¿Qué documentos necesito para sacar RUC?",
@@ -438,26 +441,30 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="tipo_error",
             field_description="Tipo de error en la escritura pública",
             example_prompt="¿Podrías indicarme qué tipo de error tiene la escritura? (ej: error de nombre, de domicilio, de objeto social)",
+            trigger_keywords=["error", "observacion", "problema", "rectif", "rechaz", "incorrecto", "equivoc"],
         ),
         AmberContextField(
             intention=Intention.FORMALIZACION,
             field_name="tiempo_ausencia",
             field_description="Tiempo que lleva ausente el fundador",
             example_prompt="¿Cuánto tiempo lleva ausente el fundador? ¿Se ha intentado contactarlo?",
+            trigger_keywords=["ausente", "fundador", "desapareci", "no localiz", "no se presenta", "no aparece"],
         ),
     ],
     Intention.IDENTIDAD_RUC: [
         AmberContextField(
             intention=Intention.IDENTIDAD_RUC,
-            field_name="etapa_tramite",
-            field_description="En qué etapa del trámite se encuentra",
-            example_prompt="¿En qué etapa del trámite de constitución te encuentras actualmente?",
+            field_name="motivo_baja",
+            field_description="Motivo o tipo de la baja en SUNAT",
+            example_prompt="¿La baja fue iniciada por SUNAT (de oficio) o la solicitaron ustedes? ¿Es provisional o definitiva?",
+            trigger_keywords=["baja", "suspendid", "cancelad", "estado baja", "dado de baja"],
         ),
         AmberContextField(
             intention=Intention.IDENTIDAD_RUC,
-            field_name="nuevo_representante",
-            field_description="Datos del nuevo representante legal",
-            example_prompt="¿Ya cuentas con la vigencia de poder del nuevo representante legal?",
+            field_name="etapa_tramite",
+            field_description="En qué etapa del trámite con SUNAT se encuentra",
+            example_prompt="¿En qué etapa del trámite con SUNAT se encuentran actualmente? (ej: recién notificados, en proceso de subsanación, pendiente de resolución)",
+            trigger_keywords=["baja", "suspendid", "cancelad", "tramit", "ruc", "reactivar", "ficha"],
         ),
     ],
     Intention.DONACIONES: [
@@ -466,12 +473,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="tipo_bien",
             field_description="Tipo de bien a recibir del extranjero",
             example_prompt="¿Qué tipo de bienes vas a recibir del extranjero? (ej: equipos, alimentos, medicinas)",
+            trigger_keywords=["recibir", "donacion", "bien", "equipo", "material", "mercancia", "importar", "entregan"],
         ),
         AmberContextField(
             intention=Intention.DONACIONES,
             field_name="origen_fondos",
             field_description="Origen de los fondos o cooperación",
             example_prompt="¿De dónde provienen los fondos? ¿Es cooperación técnica internacional o donación privada?",
+            trigger_keywords=["fondos", "cooperacion", "dinero", "transferencia", "financ", "subvencion", "pago"],
         ),
     ],
     Intention.TRIBUTACION: [
@@ -480,12 +489,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="actividad_comercial",
             field_description="Detalle de la actividad comercial",
             example_prompt="¿Podrías describir qué tipo de actividad comercial realizan y cómo reinvierten los ingresos?",
+            trigger_keywords=["vend", "cobr", "servicio", "actividad", "ingres", "comerci", "factur", "operar", "giro"],
         ),
         AmberContextField(
             intention=Intention.TRIBUTACION,
             field_name="monto_operacion",
             field_description="Monto de la operación gravada",
             example_prompt="¿Cuál es el monto aproximado de la operación de consultoría?",
+            trigger_keywords=["consultoria", "monto", "importe", "valor", "precio", "cobrar", "factura", "cuanto"],
         ),
     ],
     Intention.CONTRATACION: [
@@ -494,12 +505,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="cantidad_voluntarios",
             field_description="Cantidad de voluntarios",
             example_prompt="¿Cuántos voluntarios tiene actualmente tu organización?",
+            trigger_keywords=["voluntario", "voluntariado", "cuantos", "personal", "equipo", "colabor"],
         ),
         AmberContextField(
             intention=Intention.CONTRATACION,
             field_name="modalidad_contrato",
             field_description="Modalidad de contratación actual",
             example_prompt="¿Bajo qué modalidad están contratados actualmente? (ej: locación de servicios, planilla, convenio)",
+            trigger_keywords=["contrat", "modalidad", "vinculac", "planilla", "locacion", "locador", "modo"],
         ),
     ],
     Intention.PROPIEDAD_INTELECTUAL: [
@@ -508,12 +521,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="tipo_contrato",
             field_description="Tipo de contrato de obra",
             example_prompt="¿Existe un contrato de trabajo o servicio con el creador de la obra?",
+            trigger_keywords=["obra", "creador", "autor", "diseno", "fotograf", "contrat", "encargad", "creo"],
         ),
         AmberContextField(
             intention=Intention.PROPIEDAD_INTELECTUAL,
             field_name="licencia_uso",
             field_description="Tipo de licencia de uso",
             example_prompt="¿Bajo qué tipo de licencia se están utilizando las imágenes? (ej: Creative Commons, dominio público, sin licencia)",
+            trigger_keywords=["imagen", "foto", "uso", "licencia", "material", "publicar", "usar", "reproduc"],
         ),
     ],
     Intention.DATOS_PERSONALES: [
@@ -522,12 +537,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="volumen_datos",
             field_description="Volumen de datos personales tratados",
             example_prompt="¿Aproximadamente cuántos registros de datos personales manejan?",
+            trigger_keywords=["base de datos", "registros", "datos", "beneficiari", "cuantas personas", "fichero"],
         ),
         AmberContextField(
             intention=Intention.DATOS_PERSONALES,
             field_name="ubicacion_destino",
             field_description="País destino de transferencia de datos",
             example_prompt="¿A qué país se transferirían los datos? Necesito verificar si tiene nivel adecuado de protección.",
+            trigger_keywords=["transferir", "enviar", "compartir", "pais", "extranjero", "internac", "sede"],
         ),
     ],
     Intention.GOBERNANZA: [
@@ -536,12 +553,14 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="motivo_exclusion",
             field_description="Motivo de exclusión del socio",
             example_prompt="¿Cuál es el motivo de la exclusión? ¿Está contemplado en el estatuto?",
+            trigger_keywords=["exclu", "expulsar", "retirar socio", "separar", "sacar socio", "miembro"],
         ),
         AmberContextField(
             intention=Intention.GOBERNANZA,
             field_name="fecha_acta",
             field_description="Fecha del acta impugnada",
             example_prompt="¿Cuándo se realizó la asamblea y cuándo se inscribió el acuerdo?",
+            trigger_keywords=["asamblea", "acuerdo", "acta", "decision", "votacion", "reunion", "impugnar"],
         ),
     ],
     Intention.ALIANZAS: [
@@ -550,6 +569,7 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="tipo_aporte",
             field_description="Tipo de aporte al consorcio",
             example_prompt="¿Qué tipo de aportes realizará cada organización al consorcio?",
+            trigger_keywords=["consorcio", "alianza", "aportar", "aporte", "participar", "colaborar", "convenio"],
         ),
     ],
     Intention.PERMISOS: [
@@ -558,6 +578,7 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
             field_name="distrito",
             field_description="Distrito donde se realizará el evento",
             example_prompt="¿En qué distrito se realizará el evento? Cada municipalidad tiene su propio TUPA.",
+            trigger_keywords=["evento", "municipalidad", "permiso", "autorizacion", "licencia", "actividad", "realizarse"],
         ),
     ],
 }
@@ -637,9 +658,11 @@ RED_DERIVATION_TEMPLATE = (
 # =============================================================================
 
 AMBER_CONTEXT_TEMPLATE = (
-    "Para poder darte una respuesta precisa, necesito un poco más de contexto:\n\n"
+    "{partial_answer}\n\n"
+    "---\n\n"
+    "🟡 **Para darte una orientación más precisa sobre tu caso específico, necesito algunos datos adicionales:**\n\n"
     "{questions}\n\n"
-    "Con esta información podré orientarte mejor según la normativa aplicable."
+    "Con esta información podré ajustar la orientación a tu situación concreta."
 )
 
 

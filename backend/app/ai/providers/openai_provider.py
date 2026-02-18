@@ -3,7 +3,7 @@ AI Providers - OpenAI Implementation
 """
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, AsyncGenerator
 
 from app.core.config import settings
 from .base import AIProvider, AIResponse
@@ -102,3 +102,31 @@ class OpenAIProvider(AIProvider):
             return True
         except Exception:
             return False
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        model: str,
+        system_prompt: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 1200,
+    ) -> AsyncGenerator[str, None]:
+        """Genera respuesta en streaming nativo de OpenAI, yield token a token."""
+        client = self._get_client()
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        stream = await client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content

@@ -11,7 +11,8 @@ Flujo:
 """
 
 import uuid
-from typing import List, Optional
+import json
+from typing import List, Optional, AsyncGenerator
 
 from app.ai.router import AIRouter
 from app.modules.rag import get_rag_module
@@ -98,6 +99,228 @@ class ChatService:
     # HANDLERS POR SEMÁFORO
     # =========================================================================
 
+    async def stream_message(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+        """
+        Versión streaming de process_message para consultas VERDE.
+        Emite eventos SSE con el formato: data: {json}\n\n
+
+        Eventos emitidos en orden:
+          status      → etapa actual del procesamiento (para UI progresiva)
+          classification → intención + semáforo detectados
+          sources     → fuentes normativas encontradas en RAG
+          token       → fragmento de texto del LLM (solo en VERDE)
+          done        → señal de fin + actions + disclaimers
+        """
+
+        def sse(event: dict) -> str:
+            return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+        message = request.message.strip()
+        conversation_id = request.conversation_id or str(uuid.uuid4())
+
+        # ── Saludo ──────────────────────────────────────────────────────────
+        if self._is_greeting(message):
+            resp = self._build_greeting_response(conversation_id)
+            yield sse({"type": "done", "message": resp.message,
+                       "classification": resp.classification.model_dump(),
+                       "actions": [], "disclaimers": [],
+                       "conversation_id": conversation_id})
+            return
+
+        # ── Análisis de proyecto ─────────────────────────────────────────────
+        if ProjectAnalysisDetector.is_project_analysis(message):
+            resp = self._build_project_analysis_response(message, conversation_id)
+            yield sse({"type": "done", "message": resp.message,
+                       "classification": resp.classification.model_dump(),
+                       "actions": [a.model_dump() for a in resp.actions],
+                       "disclaimers": resp.disclaimers,
+                       "conversation_id": conversation_id})
+            return
+
+        # ── Clasificar intención ─────────────────────────────────────────────
+        yield sse({"type": "status", "stage": "classifying",
+                   "message": "Clasificando tu consulta..."})
+
+        intention, intention_confidence = await IntentionClassifier.classify(message)
+
+        if intention == Intention.FUERA_DE_ALCANCE:
+            classification = ChatClassification(
+                intention=intention, intention_name="Fuera de Alcance",
+                semaphore=Semaphore.VERDE, confidence=1.0,
+                gatillos_detected=[], requires_context=[],
+            )
+            yield sse({"type": "done", "message": OUT_OF_SCOPE_MESSAGE,
+                       "classification": classification.model_dump(),
+                       "actions": [], "disclaimers": [],
+                       "conversation_id": conversation_id})
+            return
+
+        # ── Semáforo ─────────────────────────────────────────────────────────
+        semaphore, gatillos, context_needed = SemaphoreClassifier.classify(message, intention)
+        classification = ChatClassification(
+            intention=intention,
+            intention_name=INTENTIONS[intention].name,
+            semaphore=semaphore,
+            confidence=intention_confidence,
+            gatillos_detected=gatillos,
+            requires_context=context_needed,
+        )
+        yield sse({"type": "classification", "data": classification.model_dump()})
+
+        # ── ROJO: respuesta completa sin streaming ───────────────────────────
+        if semaphore == Semaphore.ROJO:
+            resp = await self._handle_red(message, classification, conversation_id)
+            yield sse({"type": "done", "message": resp.message,
+                       "classification": classification.model_dump(),
+                       "actions": [a.model_dump() for a in resp.actions],
+                       "disclaimers": resp.disclaimers,
+                       "conversation_id": conversation_id})
+            return
+
+        # ── AMARILLO: respuesta parcial + contexto (streaming del partial) ───
+        if semaphore == Semaphore.AMARILLO:
+            yield sse({"type": "status", "stage": "searching",
+                       "message": "Buscando normativa relevante..."})
+            sources: List[LegalSource] = []
+            rag_context = ""
+            try:
+                rag_module = get_rag_module()
+                if rag_module:
+                    rag_result = await rag_module.retrieve_and_ground(
+                        query=message, top_k_initial=6,
+                        intention_filter=classification.intention.value,
+                    )
+                    if rag_result and rag_result.chunks:
+                        rag_context = self._build_rag_context_from_chunks(rag_result)
+                        sources = self._extract_sources_from_chunks(rag_result)
+            except Exception:
+                pass
+
+            if sources:
+                yield sse({"type": "sources", "data": [s.model_dump() for s in sources]})
+
+            yield sse({"type": "status", "stage": "generating",
+                       "message": "Preparando orientación..."})
+
+            # Stream la respuesta parcial
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "El usuario tiene una situación específica. Proporciona una orientación general sobre el "
+                "marco normativo aplicable. Sé claro y útil, pero señala qué aspectos dependen del "
+                "contexto concreto que aún no conoces. No des recomendaciones definitivas. "
+                "Responde en español, con estructura clara y concisa."
+            )
+            intention_config = INTENTIONS.get(classification.intention)
+            if rag_context:
+                prompt = (
+                    f"Intención: {intention_config.name if intention_config else ''}\n"
+                    f"Consulta: {message}\n\nNormativa relevante:\n{rag_context}\n\n"
+                    "Proporciona orientación general citando los artículos aplicables. "
+                    "Señala qué aspectos dependen del caso concreto."
+                )
+            else:
+                prompt = (
+                    f"Área: {intention_config.name if intention_config else ''}\n"
+                    f"Consulta: {message}\n\n"
+                    "Da orientación general sobre el marco normativo en Perú. "
+                    "Señala qué información adicional cambiaría la respuesta."
+                )
+
+            questions_text = "\n".join(f"• {q}" for q in context_needed[:3])
+            amber_suffix = (
+                f"\n\n---\n\n🟡 **Para orientarte mejor sobre tu caso específico:**\n\n"
+                f"{questions_text}\n\n"
+                "Con esta información podré ajustar la orientación a tu situación concreta."
+            )
+
+            try:
+                async for token in self._ai_router.reason_stream(
+                    prompt=prompt, system_prompt=system_prompt
+                ):
+                    yield sse({"type": "token", "text": token})
+            except Exception:
+                fallback = await self._generate_amber_partial(message, classification, rag_context)
+                yield sse({"type": "token", "text": fallback})
+
+            yield sse({"type": "token", "text": amber_suffix})
+            yield sse({"type": "done",
+                       "actions": [{"type": "provide_context", "label": "Añadir más contexto",
+                                    "description": "Responde las preguntas para recibir orientación más específica."}],
+                       "disclaimers": STANDARD_DISCLAIMERS,
+                       "conversation_id": conversation_id})
+            return
+
+        # ── VERDE: RAG + stream LLM ──────────────────────────────────────────
+        yield sse({"type": "status", "stage": "searching",
+                   "message": "Buscando normativa relevante..."})
+
+        sources = []
+        rag_context = ""
+        try:
+            rag_module = get_rag_module()
+            if rag_module:
+                rag_result = await rag_module.retrieve_and_ground(
+                    query=message, top_k_initial=10,
+                    intention_filter=classification.intention.value,
+                )
+                if rag_result and rag_result.chunks:
+                    rag_context = self._build_rag_context_from_chunks(rag_result)
+                    sources = self._extract_sources_from_chunks(rag_result)
+        except Exception:
+            pass
+
+        if sources:
+            yield sse({"type": "sources", "data": [s.model_dump() for s in sources]})
+
+        yield sse({"type": "status", "stage": "generating",
+                   "message": "Generando respuesta..."})
+
+        system_prompt = (
+            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+            "Responde SOLO con base en la normativa proporcionada en el contexto. "
+            "Cita los artículos específicos. "
+            "Si la información no está en el contexto, indícalo claramente. "
+            "No inventes normas ni artículos. "
+            "Responde en español, de forma clara y con estructura."
+        )
+        if rag_context:
+            prompt = (
+                f"Intención detectada: {INTENTIONS[intention].name}\n"
+                f"Pregunta del usuario: {message}\n\n"
+                f"Contexto normativo relevante:\n{rag_context}\n\n"
+                "Responde la pregunta citando los artículos específicos de la normativa."
+            )
+        else:
+            intention_config = INTENTIONS.get(intention)
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "Responde de forma general y orientativa. "
+                "SIEMPRE indica que el usuario debe verificar con la normativa vigente. "
+                "Responde en español."
+            )
+            prompt = (
+                f"El usuario consulta sobre: {intention_config.name if intention_config else ''}\n"
+                f"Pregunta: {message}\n\n"
+                "Da una respuesta orientativa general indicando que debe consultar la normativa específica."
+            )
+
+        try:
+            async for token in self._ai_router.reason_stream(
+                prompt=prompt, system_prompt=system_prompt
+            ):
+                yield sse({"type": "token", "text": token})
+        except Exception:
+            fallback = await self._generate_basic_response(message, classification)
+            yield sse({"type": "token", "text": fallback})
+
+        yield sse({"type": "done", "actions": [],
+                   "disclaimers": STANDARD_DISCLAIMERS,
+                   "conversation_id": conversation_id})
+
+    # =========================================================================
+    # HANDLERS POR SEMÁFORO
+    # =========================================================================
+
     async def _handle_green(
         self,
         message: str,
@@ -150,24 +373,103 @@ class ChatService:
         context_needed: List[str],
         conversation_id: str,
     ) -> ChatResponse:
-        """Maneja consultas AMARILLO: pide contexto mínimo antes de responder."""
+        """Maneja consultas AMARILLO: genera orientación parcial con RAG + pide contexto para personalizar."""
+        sources: List[LegalSource] = []
+        partial_answer = ""
+
+        # 1. Intentar buscar en RAG para dar una respuesta base orientativa
+        try:
+            rag_module = get_rag_module()
+            if rag_module:
+                rag_result = await rag_module.retrieve_and_ground(
+                    query=message,
+                    top_k_initial=6,
+                    intention_filter=classification.intention.value,
+                )
+                if rag_result and rag_result.chunks:
+                    rag_context = self._build_rag_context_from_chunks(rag_result)
+                    sources = self._extract_sources_from_chunks(rag_result)
+                    partial_answer = await self._generate_amber_partial(
+                        message, classification, rag_context
+                    )
+        except Exception:
+            pass
+
+        # 2. Si no hay RAG o falló, generar orientación base sin contexto documental
+        if not partial_answer:
+            partial_answer = await self._generate_amber_partial(message, classification, "")
+
+        # 3. Combinar respuesta parcial + preguntas de contexto
         questions_text = "\n".join(f"• {q}" for q in context_needed[:3])
-        response_text = AMBER_CONTEXT_TEMPLATE.format(questions=questions_text)
+        response_text = AMBER_CONTEXT_TEMPLATE.format(
+            partial_answer=partial_answer,
+            questions=questions_text,
+        )
 
         return ChatResponse(
             message=response_text,
             classification=classification,
-            sources=[],
+            sources=sources,
             actions=[
                 SuggestedAction(
                     type=ActionType.PROVIDE_CONTEXT,
-                    label="Proporcionar contexto",
-                    description="Responde las preguntas anteriores para obtener orientación precisa.",
+                    label="Añadir más contexto",
+                    description="Responde las preguntas para recibir orientación más específica a tu caso.",
                 ),
             ],
             disclaimers=STANDARD_DISCLAIMERS,
             conversation_id=conversation_id,
         )
+
+    async def _generate_amber_partial(
+        self,
+        message: str,
+        classification: ChatClassification,
+        rag_context: str,
+    ) -> str:
+        """Genera respuesta orientativa parcial para AMARILLO, con o sin contexto RAG."""
+        intention_config = INTENTIONS.get(classification.intention)
+
+        system_prompt = (
+            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+            "El usuario tiene una situación específica. Proporciona una orientación general sobre el "
+            "marco normativo aplicable, explicando qué establece la ley peruana sobre este tema. "
+            "Sé claro y útil, pero indica qué aspectos dependen del contexto concreto que aún no conoces. "
+            "No des recomendaciones definitivas sin tener todos los datos. "
+            "Responde en español, con estructura clara y concisa."
+        )
+
+        if rag_context:
+            prompt = (
+                f"Intención detectada: {intention_config.name if intention_config else classification.intention_name}\n"
+                f"Consulta del usuario: {message}\n\n"
+                f"Normativa relevante:\n{rag_context}\n\n"
+                "Proporciona una orientación general sobre este tema basada en la normativa. "
+                "Cita los artículos aplicables y señala qué aspectos dependen del caso concreto."
+            )
+        else:
+            prompt = (
+                f"El usuario consulta sobre: {intention_config.name if intention_config else classification.intention_name}\n"
+                f"Descripción del área: {intention_config.description if intention_config else ''}\n"
+                f"Consulta: {message}\n\n"
+                "Da una orientación general sobre el marco normativo aplicable en Perú. "
+                "Señala qué información adicional cambiaría o precisaría la respuesta."
+            )
+
+        try:
+            response = await self._ai_router.reason(
+                prompt=prompt,
+                system_prompt=system_prompt,
+            )
+            return response.content
+        except Exception:
+            if intention_config:
+                return (
+                    f"Tu consulta está relacionada con **{intention_config.name}**. "
+                    f"{intention_config.description} "
+                    f"Para orientarte con mayor precisión, necesito algunos datos adicionales."
+                )
+            return "Para orientarte con mayor precisión sobre tu situación, necesito algunos datos adicionales."
 
     async def _handle_red(
         self,
