@@ -57,6 +57,30 @@ class ChatService:
         message = request.message.strip()
         conversation_id = request.conversation_id or str(uuid.uuid4())
 
+        # 0. Pending AMARILLO context: user is answering a clarifying question.
+        #    Skip the classifier and route directly to VERDE with the enriched query.
+        pending_amber = (request.context or {}).get("pending_amber")
+        if pending_amber:
+            try:
+                prior_intention = Intention(pending_amber.get("intention", ""))
+            except ValueError:
+                prior_intention = None
+            if prior_intention and prior_intention != Intention.FUERA_DE_ALCANCE:
+                original_query = pending_amber.get("original_query", message)
+                enriched_message = (
+                    f"{original_query}\n\n"
+                    f"Información adicional proporcionada por el usuario: {message}"
+                )
+                classification = ChatClassification(
+                    intention=prior_intention,
+                    intention_name=INTENTIONS[prior_intention].name,
+                    semaphore=Semaphore.VERDE,
+                    confidence=0.95,
+                    gatillos_detected=[],
+                    requires_context=[],
+                )
+                return await self._handle_green(enriched_message, classification, conversation_id)
+
         # 1. Detectar saludos simples
         if self._is_greeting(message):
             return self._build_greeting_response(conversation_id)
@@ -136,12 +160,30 @@ class ChatService:
                        "disclaimers": resp.disclaimers,
                        "conversation_id": conversation_id})
             return
-
+        # ── Pending AMARILLO: usuario responde pregunta de contexto ───────────────
+        _amber_intention = None
+        eff_message = message  # query usado para RAG y LLM (puede ser enriquecido)
+        pending_amber = (request.context or {}).get("pending_amber")
+        if pending_amber:
+            try:
+                _pri = Intention(pending_amber.get("intention", ""))
+                if _pri != Intention.FUERA_DE_ALCANCE:
+                    _amber_intention = _pri
+                    original_query = pending_amber.get("original_query", message)
+                    eff_message = (
+                        f"{original_query}\n\n"
+                        f"Información adicional proporcionada por el usuario: {message}"
+                    )
+            except ValueError:
+                pass
         # ── Clasificar intención ─────────────────────────────────────────────
         yield sse({"type": "status", "stage": "classifying",
                    "message": "Clasificando tu consulta..."})
 
-        intention, intention_confidence = await IntentionClassifier.classify(message)
+        if _amber_intention:
+            intention, intention_confidence = _amber_intention, 0.95
+        else:
+            intention, intention_confidence = await IntentionClassifier.classify(message)
 
         if intention == Intention.FUERA_DE_ALCANCE:
             classification = ChatClassification(
@@ -156,7 +198,10 @@ class ChatService:
             return
 
         # ── Semáforo ─────────────────────────────────────────────────────────
-        semaphore, gatillos, context_needed = SemaphoreClassifier.classify(message, intention)
+        if _amber_intention:
+            semaphore, gatillos, context_needed = Semaphore.VERDE, [], []
+        else:
+            semaphore, gatillos, context_needed = SemaphoreClassifier.classify(message, intention)
         classification = ChatClassification(
             intention=intention,
             intention_name=INTENTIONS[intention].name,
@@ -187,7 +232,7 @@ class ChatService:
                 rag_module = get_rag_module()
                 if rag_module:
                     rag_result = await rag_module.retrieve_and_ground(
-                        query=message, top_k_initial=6,
+                        query=eff_message, top_k_initial=6,
                         intention_filter=classification.intention.value,
                     )
                     if rag_result and rag_result.chunks:
@@ -214,14 +259,14 @@ class ChatService:
             if rag_context:
                 prompt = (
                     f"Intención: {intention_config.name if intention_config else ''}\n"
-                    f"Consulta: {message}\n\nNormativa relevante:\n{rag_context}\n\n"
+                    f"Consulta: {eff_message}\n\nNormativa relevante:\n{rag_context}\n\n"
                     "Proporciona orientación general citando los artículos aplicables. "
                     "Señala qué aspectos dependen del caso concreto."
                 )
             else:
                 prompt = (
                     f"Área: {intention_config.name if intention_config else ''}\n"
-                    f"Consulta: {message}\n\n"
+                    f"Consulta: {eff_message}\n\n"
                     "Da orientación general sobre el marco normativo en Perú. "
                     "Señala qué información adicional cambiaría la respuesta."
                 )
@@ -260,7 +305,7 @@ class ChatService:
             rag_module = get_rag_module()
             if rag_module:
                 rag_result = await rag_module.retrieve_and_ground(
-                    query=message, top_k_initial=10,
+                    query=eff_message, top_k_initial=10,
                     intention_filter=classification.intention.value,
                 )
                 if rag_result and rag_result.chunks:
@@ -286,7 +331,7 @@ class ChatService:
         if rag_context:
             prompt = (
                 f"Intención detectada: {INTENTIONS[intention].name}\n"
-                f"Pregunta del usuario: {message}\n\n"
+                f"Pregunta del usuario: {eff_message}\n\n"
                 f"Contexto normativo relevante:\n{rag_context}\n\n"
                 "Responde la pregunta citando los artículos específicos de la normativa."
             )
@@ -300,7 +345,7 @@ class ChatService:
             )
             prompt = (
                 f"El usuario consulta sobre: {intention_config.name if intention_config else ''}\n"
-                f"Pregunta: {message}\n\n"
+                f"Pregunta: {eff_message}\n\n"
                 "Da una respuesta orientativa general indicando que debe consultar la normativa específica."
             )
 
@@ -310,7 +355,7 @@ class ChatService:
             ):
                 yield sse({"type": "token", "text": token})
         except Exception:
-            fallback = await self._generate_basic_response(message, classification)
+            fallback = await self._generate_basic_response(eff_message, classification)
             yield sse({"type": "token", "text": fallback})
 
         yield sse({"type": "done", "actions": [],

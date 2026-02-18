@@ -27,6 +27,7 @@ export function useChat() {
     setStreamingSources,
     appendToStreamingMessage,
     finalizeStreamingMessage,
+    consumePendingAmberContext,
   } = useChatStore()
 
   // Intelligent chat mode: uses /chat/message/stream (SSE)
@@ -44,6 +45,9 @@ export function useChat() {
     addUserMessage(content)
     setProcessing(true)
 
+    // Consume pending AMARILLO context before we overwrite lastUserMessage
+    const pendingAmber = consumePendingAmberContext()
+
     // Create placeholder streaming message bubble immediately
     const streamId = startStreamingMessage()
 
@@ -54,6 +58,14 @@ export function useChat() {
         body: JSON.stringify({
           message: content,
           conversation_id: conversationId || undefined,
+          ...(pendingAmber ? {
+            context: {
+              pending_amber: {
+                intention: pendingAmber.intention,
+                original_query: pendingAmber.originalMessage,
+              },
+            },
+          } : {}),
         }),
       })
 
@@ -142,6 +154,7 @@ export function useChat() {
     setStreamingSources,
     appendToStreamingMessage,
     finalizeStreamingMessage,
+    consumePendingAmberContext,
   ])
 
   // Legacy tool-based chat

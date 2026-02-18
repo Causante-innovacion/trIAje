@@ -24,6 +24,10 @@ interface ChatStore {
   // Initial message to send on mount (for home page → chat transition)
   pendingInitialMessage: string | null
 
+  // Amber context: last user message + pending AMARILLO intention for follow-up
+  lastUserMessage: string | null
+  pendingAmberContext: { intention: string; originalMessage: string } | null
+
   // Actions
   startTool: (tool: ToolType) => void
   startIntelligentChat: (initialMessage?: string) => void
@@ -56,6 +60,7 @@ interface ChatStore {
   setError: (error: string | null) => void
   clearError: () => void
   consumePendingMessage: () => string | null
+  consumePendingAmberContext: () => { intention: string; originalMessage: string } | null
   nextStep: () => void
   clearChat: () => void
   resetToHome: () => void
@@ -77,6 +82,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   conversationId: null,
 
   // Intelligent chat state
+  lastUserMessage: null,
+  pendingAmberContext: null,
   lastClassification: null,
   lastSources: [],
   lastActions: [],
@@ -157,6 +164,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   addUserMessage: (content) => {
+    set({ lastUserMessage: content })
     get().addMessage({
       sender: 'user',
       content,
@@ -257,7 +265,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     if (conversation_id) {
       set({ conversationId: conversation_id })
     }
+    // Detect AMARILLO to save context for the user's next reply
+    const currentState = get()
+    const msg = currentState.messages.find(m => m.id === id)
+    const classification = msg?.metadata?.classification as import('../types/chat').ChatClassification | undefined
+    const newPendingAmberContext = classification?.semaphore === 'amarillo'
+      ? { intention: classification.intention, originalMessage: currentState.lastUserMessage ?? '' }
+      : null
     set((state) => ({
+      pendingAmberContext: newPendingAmberContext,
       messages: state.messages.map((m) =>
         m.id === id
           ? {
@@ -313,6 +329,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     return msg
   },
 
+  consumePendingAmberContext: () => {
+    const ctx = get().pendingAmberContext
+    set({ pendingAmberContext: null })
+    return ctx
+  },
+
   nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
 
   clearChat: () => set({
@@ -326,6 +348,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     lastClassification: null,
     lastSources: [],
     lastActions: [],
+    lastUserMessage: null,
+    pendingAmberContext: null,
   }),
 
   resetToHome: () => set({
@@ -344,5 +368,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     lastActions: [],
     error: null,
     pendingInitialMessage: null,
+    lastUserMessage: null,
+    pendingAmberContext: null,
   }),
 }))
