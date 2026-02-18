@@ -380,11 +380,28 @@ class SemaphoreClassifier:
 class ProjectAnalysisDetector:
     """Detecta si el usuario quiere analizar un proyecto completo."""
 
+    # Raíces verbales que indican voluntad de analizar/evaluar
+    _VERB_STEMS = ("analiz", "evalú", "evalua", "revis", "viabilidad")
+    # Palabras que indican un proyecto o emprendimiento
+    _PROJECT_WORDS = ("proyecto", "emprendimiento", "iniciativa", "propuesta")
+
     @staticmethod
     def is_project_analysis(message: str) -> bool:
-        """Verifica si el mensaje indica análisis de proyecto."""
+        """
+        Verifica si el mensaje indica análisis de proyecto.
+
+        Utiliza dos estrategias:
+        1. Match exacto de frases en PROJECT_ANALYSIS_TRIGGERS (rápido y determinista).
+        2. Combinación de raíz verbal + palabra de proyecto (captura variaciones
+           como "analiza mi proyecto", "evalúa el proyecto de la ONG", etc.).
+        """
         message_lower = message.lower()
-        return any(
-            trigger in message_lower
-            for trigger in PROJECT_ANALYSIS_TRIGGERS
-        )
+
+        # 1. Exact phrase match (mantiene compatibilidad con tests y frases conocidas)
+        if any(trigger in message_lower for trigger in PROJECT_ANALYSIS_TRIGGERS):
+            return True
+
+        # 2. Hybrid: verb stem + project word (cubre conjugaciones y artículos variados)
+        has_verb = any(stem in message_lower for stem in ProjectAnalysisDetector._VERB_STEMS)
+        has_project = any(word in message_lower for word in ProjectAnalysisDetector._PROJECT_WORDS)
+        return has_verb and has_project

@@ -3,7 +3,7 @@ Chat Feature - Router
 Endpoints FastAPI para el sistema de chat.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from .schemas import (
@@ -134,3 +134,77 @@ async def list_gatillos() -> GatilloListResponse:
         gatillos=gatillos,
         total=len(gatillos),
     )
+
+
+@router.post(
+    "/upload",
+    summary="Subir archivo para análisis en el chat",
+    description=(
+        "Acepta un PDF o DOCX, extrae su texto y retorna un preview que el frontend "
+        "puede enviar como mensaje al chat para que JUSTO lo analice."
+    ),
+)
+async def upload_chat_file(
+    file: UploadFile = File(...),
+    tool: str = Form("general"),
+):
+    """
+    Sube un archivo desde el chat.
+
+    Flujo:
+    1. Valida tipo y tamaño del archivo.
+    2. Extrae texto (PDF via PyMuPDF, DOCX via python-docx).
+    3. Retorna filename + content_preview (hasta 3000 chars) para que el frontend
+       lo pueda re-enviar como mensaje a JUSTO.
+    """
+    import io
+
+    allowed_types = {
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+    # Algunos browsers envían application/octet-stream; confiar también en la extensión
+    filename = file.filename or "archivo"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if file.content_type not in allowed_types and ext not in ("pdf", "docx"):
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no permitido. Solo se aceptan PDF y DOCX.",
+        )
+
+    content = await file.read()
+    size_kb = round(len(content) / 1024, 1)
+
+    max_size_kb = 10 * 1024  # 10 MB
+    if size_kb > max_size_kb:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El archivo excede el tamaño máximo de 10 MB.",
+        )
+
+    text_preview = ""
+    try:
+        if ext == "pdf":
+            import fitz  # PyMuPDF
+            doc = fitz.open(stream=content, filetype="pdf")
+            pages_text = []
+            for page in doc[:10]:  # máximo 10 páginas
+                pages_text.append(page.get_text())
+            doc.close()
+            full_text = "\n".join(pages_text).strip()
+            text_preview = full_text[:3000] + ("..." if len(full_text) > 3000 else "")
+        elif ext == "docx":
+            import docx as docx_lib
+            doc = docx_lib.Document(io.BytesIO(content))
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            full_text = "\n".join(paragraphs).strip()
+            text_preview = full_text[:3000] + ("..." if len(full_text) > 3000 else "")
+    except Exception:
+        text_preview = ""
+
+    return {
+        "filename": filename,
+        "size_kb": size_kb,
+        "content_preview": text_preview,
+        "message": f"Archivo '{filename}' cargado correctamente ({size_kb} KB).",
+    }

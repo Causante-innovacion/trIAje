@@ -672,21 +672,41 @@ AMBER_CONTEXT_TEMPLATE = (
 # =============================================================================
 
 PROJECT_ANALYSIS_TRIGGERS: List[str] = [
+    # Con "mi"
     "analizar mi proyecto",
     "evaluar mi proyecto",
+    "revisar mi proyecto",
     "viabilidad de mi proyecto",
+    "es viable mi proyecto",
+    "mi proyecto es legal",
+    "quiero formalizar mi proyecto",
+    "evaluar mi emprendimiento",
+    # Con "el / un / nuestro"
+    "analizar el proyecto",
+    "evaluar el proyecto",
+    "revisar el proyecto",
+    "analizar un proyecto",
+    "evaluar un proyecto",
+    "analizar nuestro proyecto",
+    "evaluar nuestro proyecto",
+    "revisar nuestro proyecto",
+    "viabilidad del proyecto",
+    "proyecto es viable",
+    # Conjugaciones imperativas / indicativas
+    "analiza mi proyecto",
+    "analiza el proyecto",
+    "analiza nuestro proyecto",
+    "evalúa mi proyecto",
+    "evalúa el proyecto",
+    "revisa mi proyecto",
+    # Otros
     "viabilidad legal",
     "evaluar viabilidad",
     "analizar viabilidad",
-    "revisar mi proyecto",
-    "es viable mi proyecto",
-    "mi proyecto es legal",
-    "proyecto es viable",
-    "quiero formalizar mi proyecto",
     "plan de negocio",
-    "evaluar mi emprendimiento",
     "tengo un proyecto",
     "quiero emprender",
+    "quiero formalizar mi proyecto",
 ]
 
 
