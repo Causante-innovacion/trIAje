@@ -24,13 +24,11 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./gpt_legal.db")
 
-    # Vector Store - ChromaDB (usa la DB poblada en RAG/chroma_db)
-    VECTOR_STORE_TYPE: str = Field(default="chroma")  # chroma, pgvector, pinecone
-    CHROMA_MODE: str = Field(default="local")  # local, server, memory
-    CHROMA_PERSIST_DIR: str = Field(default="../RAG/chroma_db")
-    CHROMA_HOST: str = Field(default="localhost")
-    CHROMA_PORT: int = Field(default=8000)
-    CHROMA_TOKEN: str | None = None
+    # Vector Store - Qdrant (dashboard: http://localhost:6333/dashboard)
+    VECTOR_STORE_TYPE: str = Field(default="qdrant")  # qdrant, pgvector
+    QDRANT_HOST: str = Field(default="localhost")
+    QDRANT_PORT: int = Field(default=6333)
+    QDRANT_API_KEY: str | None = None
 
     # AI Providers
     OPENAI_API_KEY: str | None = None

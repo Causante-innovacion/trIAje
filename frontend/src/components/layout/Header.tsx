@@ -29,12 +29,12 @@ export function Header() {
       className={clsx(
         "py-3 print:hidden sticky top-0 z-40 transition-all duration-300",
         isScrolled
-          ? "bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm"
+          ? "bg-white/90 backdrop-blur-md border-b border-primary-200 shadow-sm"
           : "bg-white border-b border-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-        {/* Logo + Title "Aplicaciones" */}
+        {/* Logo + Título "Aplicaciones" */}
         <div className="flex items-center gap-3">
           <Link
             to="/"
@@ -46,9 +46,15 @@ export function Header() {
               alt="CAUSANTE"
               className="h-8 w-auto"
             />
-            {/* Added GPT Legal text as per previous design, can remove if user insists on exact code */}
-            <span className="text-lg font-semibold text-gray-900 hidden sm:block">GPT Legal</span>
           </Link>
+
+          {/* Separador y Texto "APLICACIONES" */}
+          <div className="hidden md:flex items-center gap-2">
+            <span className="text-gray-300 font-light">|</span>
+            <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
+              Aplicaciones
+            </span>
+          </div>
         </div>
 
         {/* Dynamic Right Content */}

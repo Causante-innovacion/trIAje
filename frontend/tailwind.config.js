@@ -7,71 +7,60 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Colores principales GPT Legal
+        // ── Causante Design System ──
+        // Primary
+        causante: {
+          yellow: '#d7d100',
+          purple: '#8f86a3',
+          green: '#d0dbce',
+          ocre: '#b3994c',
+        },
+        // Functional aliases
         gold: {
-          DEFAULT: '#c4a35a',
-          light: '#d4b86a',
-          dark: '#b8963f',
+          DEFAULT: '#b3994c',
+          light: '#c9b06a',
+          dark: '#9a8340',
           50: '#faf8f0',
         },
         cream: {
-          DEFAULT: '#f5f0e6',
-          light: '#faf8f5',
-          dark: '#e8e0d0',
+          DEFAULT: '#f7f5f0',
+          light: '#faf9f6',
+          dark: '#ede9e0',
         },
-        sage: {
-          DEFAULT: '#f5f7f0',
-          light: '#f8faf5',
-        },
-        // Semáforo de viabilidad (legacy)
-        viable: '#22c55e',
-        inviable: '#eab308',
         // Semáforo de chat inteligente
         semaphore: {
           green: '#059669',
           yellow: '#d97706',
           red: '#dc2626',
         },
+        // Legacy
+        viable: '#22c55e',
+        inviable: '#eab308',
       },
       fontFamily: {
         heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
-      backgroundImage: {
-        'gradient-main': 'linear-gradient(135deg, #f5f7f0 0%, #faf8f5 100%)',
+      borderRadius: {
+        '4xl': '2rem',
       },
       boxShadow: {
-        'card': '0 2px 8px rgba(0, 0, 0, 0.06)',
-        'card-hover': '0 4px 16px rgba(0, 0, 0, 0.1)',
-        'glow-gold': '0 0 20px rgba(196, 163, 90, 0.3)',
-      },
-      animation: {
-        'fade-in': 'fadeIn 0.4s ease-out forwards',
-        'slide-up': 'slideUp 0.5s ease-out forwards',
-        'slide-down': 'slideDown 0.3s ease-out forwards',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideDown: {
-          '0%': { opacity: '0', transform: 'translateY(-10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
+        'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03)',
+        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.06)',
+        'input': '0 1px 2px rgba(0, 0, 0, 0.04)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.4s ease-out forwards',
         'slide-in': 'slideIn 0.3s ease-out both',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         slideIn: {

@@ -37,6 +37,7 @@ class DocumentUploadRequest(BaseModel):
     jurisdiction: str = Field(default="PE", description="Jurisdicción (PE=Perú)")
     validity_date: str | None = Field(None, description="Fecha de vigencia (YYYY-MM-DD)")
     url: str | None = Field(None, description="URL de referencia")
+    intention: str | None = Field(None, description="Intención asociada (e.g., 'tributacion')")
 
     # Chunking options
     chunk_size: int = Field(default=600, description="Tamaño máximo de chunk (tokens)")
@@ -93,7 +94,7 @@ class CollectionStats(BaseModel):
 class RAGStatusResponse(BaseModel):
     """Estado del sistema RAG"""
     healthy: bool
-    chroma_mode: str
+    vector_store_type: str
     collections: list[CollectionStats]
     total_documents: int
 

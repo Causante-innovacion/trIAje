@@ -3,7 +3,7 @@ AI Providers - Base Interface
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, AsyncGenerator
 from pydantic import BaseModel
 
 
@@ -78,3 +78,25 @@ class AIProvider(ABC):
     async def health_check(self) -> bool:
         """Verifica que el provider esté disponible"""
         pass
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        model: str,
+        system_prompt: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 1200,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Genera respuesta en streaming, yielding tokens uno a uno.
+        Por defecto delega a generate() y emite el resultado completo.
+        Override en providers que soporten streaming nativo.
+        """
+        response = await self.generate(
+            prompt=prompt,
+            model=model,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        yield response.content

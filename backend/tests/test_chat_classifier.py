@@ -44,6 +44,38 @@ class TestIntentionClassifierKeywords:
         assert intention == Intention.IDENTIDAD_RUC
         assert conf > 0.0
 
+    def test_baja_provisional_keywords(self):
+        """'Me dieron de baja provisional' → IDENTIDAD_RUC (no fuera de alcance)."""
+        intention, conf = IntentionClassifier.classify_by_keywords(
+            "me dieron de baja provisional"
+        )
+        assert intention == Intention.IDENTIDAD_RUC
+        assert conf > 0.0
+
+    def test_baja_provisional_que_es_keywords(self):
+        """'Qué es una baja provisional' → IDENTIDAD_RUC (no fuera de alcance)."""
+        intention, conf = IntentionClassifier.classify_by_keywords(
+            "qué es una baja provisional"
+        )
+        assert intention == Intention.IDENTIDAD_RUC
+        assert conf > 0.0
+
+    def test_dar_de_baja_ruc_keywords(self):
+        """'Quiero dar de baja mi RUC' → IDENTIDAD_RUC."""
+        intention, conf = IntentionClassifier.classify_by_keywords(
+            "Quiero dar de baja mi RUC en SUNAT"
+        )
+        assert intention == Intention.IDENTIDAD_RUC
+        assert conf > 0.0
+
+    def test_reactivar_ruc_keywords(self):
+        """'Reactivar RUC' → IDENTIDAD_RUC."""
+        intention, conf = IntentionClassifier.classify_by_keywords(
+            "¿Cómo puedo reactivar mi RUC?"
+        )
+        assert intention == Intention.IDENTIDAD_RUC
+        assert conf > 0.0
+
     def test_donaciones_keywords(self):
         """Detecta intención de donaciones."""
         intention, conf = IntentionClassifier.classify_by_keywords(
@@ -250,6 +282,25 @@ class TestSemaphoreClassifier:
         assert len(gatillos) > 0
 
     # ------ VERDE ------
+
+    def test_baja_provisional_especifico_amarillo(self):
+        """'Me dieron de baja provisional' es caso específico → AMARILLO, no VERDE."""
+        semaphore, gatillos, context = SemaphoreClassifier.classify(
+            "me dieron de baja provisional",
+            Intention.IDENTIDAD_RUC,
+        )
+        assert semaphore == Semaphore.AMARILLO
+        assert len(gatillos) == 0
+        assert len(context) > 0
+
+    def test_pregunta_mixta_especifica_amarillo(self):
+        """Pregunta informativa + caso concreto → AMARILLO (no bypass a VERDE)."""
+        semaphore, gatillos, context = SemaphoreClassifier.classify(
+            "¿Cómo reactivo mi RUC si me dieron de baja provisional?",
+            Intention.IDENTIDAD_RUC,
+        )
+        assert semaphore == Semaphore.AMARILLO
+        assert len(gatillos) == 0
 
     def test_pregunta_informativa_verde(self):
         """Pregunta informativa pura → VERDE."""

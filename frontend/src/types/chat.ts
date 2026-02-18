@@ -84,6 +84,10 @@ export interface Message {
   options?: MessageOption[]
   file?: UploadedFile
   timestamp: Date
+  /** True mientras el mensaje se está recibiendo token a token (streaming) */
+  isStreaming?: boolean
+  /** Texto de estado mostrado durante el streaming ("Buscando normativa...") */
+  streamingStatus?: string
   metadata?: {
     step?: number
     toolContext?: ToolType

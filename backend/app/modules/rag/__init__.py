@@ -8,12 +8,7 @@ User Input → Query Normalization → Legal Intent Expansion
 → Normative Filtering → Contradiction Check → Grounded Context Pack
 → Reasoning Module → Citation Binding
 
-Índices RAG (multi-index):
-- index_normative_primary
-- index_regulatory_secondary
-- index_guidance_docs
-- index_authority_FAQ
-- index_case_interpretation (optional)
+Vector Store: Qdrant (dashboard: http://localhost:6333/dashboard)
 """
 
 from .service import (
@@ -32,7 +27,7 @@ from .interfaces import (
     IndexType,
 )
 from .confidence import RAGConfidenceCalculator
-from .adapters.chroma import ChromaDBAdapter, create_chroma_adapter
+from .adapters.qdrant import QdrantAdapter, create_qdrant_adapter
 
 __all__ = [
     # Service
@@ -51,6 +46,6 @@ __all__ = [
     # Confidence
     "RAGConfidenceCalculator",
     # Adapters
-    "ChromaDBAdapter",
-    "create_chroma_adapter",
+    "QdrantAdapter",
+    "create_qdrant_adapter",
 ]

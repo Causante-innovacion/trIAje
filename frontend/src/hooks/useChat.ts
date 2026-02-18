@@ -1,8 +1,10 @@
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { chatApi } from '../shared/services/api'
 import { ChatResponse, MAX_MESSAGE_LENGTH } from '../types/chat'
-import axios from 'axios'
+
+// Base URL for the streaming endpoint (same origin as the REST API)
+const STREAM_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/chat/message/stream`
 
 export function useChat() {
   const {
@@ -14,22 +16,23 @@ export function useChat() {
     conversationId,
     addUserMessage,
     addJustoMessage,
-    addIntelligentResponse,
     addErrorMessage,
     setProcessing,
     setTyping,
     nextStep,
     setSessionId,
-    setConversationId,
+    startStreamingMessage,
+    setStreamingStatus,
+    setStreamingClassification,
+    setStreamingSources,
+    appendToStreamingMessage,
+    finalizeStreamingMessage,
   } = useChatStore()
 
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Intelligent chat mode: uses /chat/message
+  // Intelligent chat mode: uses /chat/message/stream (SSE)
   const sendIntelligentMessage = useCallback(async (content: string) => {
     if (!content.trim() || isProcessing) return
 
-    // Validation: character limit
     if (content.length > MAX_MESSAGE_LENGTH) {
       addErrorMessage(
         `Tu mensaje excede el límite de ${MAX_MESSAGE_LENGTH} caracteres. Por favor, acórtalo e intenta de nuevo.`,
@@ -40,77 +43,84 @@ export function useChat() {
 
     addUserMessage(content)
     setProcessing(true)
-    setTyping(true)
 
-    // Timeout warning after 10s
-    timeoutRef.current = setTimeout(() => {
-      // Only add the warning if still processing
-      const state = useChatStore.getState()
-      if (state.isProcessing) {
-        // Don't add another message, just update the existing typing indicator logic
-        // The UI will show the slow response message
-      }
-    }, 10000)
+    // Create placeholder streaming message bubble immediately
+    const streamId = startStreamingMessage()
 
     try {
-      const response = await chatApi.sendIntelligentMessage({
-        message: content,
-        conversation_id: conversationId || undefined,
+      const response = await fetch(STREAM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content,
+          conversation_id: conversationId || undefined,
+        }),
       })
 
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-
-      const data = response.data
-
-      // Store conversation ID
-      if (data.conversation_id && !conversationId) {
-        setConversationId(data.conversation_id)
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP ${response.status}`)
       }
 
-      setTyping(false)
-      addIntelligentResponse(
-        data.message,
-        data.classification,
-        data.sources,
-        data.actions,
-        data.disclaimers
-      )
-    } catch (error) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      setTyping(false)
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
 
-      if (axios.isAxiosError(error)) {
-        if (!error.response) {
-          // Network error
-          addErrorMessage(
-            'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta de nuevo.',
-            'network'
-          )
-        } else if (error.response.status === 422) {
-          // Validation error
-          const detail = error.response.data?.detail || 'El mensaje no es válido.'
-          addErrorMessage(
-            `Error de validación: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`,
-            'validation'
-          )
-        } else if (error.response.status >= 500) {
-          // Server error
-          addErrorMessage(
-            'Error interno del servidor. Por favor, intenta de nuevo en unos segundos.',
-            'server'
-          )
-        } else if (error.code === 'ECONNABORTED') {
-          // Timeout
-          addErrorMessage(
-            'La solicitud tardó demasiado tiempo. El servidor puede estar ocupado. Intenta de nuevo.',
-            'timeout'
-          )
-        } else {
-          addErrorMessage(
-            'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
-            'server'
-          )
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // SSE lines are separated by \n\n; process all complete events
+        const parts = buffer.split('\n\n')
+        buffer = parts.pop() ?? ''  // last incomplete chunk stays in buffer
+
+        for (const part of parts) {
+          const line = part.trim()
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            switch (event.type) {
+              case 'status':
+                setStreamingStatus(streamId, event.message)
+                break
+              case 'classification':
+                setStreamingClassification(streamId, event.data)
+                break
+              case 'sources':
+                setStreamingSources(streamId, event.data)
+                break
+              case 'token':
+                appendToStreamingMessage(streamId, event.text)
+                break
+              case 'done':
+                // 'done' may carry a full message (greeting / out-of-scope / rojo)
+                if (event.message) {
+                  appendToStreamingMessage(streamId, event.message)
+                }
+                if (event.classification) {
+                  setStreamingClassification(streamId, event.classification)
+                }
+                finalizeStreamingMessage(streamId, {
+                  actions: event.actions,
+                  disclaimers: event.disclaimers,
+                  conversation_id: event.conversation_id,
+                })
+                break
+            }
+          } catch {
+            // Malformed JSON line — skip silently
+          }
         }
+      }
+    } catch (error) {
+      // Remove the empty streaming bubble on error and show error message
+      finalizeStreamingMessage(streamId, {})
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('network'))) {
+        addErrorMessage(
+          'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta de nuevo.',
+          'network'
+        )
       } else {
         addErrorMessage(
           'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
@@ -124,11 +134,14 @@ export function useChat() {
     isProcessing,
     conversationId,
     addUserMessage,
-    addIntelligentResponse,
     addErrorMessage,
     setProcessing,
-    setTyping,
-    setConversationId,
+    startStreamingMessage,
+    setStreamingStatus,
+    setStreamingClassification,
+    setStreamingSources,
+    appendToStreamingMessage,
+    finalizeStreamingMessage,
   ])
 
   // Legacy tool-based chat
