@@ -12,7 +12,7 @@ Flujo:
 
 import uuid
 import json
-from typing import List, Optional, AsyncGenerator
+from typing import List, Dict, Optional, AsyncGenerator
 
 from app.ai.router import AIRouter
 from app.modules.rag import get_rag_module
@@ -57,6 +57,11 @@ class ChatService:
         message = request.message.strip()
         conversation_id = request.conversation_id or str(uuid.uuid4())
 
+        # Build history for LLM multi-turn memory
+        history: list | None = [{
+            "role": h.role, "content": h.content
+        } for h in (request.history or [])] or None
+
         # 0. Pending AMARILLO context: user is answering a clarifying question.
         #    Skip the classifier and route directly to VERDE with the enriched query.
         pending_amber = (request.context or {}).get("pending_amber")
@@ -79,7 +84,7 @@ class ChatService:
                     gatillos_detected=[],
                     requires_context=[],
                 )
-                return await self._handle_green(enriched_message, classification, conversation_id)
+                return await self._handle_green(enriched_message, classification, conversation_id, history=history)
 
         # 1. Detectar saludos simples
         if self._is_greeting(message):
@@ -115,9 +120,9 @@ class ChatService:
         if semaphore == Semaphore.ROJO:
             return await self._handle_red(message, classification, conversation_id)
         elif semaphore == Semaphore.AMARILLO:
-            return await self._handle_amber(message, classification, context_needed, conversation_id)
+            return await self._handle_amber(message, classification, context_needed, conversation_id, history=history)
         else:
-            return await self._handle_green(message, classification, conversation_id)
+            return await self._handle_green(message, classification, conversation_id, history=history)
 
     # =========================================================================
     # HANDLERS POR SEMÁFORO
@@ -163,6 +168,9 @@ class ChatService:
         # ── Pending AMARILLO: usuario responde pregunta de contexto ───────────────
         _amber_intention = None
         eff_message = message  # query usado para RAG y LLM (puede ser enriquecido)
+        history: list | None = [{
+            "role": h.role, "content": h.content
+        } for h in (request.history or [])] or None
         pending_amber = (request.context or {}).get("pending_amber")
         if pending_amber:
             try:
@@ -280,11 +288,11 @@ class ChatService:
 
             try:
                 async for token in self._ai_router.reason_stream(
-                    prompt=prompt, system_prompt=system_prompt
+                    prompt=prompt, system_prompt=system_prompt, history=history
                 ):
                     yield sse({"type": "token", "text": token})
             except Exception:
-                fallback = await self._generate_amber_partial(message, classification, rag_context)
+                fallback = await self._generate_amber_partial(message, classification, rag_context, history=history)
                 yield sse({"type": "token", "text": fallback})
 
             yield sse({"type": "token", "text": amber_suffix})
@@ -351,11 +359,11 @@ class ChatService:
 
         try:
             async for token in self._ai_router.reason_stream(
-                prompt=prompt, system_prompt=system_prompt
+                prompt=prompt, system_prompt=system_prompt, history=history
             ):
                 yield sse({"type": "token", "text": token})
         except Exception:
-            fallback = await self._generate_basic_response(eff_message, classification)
+            fallback = await self._generate_basic_response(eff_message, classification, history=history)
             yield sse({"type": "token", "text": fallback})
 
         yield sse({"type": "done", "actions": [],
@@ -371,6 +379,7 @@ class ChatService:
         message: str,
         classification: ChatClassification,
         conversation_id: str,
+        history: list | None = None,
     ) -> ChatResponse:
         """Maneja consultas VERDE: busca en RAG + genera respuesta."""
         sources: List[LegalSource] = []
@@ -393,14 +402,14 @@ class ChatService:
 
                     # Generar respuesta con LLM + contexto RAG
                     response_text = await self._generate_rag_response(
-                        message, classification, rag_context
+                        message, classification, rag_context, history=history
                     )
         except Exception:
             pass
 
         # Si no hay RAG o falló, generar respuesta sin contexto
         if not response_text:
-            response_text = await self._generate_basic_response(message, classification)
+            response_text = await self._generate_basic_response(message, classification, history=history)
 
         return ChatResponse(
             message=response_text,
@@ -417,6 +426,7 @@ class ChatService:
         classification: ChatClassification,
         context_needed: List[str],
         conversation_id: str,
+        history: list | None = None,
     ) -> ChatResponse:
         """Maneja consultas AMARILLO: genera orientación parcial con RAG + pide contexto para personalizar."""
         sources: List[LegalSource] = []
@@ -435,14 +445,14 @@ class ChatService:
                     rag_context = self._build_rag_context_from_chunks(rag_result)
                     sources = self._extract_sources_from_chunks(rag_result)
                     partial_answer = await self._generate_amber_partial(
-                        message, classification, rag_context
+                        message, classification, rag_context, history=history
                     )
         except Exception:
             pass
 
         # 2. Si no hay RAG o falló, generar orientación base sin contexto documental
         if not partial_answer:
-            partial_answer = await self._generate_amber_partial(message, classification, "")
+            partial_answer = await self._generate_amber_partial(message, classification, "", history=history)
 
         # 3. Combinar respuesta parcial + preguntas de contexto
         questions_text = "\n".join(f"• {q}" for q in context_needed[:3])
@@ -471,6 +481,7 @@ class ChatService:
         message: str,
         classification: ChatClassification,
         rag_context: str,
+        history: list | None = None,
     ) -> str:
         """Genera respuesta orientativa parcial para AMARILLO, con o sin contexto RAG."""
         intention_config = INTENTIONS.get(classification.intention)
@@ -505,6 +516,7 @@ class ChatService:
             response = await self._ai_router.reason(
                 prompt=prompt,
                 system_prompt=system_prompt,
+                history=history,
             )
             return response.content
         except Exception:
@@ -709,6 +721,7 @@ class ChatService:
         message: str,
         classification: ChatClassification,
         rag_context: str,
+        history: list | None = None,
     ) -> str:
         """Genera respuesta usando LLM con contexto RAG."""
         system_prompt = (
@@ -731,15 +744,17 @@ class ChatService:
             response = await self._ai_router.reason(
                 prompt=prompt,
                 system_prompt=system_prompt,
+                history=history,
             )
             return response.content
         except Exception:
-            return await self._generate_basic_response(message, classification)
+            return await self._generate_basic_response(message, classification, history=history)
 
     async def _generate_basic_response(
         self,
         message: str,
         classification: ChatClassification,
+        history: list | None = None,
     ) -> str:
         """Genera una respuesta básica cuando no hay RAG disponible."""
         intention_config = INTENTIONS.get(classification.intention)
@@ -765,6 +780,7 @@ class ChatService:
             response = await self._ai_router.reason(
                 prompt=prompt,
                 system_prompt=system_prompt,
+                history=history,
             )
             return response.content
         except Exception:

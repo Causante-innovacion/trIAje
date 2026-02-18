@@ -3,7 +3,7 @@ AI Providers - OpenAI Implementation
 """
 
 import json
-from typing import Dict, Any, AsyncGenerator
+from typing import Dict, Any, List, AsyncGenerator
 
 from app.core.config import settings
 from .base import AIProvider, AIResponse
@@ -39,6 +39,7 @@ class OpenAIProvider(AIProvider):
         system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        history: List[Dict[str, str]] | None = None,
     ) -> AIResponse:
         """Genera respuesta con OpenAI"""
         client = self._get_client()
@@ -46,6 +47,8 @@ class OpenAIProvider(AIProvider):
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
+        for turn in (history or []):
+            messages.append({"role": turn["role"], "content": turn["content"]})
         messages.append({"role": "user", "content": prompt})
 
         response = await client.chat.completions.create(
@@ -110,6 +113,7 @@ class OpenAIProvider(AIProvider):
         system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 1200,
+        history: List[Dict[str, str]] | None = None,
     ) -> AsyncGenerator[str, None]:
         """Genera respuesta en streaming nativo de OpenAI, yield token a token."""
         client = self._get_client()
@@ -117,6 +121,8 @@ class OpenAIProvider(AIProvider):
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
+        for turn in (history or []):
+            messages.append({"role": turn["role"], "content": turn["content"]})
         messages.append({"role": "user", "content": prompt})
 
         stream = await client.chat.completions.create(

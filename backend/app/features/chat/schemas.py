@@ -24,6 +24,16 @@ class ActionType(str, Enum):
 
 
 # =============================================================================
+# HISTORIAL DE CONVERSACIÓN
+# =============================================================================
+
+class HistoryMessage(BaseModel):
+    """Turno de conversación anterior para memoria multi-turno."""
+    role: str = Field(..., description="'user' o 'assistant'")
+    content: str = Field(..., description="Contenido del mensaje")
+
+
+# =============================================================================
 # REQUEST
 # =============================================================================
 
@@ -32,6 +42,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="Mensaje del usuario")
     conversation_id: Optional[str] = Field(None, description="ID de conversación para mantener contexto")
     context: Optional[Dict[str, Any]] = Field(None, description="Contexto adicional (archivos, datos previos)")
+    history: List[HistoryMessage] = Field(default_factory=list, description="Últimos N turnos de conversación")
 
 
 # =============================================================================

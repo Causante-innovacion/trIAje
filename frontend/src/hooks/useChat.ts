@@ -42,6 +42,17 @@ export function useChat() {
       return
     }
 
+    // Recopilar historial antes de agregar el mensaje actual (excluye el mensaje presente)
+    const history = messages
+      .filter(m =>
+        (m.sender === 'user' && m.contentType === 'text' && m.content?.trim()) ||
+        (m.sender === 'justo' &&
+          (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
+          m.content?.trim() && !m.isStreaming)
+      )
+      .slice(-8)  // últimas 4 conversaciones (8 mensajes)
+      .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant' as const, content: m.content }))
+
     addUserMessage(content)
     setProcessing(true)
 
@@ -58,6 +69,7 @@ export function useChat() {
         body: JSON.stringify({
           message: content,
           conversation_id: conversationId || undefined,
+          history,
           ...(pendingAmber ? {
             context: {
               pending_amber: {
@@ -143,6 +155,7 @@ export function useChat() {
       setProcessing(false)
     }
   }, [
+    messages,
     isProcessing,
     conversationId,
     addUserMessage,
