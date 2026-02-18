@@ -210,6 +210,23 @@ class ChatService:
             semaphore, gatillos, context_needed = Semaphore.VERDE, [], []
         else:
             semaphore, gatillos, context_needed = SemaphoreClassifier.classify(message, intention)
+
+        # ── Promover AMARILLO → VERDE si el historial ya tiene contexto previo ────
+        # Si el clasificador dispara AMARILLO pero el usuario ya respondió ese tipo
+        # de pregunta en un turno anterior, reutilizamos ese contexto y respondemos
+        # directamente con una respuesta específica (evita el bucle de re-preguntar).
+        _prior_amber_ctx: str | None = None
+        if semaphore == Semaphore.AMARILLO and history:
+            _prior_amber_ctx = self._find_prior_amber_answer(history)
+            if _prior_amber_ctx:
+                eff_message = (
+                    f"{message}\n\n"
+                    f"[Contexto que el usuario ya proporcionó anteriormente: {_prior_amber_ctx}]"
+                )
+                semaphore = Semaphore.VERDE
+                gatillos = []
+                context_needed = []
+
         classification = ChatClassification(
             intention=intention,
             intention_name=INTENTIONS[intention].name,
@@ -328,19 +345,20 @@ class ChatService:
         yield sse({"type": "status", "stage": "generating",
                    "message": "Generando respuesta..."})
 
-        if _amber_intention:
-            # El usuario acabó de dar contexto adicional → respuesta específica y personalizada
+        if _amber_intention or _prior_amber_ctx:
+            # El usuario ya proporcionó contexto (ahora o en un turno anterior)
+            # → respuesta específica y personalizada usando esa información
             system_prompt = (
                 "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario acaba de proporcionarte información adicional específica de su caso. "
+                "El usuario te ha proporcionado información específica de su caso (ya sea ahora o en un turno anterior). "
                 "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
-                "No des orientación genérica: enfócate en los detalles concretos mencionados por el usuario. "
+                "No des orientación genérica: enfócate en los detalles concretos del usuario. "
                 "Cita los artículos normativos aplicables a su situación exacta. "
                 "Responde en español, de forma clara y con estructura."
             )
             prompt = (
                 f"Intención legal: {INTENTIONS[intention].name}\n"
-                f"Consulta con contexto adicional del usuario:\n{eff_message}\n\n"
+                f"Consulta con contexto del usuario:\n{eff_message}\n\n"
                 + (f"Normativa relevante:\n{rag_context}\n\n" if rag_context else "")
                 + "Responde de forma específica y personalizada para este caso concreto, "
                 "citando la normativa aplicable a su situación."
@@ -586,6 +604,20 @@ class ChatService:
     # =========================================================================
     # RESPUESTAS ESPECIALES
     # =========================================================================
+
+    @staticmethod
+    def _find_prior_amber_answer(history: list) -> str | None:
+        """
+        Escanea el historial reciente buscando un exchange AMARILLO previo:
+        el asistente hizo una pregunta de contexto (marcador 🟡) y el usuario respondió.
+        Retorna la respuesta del usuario si la encuentra, None si no.
+        """
+        for i, msg in enumerate(history):
+            if msg.get("role") == "assistant" and "\U0001f7e1" in msg.get("content", ""):
+                # Hay un mensaje siguiente del usuario = su respuesta de contexto
+                if i + 1 < len(history) and history[i + 1].get("role") == "user":
+                    return history[i + 1]["content"]
+        return None
 
     @staticmethod
     def _is_greeting(message: str) -> bool:

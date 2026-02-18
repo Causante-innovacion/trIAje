@@ -265,5 +265,5 @@ export const TOOLS: Tool[] = [
   }
 ]
 
-// Max message length
-export const MAX_MESSAGE_LENGTH = 500
+// Max message length (5000 matches backend ChatRequest max_length; allows document content in messages)
+export const MAX_MESSAGE_LENGTH = 5000

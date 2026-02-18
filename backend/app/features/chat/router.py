@@ -192,13 +192,13 @@ async def upload_chat_file(
                 pages_text.append(page.get_text())
             doc.close()
             full_text = "\n".join(pages_text).strip()
-            text_preview = full_text[:3000] + ("..." if len(full_text) > 3000 else "")
+            text_preview = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
         elif ext == "docx":
             import docx as docx_lib
             doc = docx_lib.Document(io.BytesIO(content))
             paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
             full_text = "\n".join(paragraphs).strip()
-            text_preview = full_text[:3000] + ("..." if len(full_text) > 3000 else "")
+            text_preview = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
     except Exception:
         text_preview = ""
 
