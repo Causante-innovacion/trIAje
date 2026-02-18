@@ -22,12 +22,12 @@ export function Avatar({ size = 'md', className }: AvatarProps) {
   return (
     <div
       className={clsx(
-        'rounded-full bg-cream flex items-center justify-center flex-shrink-0',
+        'rounded-full bg-black flex items-center justify-center flex-shrink-0',
         sizes[size],
         className
       )}
     >
-      <Bot className={clsx('text-gold', iconSizes[size])} />
+      <Bot className={clsx('text-white', iconSizes[size])} />
     </div>
   )
 }

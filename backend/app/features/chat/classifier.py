@@ -12,6 +12,7 @@ Para modificar las reglas, editar config.py (no este archivo).
 import re
 import json
 import unicodedata
+from difflib import SequenceMatcher
 from typing import Optional, Tuple, List
 
 from app.ai.router import AIRouter
@@ -67,6 +68,45 @@ def _normalize(text: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
+def _fuzzy_contains(keyword: str, text_norm: str, threshold: float = 0.80) -> bool:
+    """
+    Comprueba si un keyword aparece en el texto normalizado.
+    Estrategia en dos pasos:
+      1. Coincidencia exacta de substring (rápida, sin costo).
+      2. Fuzzy word-level con SequenceMatcher para tolerar errores tipográficos
+         (solo para palabras de 5+ caracteres, evita falsos positivos en palabras cortas).
+
+    Ejemplos que pasan:
+      - 'baja provisional'  vs 'me dieron de baja probicional'  → True  (typo 'probicional')
+      - 'SUNAT'             vs 'recibimos notificacion de SUNATT' → True  (typo doble t)
+      - 'suspendid'         vs 'nos suspendio sunat'              → True  (variación morfológica)
+      - 'ruc'               vs 'duc'                              → False (palabra corta, solo exacto)
+    """
+    kw_norm = _normalize(keyword)
+
+    # 1. Coincidencia exacta de substring (prioritaria)
+    if kw_norm in text_norm:
+        return True
+
+    # 2. Fuzzy solo para tokens de 5+ caracteres dentro del keyword
+    kw_tokens = [w for w in kw_norm.split() if len(w) >= 5]
+    if not kw_tokens:
+        return False  # keyword corto: solo exacto
+
+    text_words = text_norm.split()
+    for kw_word in kw_tokens:
+        # Filtrar palabras del texto de longitud similar (±2) para eficiencia
+        candidates = [tw for tw in text_words if abs(len(tw) - len(kw_word)) <= 2]
+        matched = any(
+            SequenceMatcher(None, kw_word, tw).ratio() >= threshold
+            for tw in candidates
+        )
+        if not matched:
+            return False
+
+    return True
+
+
 class IntentionClassifier:
     """
     Clasifica la intención del mensaje del usuario.
@@ -87,7 +127,7 @@ class IntentionClassifier:
                 continue
             score = 0
             for kw in config.keywords:
-                if _normalize(kw) in message_norm:
+                if _fuzzy_contains(kw, message_norm):
                     score += 1
             if score > 0:
                 scores[intention] = score
@@ -209,12 +249,16 @@ class SemaphoreClassifier:
             r"\b(mi|mis|nuestro|nuestra|nuestros|nuestras)\b",
             # Verbos en primera persona con problema concreto
             r"\b(tengo|tenemos|recibí|recibimos|nos llegó|nos notificaron|me notificaron)\b",
+            # Formas pasivas: "me dieron de baja", "nos pusieron en baja", "nos cancelaron el RUC"
+            r"\b(me|nos)\s+(dieron|pusieron|cancelaron|suspendieron|quitaron|asignaron|bloquearon|retiraron|notificaron|cerraron|inhabilitaron)\b",
             # Palabras de problema/situación
             r"\b(problema|error|observación|conflicto|multa|notificación|denuncia|demanda)\b",
             # Verbos que implican acción en curso
             r"\b(estoy|estamos|necesito|necesitamos|quiero|queremos)\s+(haciendo|tramitando|cambiando|corrigiendo|resolviendo)",
             # Situación concreta
             r"\b(caso|situación|incidente|suceso)\b",
+            # Estado actual: "estamos en baja", "quedamos con estado baja"
+            r"\b(estamos|quedamos|estoy|quedé)\s+(en|con)\b",
         ]
         return any(re.search(p, message_lower) for p in specificity_indicators)
 
@@ -233,13 +277,20 @@ class SemaphoreClassifier:
         if not context_fields:
             return []
 
-        message_lower = message.lower()
+        message_norm = _normalize(message)
 
         # Verificar si el mensaje ya proporciona contexto relevante
         prompts_needed: List[str] = []
         for field in context_fields:
+            # Si el campo tiene trigger_keywords, solo preguntar si el topic es relevante
+            if field.trigger_keywords:
+                topic_relevant = any(_fuzzy_contains(kw, message_norm) for kw in field.trigger_keywords)
+                if not topic_relevant:
+                    continue
+
+            # Solo preguntar si el usuario no proporcionó ya el dato
             field_keywords = field.field_name.replace("_", " ").split()
-            has_context = any(kw in message_lower for kw in field_keywords)
+            has_context = any(_fuzzy_contains(kw, message_norm) for kw in field_keywords)
             if not has_context:
                 prompts_needed.append(field.example_prompt)
 
@@ -298,8 +349,10 @@ class SemaphoreClassifier:
         if intention == Intention.FUERA_DE_ALCANCE:
             return Semaphore.VERDE, [], []
 
-        # 3. Si es una pregunta informativa general → VERDE directo
-        if SemaphoreClassifier._is_informative_question(message):
+        # 3. Si es una pregunta informativa general Y no es un caso específico → VERDE directo
+        # Si el usuario mezcla una pregunta informativa con un caso concreto (ej: "¿Cómo reactivo
+        # si me dieron de baja?"), se prioriza el contexto AMARILLO.
+        if SemaphoreClassifier._is_informative_question(message) and not SemaphoreClassifier._is_specific_case(message):
             return Semaphore.VERDE, [], []
 
         # 4. AMARILLO: verificar si necesita contexto (solo para casos específicos)

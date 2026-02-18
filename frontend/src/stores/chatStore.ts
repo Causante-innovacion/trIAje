@@ -40,6 +40,13 @@ interface ChatStore {
   addErrorMessage: (content: string, errorType: Message['metadata'] extends infer M ? M extends { errorType?: infer E } ? E : never : never) => void
   setProcessing: (status: boolean) => void
   setTyping: (status: boolean) => void
+  // Streaming actions
+  startStreamingMessage: () => string
+  setStreamingStatus: (id: string, status: string | null) => void
+  setStreamingClassification: (id: string, classification: ChatClassification) => void
+  setStreamingSources: (id: string, sources: LegalSource[]) => void
+  appendToStreamingMessage: (id: string, text: string) => void
+  finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string }) => void
   setUploadProgress: (progress: number) => void
   setPendingFile: (file: UploadedFile | null) => void
   updateFileStatus: (fileId: string, status: UploadedFile['status'], progress?: number) => void
@@ -185,6 +192,88 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setProcessing: (status) => set({ isProcessing: status }),
 
   setTyping: (status) => set({ isTyping: status }),
+
+  // ── Streaming ──────────────────────────────────────────────────────────
+
+  startStreamingMessage: () => {
+    const id = generateId()
+    set((state) => ({
+      messages: [
+        ...state.messages,
+        {
+          id,
+          sender: 'justo' as const,
+          content: '',
+          contentType: 'semaphore_response' as const,
+          timestamp: new Date(),
+          isStreaming: true,
+          streamingStatus: 'Clasificando tu consulta\u2026',
+          metadata: { toolContext: 'chat' as const },
+        },
+      ],
+    }))
+    return id
+  },
+
+  setStreamingStatus: (id, status) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id ? { ...m, streamingStatus: status ?? undefined } : m
+      ),
+    }))
+  },
+
+  setStreamingClassification: (id, classification) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id
+          ? { ...m, metadata: { ...m.metadata, classification } }
+          : m
+      ),
+    }))
+  },
+
+  setStreamingSources: (id, sources) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id
+          ? { ...m, metadata: { ...m.metadata, sources } }
+          : m
+      ),
+    }))
+  },
+
+  appendToStreamingMessage: (id, text) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id
+          ? { ...m, content: m.content + text, streamingStatus: undefined }
+          : m
+      ),
+    }))
+  },
+
+  finalizeStreamingMessage: (id, { actions, disclaimers, conversation_id }) => {
+    if (conversation_id) {
+      set({ conversationId: conversation_id })
+    }
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              isStreaming: false,
+              streamingStatus: undefined,
+              metadata: {
+                ...m.metadata,
+                actions: actions ?? [],
+                disclaimers: disclaimers ?? [],
+              },
+            }
+          : m
+      ),
+    }))
+  },
 
   setUploadProgress: (progress) => set({ uploadProgress: progress }),
 

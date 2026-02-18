@@ -38,6 +38,7 @@ class ChunkMetadata(BaseModel):
     url: str | None = None
     anchor: str | None = None  # Artículo específico, e.g., "Art. 15"
     normative_weight: float = Field(default=1.0, ge=0.0, le=1.0)
+    intention: str | None = None  # Intención asociada (e.g., "tributacion")
 
 
 class RetrievedChunk(BaseModel):

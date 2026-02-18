@@ -7,7 +7,7 @@ Módulos según spec:
 - CREATIVITY: claude-sonnet (redacción)
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, AsyncGenerator
 from app.core.config import settings
 from .providers import AIProvider, AIResponse, OpenAIProvider, AnthropicProvider
 
@@ -68,8 +68,27 @@ class AIRouter:
             model=settings.MODEL_REASONING,  # gpt-4o
             system_prompt=system_prompt,
             temperature=0.5,
-            max_tokens=2000,
+            max_tokens=1200,  # Reducido de 2000: respuestas concisas y más rápidas
         )
+
+    async def reason_stream(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """
+        REASONING en streaming: emite tokens a medida que el LLM los genera.
+        El usuario ve la primera palabra en ~1s en vez de esperar ~8s.
+        """
+        provider = self._get_provider("openai")
+        async for token in provider.generate_stream(
+            prompt=prompt,
+            model=settings.MODEL_REASONING,
+            system_prompt=system_prompt,
+            temperature=0.5,
+            max_tokens=1200,
+        ):
+            yield token
 
     async def create(
         self,

@@ -10,15 +10,13 @@ services:
                                   # Solo descomenta si necesitas probar el backend directo (Swagger)
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./data/gpt_legal.db
-      - CHROMA_MODE=server
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CHROMA_TOKEN=${CHROMA_TOKEN}
     volumes:
       - ./backend_data:/app/data  
     depends_on:
-      - chromadb
+      - qdrant
     restart: unless-stopped
 
   # 🎨 LA CAJA DEL FRONTEND
@@ -31,26 +29,19 @@ services:
       - backend
     restart: unless-stopped
 
-  # 🧠 LA CAJA DE LA MEMORIA (ChromaDB)
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: gpt_legal_chromadb
-    # ports:
-      # - "8001:8000"             # 🔒 CERRADO POR SEGURIDAD. Solo el Backend debe hablar con él.
+  # 🧠 LA CAJA DE LA MEMORIA (Qdrant)
+  # Dashboard: http://localhost:6333/dashboard
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: gpt_legal_qdrant
+    ports:
+      - "127.0.0.1:6333:6333"    # REST API + Dashboard GUI (solo local/SSH tunnel)
+      - "127.0.0.1:6334:6334"    # gRPC (solo local/SSH tunnel)
     volumes:
-      - chromadb_data:/chroma/chroma 
-    environment:
-      - IS_PERSISTENT=TRUE
-      # 🔐 Autenticación por Token
-      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.token_authn.TokenAuthenticationServerProvider
-      - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_TOKEN}
-      - CHROMA_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
-
+      - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
 
-
-
-# Aquí definimos los volúmenes persistentes
+# Volúmenes persistentes
 volumes:
-  chromadb_data:
+  qdrant_data:
