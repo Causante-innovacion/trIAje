@@ -3,33 +3,25 @@ Advisor Prep Feature - Router
 """
 
 from fastapi import APIRouter, HTTPException
-from .schemas import AdvisorPrepRequest, AdvisorPrepResponse, AdvisorPrepQuestions
-from .service import AdvisorPrepService
+from .schemas import AdvisorPrepFromChatRequest
+from .service import get_advisor_prep_service
 
 router = APIRouter()
-service = AdvisorPrepService()
 
 
-@router.get("/questions", response_model=AdvisorPrepQuestions)
-async def get_advisor_prep_questions():
-    """Obtiene preguntas del formulario"""
-    return await service.get_questions()
-
-
-@router.post("/", response_model=AdvisorPrepResponse)
-async def prepare_advisor_package(request: AdvisorPrepRequest):
+@router.post("/from-chat")
+async def prepare_from_chat(request: AdvisorPrepFromChatRequest):
     """
-    Genera paquete de preparación para reunión con asesor.
+    Genera paquete de preparación para asesor a partir de la conversación del chat.
 
-    Incluye:
-    - Resumen ejecutivo del caso
-    - Issues legales identificados
-    - Preguntas prioritarias
-    - Documentos a llevar
+    Recibe el historial de conversación y usa el LLM para:
+    - Extraer el contexto (organización, área legal, problemas detectados)
+    - Generar preguntas específicas para el asesor
+    - Listar documentos relevantes
+    - Identificar temas críticos a tratar
     """
     try:
-        return await service.prepare_package(request)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        service = get_advisor_prep_service()
+        return await service.generate_from_chat(request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generando paquete: {str(e)}")

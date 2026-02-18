@@ -84,6 +84,9 @@ export const queryApi = {
 export const advisorPrepApi = {
   getQuestions: () => api.get('/advisor-prep/questions'),
   prepare: (data: Record<string, unknown>) => api.post('/advisor-prep', data),
+  /** Genera el paquete de asesor desde la conversación del chat */
+  prepareFromChat: (conversation: { role: string; content: string }[], conversation_id?: string) =>
+    api.post('/advisor-prep/from-chat', { conversation, conversation_id }),
 }
 
 export const complianceApi = {

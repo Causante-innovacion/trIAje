@@ -2,8 +2,17 @@
 Advisor Prep Feature - Schemas
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
+
+
+class AdvisorPrepFromChatRequest(BaseModel):
+    """Request para generar paquete de asesor desde la conversación del chat"""
+    conversation: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Historial de conversación [{role: 'user'/'assistant', content: '...'}]"
+    )
+    conversation_id: Optional[str] = Field(None, description="ID de la conversación")
 
 
 class AdvisorPrepRequest(BaseModel):
