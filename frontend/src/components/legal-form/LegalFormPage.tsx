@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { evaluationApi, legalAdviserApi } from '../../shared/services/api'
+import { evaluationApi } from '../../shared/services/api'
 import { mapBackendToProjectEvaluation, BackendEvaluationResponse } from '../../types/evaluation.types'
-import { mapBackendToLegalAdviserPackage, BackendLegalAdviserResponse } from '../../types/adviser.types'
 import { useChatStore } from '../../stores/chatStore'
 import { Check, ChevronLeft, Fingerprint, Gavel, Banknote, Users, BookOpen, Network, Lightbulb, Info, Lock, X, Building2, LucideIcon, Globe, ClipboardList } from 'lucide-react'
 import { OrganizationCard } from './OrganizationCard'
@@ -516,21 +515,16 @@ export function LegalFormPage() {
           total_organizations: organizations.length,
         }
 
-        // Call evaluation and legal-adviser endpoints in parallel
-        const [evaluationResponse, adviserResponse] = await Promise.all([
-          evaluationApi.evaluateIntake(projectIntake),
-          legalAdviserApi.generateFromIntake(projectIntake),
-        ])
+        // Call evaluation endpoint
+        const evaluationResponse = await evaluationApi.evaluateIntake(projectIntake)
 
         const backendData: BackendEvaluationResponse = evaluationResponse.data
-        const adviserBackendData: BackendLegalAdviserResponse = adviserResponse.data
 
-        // Map to display types
+        // Map to display type
         const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
         const evaluationData = mapBackendToProjectEvaluation(backendData, orgNames)
-        const adviserData = mapBackendToLegalAdviserPackage(adviserBackendData)
 
-        navigate('/legal-adviser', { state: { adviserData, evaluationData } })
+        navigate('/evaluation', { state: { evaluationData } })
       } else if (!allOrgsCompleted) {
         // Stay on page for user to fill next org
         window.scrollTo({ top: 0, behavior: 'smooth' })
