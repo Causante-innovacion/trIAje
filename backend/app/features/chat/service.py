@@ -25,6 +25,8 @@ from .config import (
     RED_DERIVATION_TEMPLATE,
     AMBER_CONTEXT_TEMPLATE,
     STANDARD_DISCLAIMERS,
+    GREETING_PATTERNS,
+    GREETING_MESSAGE,
 )
 from .schemas import (
     ChatRequest,
@@ -54,23 +56,27 @@ class ChatService:
         message = request.message.strip()
         conversation_id = request.conversation_id or str(uuid.uuid4())
 
-        # 1. Detectar si quiere analizar un proyecto
+        # 1. Detectar saludos simples
+        if self._is_greeting(message):
+            return self._build_greeting_response(conversation_id)
+
+        # 2. Detectar si quiere analizar un proyecto
         if ProjectAnalysisDetector.is_project_analysis(message):
             return self._build_project_analysis_response(message, conversation_id)
 
-        # 2. Clasificar intención
+        # 3. Clasificar intención
         intention, intention_confidence = await IntentionClassifier.classify(message)
 
-        # 3. Si es fuera de alcance, responder inmediatamente
+        # 4. Si es fuera de alcance, responder inmediatamente
         if intention == Intention.FUERA_DE_ALCANCE:
             return self._build_out_of_scope_response(conversation_id)
 
-        # 4. Clasificar semáforo
+        # 5. Clasificar semáforo
         semaphore, gatillos, context_needed = SemaphoreClassifier.classify(
             message, intention
         )
 
-        # 5. Construir clasificación
+        # 6. Construir clasificación
         classification = ChatClassification(
             intention=intention,
             intention_name=INTENTIONS[intention].name,
@@ -80,7 +86,7 @@ class ChatService:
             requires_context=context_needed,
         )
 
-        # 6. Generar respuesta según semáforo
+        # 7. Generar respuesta según semáforo
         if semaphore == Semaphore.ROJO:
             return await self._handle_red(message, classification, conversation_id)
         elif semaphore == Semaphore.AMARILLO:
@@ -201,6 +207,41 @@ class ChatService:
     # =========================================================================
     # RESPUESTAS ESPECIALES
     # =========================================================================
+
+    @staticmethod
+    def _is_greeting(message: str) -> bool:
+        """Detecta si el mensaje es un saludo simple."""
+        import unicodedata
+        msg = message.lower().strip()
+        # Quitar acentos para matching robusto
+        nfkd = unicodedata.normalize("NFKD", msg)
+        msg_norm = "".join(c for c in nfkd if not unicodedata.combining(c))
+        # Quitar signos de puntuación
+        msg_clean = msg_norm.strip("!?.,;: ")
+        for pattern in GREETING_PATTERNS:
+            pattern_norm = unicodedata.normalize("NFKD", pattern.lower())
+            pattern_norm = "".join(c for c in pattern_norm if not unicodedata.combining(c))
+            if msg_clean == pattern_norm or msg_clean == pattern_norm + "!":
+                return True
+        return False
+
+    def _build_greeting_response(self, conversation_id: str) -> ChatResponse:
+        """Respuesta amigable para saludos."""
+        return ChatResponse(
+            message=GREETING_MESSAGE,
+            classification=ChatClassification(
+                intention=Intention.FUERA_DE_ALCANCE,
+                intention_name="Saludo",
+                semaphore=Semaphore.VERDE,
+                confidence=1.0,
+                gatillos_detected=[],
+                requires_context=[],
+            ),
+            sources=[],
+            actions=[],
+            disclaimers=[],
+            conversation_id=conversation_id,
+        )
 
     def _build_out_of_scope_response(self, conversation_id: str) -> ChatResponse:
         """Respuesta para consultas fuera del ámbito legal."""
