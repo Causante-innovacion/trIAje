@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # AI Models (configurables)
     MODEL_INTAKE: str = "gpt-4o-mini"      # Tareas simples, clasificación
     MODEL_REASONING: str = "gpt-4o"         # Análisis legal
-    MODEL_CREATIVITY: str = "claude-sonnet-4-20250514"  # Redacción
+    MODEL_CREATIVITY: str = "gpt-4o"        # Redacción (claude-sonnet-4-20250514 si hay ANTHROPIC_API_KEY)
 
     # Embeddings (local = HuggingFace sentence-transformers, alineado con RAG/)
     EMBEDDING_PROVIDER: str = Field(default="local")  # openai, local

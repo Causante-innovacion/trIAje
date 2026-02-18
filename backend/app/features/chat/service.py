@@ -84,7 +84,7 @@ class ChatService:
                     gatillos_detected=[],
                     requires_context=[],
                 )
-                return await self._handle_green(enriched_message, classification, conversation_id, history=history)
+                return await self._handle_green(enriched_message, classification, conversation_id, history=history, amber_followup=True)
 
         # 1. Detectar saludos simples
         if self._is_greeting(message):
@@ -328,15 +328,32 @@ class ChatService:
         yield sse({"type": "status", "stage": "generating",
                    "message": "Generando respuesta..."})
 
-        system_prompt = (
-            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-            "Responde SOLO con base en la normativa proporcionada en el contexto. "
-            "Cita los artículos específicos. "
-            "Si la información no está en el contexto, indícalo claramente. "
-            "No inventes normas ni artículos. "
-            "Responde en español, de forma clara y con estructura."
-        )
-        if rag_context:
+        if _amber_intention:
+            # El usuario acabó de dar contexto adicional → respuesta específica y personalizada
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "El usuario acaba de proporcionarte información adicional específica de su caso. "
+                "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
+                "No des orientación genérica: enfócate en los detalles concretos mencionados por el usuario. "
+                "Cita los artículos normativos aplicables a su situación exacta. "
+                "Responde en español, de forma clara y con estructura."
+            )
+            prompt = (
+                f"Intención legal: {INTENTIONS[intention].name}\n"
+                f"Consulta con contexto adicional del usuario:\n{eff_message}\n\n"
+                + (f"Normativa relevante:\n{rag_context}\n\n" if rag_context else "")
+                + "Responde de forma específica y personalizada para este caso concreto, "
+                "citando la normativa aplicable a su situación."
+            )
+        elif rag_context:
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "Responde SOLO con base en la normativa proporcionada en el contexto. "
+                "Cita los artículos específicos. "
+                "Si la información no está en el contexto, indícalo claramente. "
+                "No inventes normas ni artículos. "
+                "Responde en español, de forma clara y con estructura."
+            )
             prompt = (
                 f"Intención detectada: {INTENTIONS[intention].name}\n"
                 f"Pregunta del usuario: {eff_message}\n\n"
@@ -363,7 +380,9 @@ class ChatService:
             ):
                 yield sse({"type": "token", "text": token})
         except Exception:
-            fallback = await self._generate_basic_response(eff_message, classification, history=history)
+            fallback = await self._generate_basic_response(
+                eff_message, classification, history=history, amber_followup=bool(_amber_intention)
+            )
             yield sse({"type": "token", "text": fallback})
 
         yield sse({"type": "done", "actions": [],
@@ -380,6 +399,7 @@ class ChatService:
         classification: ChatClassification,
         conversation_id: str,
         history: list | None = None,
+        amber_followup: bool = False,
     ) -> ChatResponse:
         """Maneja consultas VERDE: busca en RAG + genera respuesta."""
         sources: List[LegalSource] = []
@@ -402,14 +422,14 @@ class ChatService:
 
                     # Generar respuesta con LLM + contexto RAG
                     response_text = await self._generate_rag_response(
-                        message, classification, rag_context, history=history
+                        message, classification, rag_context, history=history, amber_followup=amber_followup
                     )
         except Exception:
             pass
 
         # Si no hay RAG o falló, generar respuesta sin contexto
         if not response_text:
-            response_text = await self._generate_basic_response(message, classification, history=history)
+            response_text = await self._generate_basic_response(message, classification, history=history, amber_followup=amber_followup)
 
         return ChatResponse(
             message=response_text,
@@ -722,23 +742,40 @@ class ChatService:
         classification: ChatClassification,
         rag_context: str,
         history: list | None = None,
+        amber_followup: bool = False,
     ) -> str:
         """Genera respuesta usando LLM con contexto RAG."""
-        system_prompt = (
-            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-            "Responde SOLO con base en la normativa proporcionada en el contexto. "
-            "Cita los artículos específicos. "
-            "Si la información no está en el contexto, indícalo claramente. "
-            "No inventes normas ni artículos. "
-            "Responde en español, de forma clara y con estructura."
-        )
-
-        prompt = (
-            f"Intención detectada: {classification.intention_name}\n"
-            f"Pregunta del usuario: {message}\n\n"
-            f"Contexto normativo relevante:\n{rag_context}\n\n"
-            f"Responde la pregunta citando los artículos específicos de la normativa."
-        )
+        if amber_followup:
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "El usuario acaba de darte información adicional específica de su caso. "
+                "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
+                "No des orientación genérica: enfócate en los detalles concretos del caso del usuario. "
+                "Cita los artículos normativos aplicables a su situación exacta. "
+                "Responde en español, de forma clara y con estructura."
+            )
+            prompt = (
+                f"Intención legal: {classification.intention_name}\n"
+                f"Consulta con contexto adicional del usuario:\n{message}\n\n"
+                f"Normativa relevante:\n{rag_context}\n\n"
+                "Responde de forma específica y personalizada para este caso concreto, "
+                "citando los artículos de la normativa aplicables a su situación."
+            )
+        else:
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "Responde SOLO con base en la normativa proporcionada en el contexto. "
+                "Cita los artículos específicos. "
+                "Si la información no está en el contexto, indícalo claramente. "
+                "No inventes normas ni artículos. "
+                "Responde en español, de forma clara y con estructura."
+            )
+            prompt = (
+                f"Intención detectada: {classification.intention_name}\n"
+                f"Pregunta del usuario: {message}\n\n"
+                f"Contexto normativo relevante:\n{rag_context}\n\n"
+                f"Responde la pregunta citando los artículos específicos de la normativa."
+            )
 
         try:
             response = await self._ai_router.reason(
@@ -748,33 +785,49 @@ class ChatService:
             )
             return response.content
         except Exception:
-            return await self._generate_basic_response(message, classification, history=history)
+            return await self._generate_basic_response(message, classification, history=history, amber_followup=amber_followup)
 
     async def _generate_basic_response(
         self,
         message: str,
         classification: ChatClassification,
         history: list | None = None,
+        amber_followup: bool = False,
     ) -> str:
         """Genera una respuesta básica cuando no hay RAG disponible."""
         intention_config = INTENTIONS.get(classification.intention)
         if not intention_config:
             return "No tengo información suficiente para responder esta consulta."
 
-        system_prompt = (
-            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-            "Responde de forma general y orientativa. "
-            "SIEMPRE indica que el usuario debe verificar con la normativa vigente. "
-            "NO des respuestas categóricas ni afirmes con certeza. "
-            "Responde en español."
-        )
-
-        prompt = (
-            f"El usuario consulta sobre: {intention_config.name}\n"
-            f"Descripción del área: {intention_config.description}\n"
-            f"Pregunta: {message}\n\n"
-            f"Da una respuesta orientativa general indicando que debe consultar la normativa específica."
-        )
+        if amber_followup:
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "El usuario acaba de darte información adicional específica de su caso. "
+                "Usa esa información para dar una respuesta CONCRETA y PERSONALIZADA, no genérica. "
+                "Enfócate en los detalles específicos que el usuario mencionó. "
+                "Indica qué normativa peruana aplicaría a su situación concreta y los pasos recomendados. "
+                "Responde en español, de forma clara."
+            )
+            prompt = (
+                f"Área legal: {intention_config.name}\n"
+                f"Consulta con contexto adicional del usuario: {message}\n\n"
+                "Da una respuesta personalizada y específica para este caso concreto, "
+                "indicando qué normativa aplicaría y cuáles son los pasos recomendados."
+            )
+        else:
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+                "Responde de forma general y orientativa. "
+                "SIEMPRE indica que el usuario debe verificar con la normativa vigente. "
+                "NO des respuestas categóricas ni afirmes con certeza. "
+                "Responde en español."
+            )
+            prompt = (
+                f"El usuario consulta sobre: {intention_config.name}\n"
+                f"Descripción del área: {intention_config.description}\n"
+                f"Pregunta: {message}\n\n"
+                f"Da una respuesta orientativa general indicando que debe consultar la normativa específica."
+            )
 
         try:
             response = await self._ai_router.reason(

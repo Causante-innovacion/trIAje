@@ -3,7 +3,6 @@ import { Message } from '../../types/chat'
 import { OptionButtons } from './OptionButtons'
 import { FileUpload } from './FileUpload'
 import { ProgressBar } from '../ui/ProgressBar'
-import { SemaphoreBadge } from './SemaphoreBadge'
 import { SourcesCitation } from './SourcesCitation'
 import { ActionCard } from './ActionCard'
 import { MarkdownRenderer } from '../ui/MarkdownRenderer'
@@ -76,41 +75,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
               <StreamingStatusPill status={message.streamingStatus} />
             )}
 
-            {/* Semaphore badge */}
-            {message.metadata?.classification && (
-              <SemaphoreBadge classification={message.metadata.classification} />
-            )}
 
-            {/* Gatillos alert for ROJO */}
-            {message.metadata?.classification?.semaphore === 'rojo' &&
-              (message.metadata.classification.gatillos_detected?.length ?? 0) > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-                  <p className="font-semibold text-red-800 flex items-center gap-2 mb-1">
-                    <AlertCircle className="w-4 h-4" />
-                    ⚠️ Indicadores de riesgo detectados
-                  </p>
-                  <ul className="list-disc list-inside text-red-700 text-xs space-y-0.5 ml-1">
-                    {(message.metadata.classification.gatillos_detected ?? []).map((g, i) => (
-                      <li key={i}>{g}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {/* Context required for AMARILLO */}
-            {message.metadata?.classification?.semaphore === 'amarillo' &&
-              (message.metadata.classification.context_required?.length ?? 0) > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
-                  <p className="font-semibold text-amber-800 mb-1">
-                    📋 Para darte una mejor respuesta, necesito saber:
-                  </p>
-                  <ul className="list-disc list-inside text-amber-700 text-xs space-y-0.5 ml-1">
-                    {(message.metadata.classification.context_required ?? []).map((ctx, i) => (
-                      <li key={i}>{ctx}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
             {/* Main message text — typewriter for completed, raw for streaming */}
             {message.isStreaming ? (
