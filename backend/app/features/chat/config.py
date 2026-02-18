@@ -564,25 +564,55 @@ AMBER_CONTEXT_FIELDS: Dict[Intention, List[AmberContextField]] = {
 
 
 # =============================================================================
+# SALUDOS Y MENSAJES CONVERSACIONALES (editable)
+# =============================================================================
+
+GREETING_PATTERNS: List[str] = [
+    "hola", "buenos días", "buenos dias", "buenas tardes", "buenas noches",
+    "buen día", "buen dia", "saludos", "qué tal", "que tal",
+    "hey", "hi", "hello", "ey", "buenas",
+]
+
+GREETING_MESSAGE = (
+    "¡Hola! 👋 Soy **JUSTO**, tu asistente legal especializado en derecho peruano "
+    "para organizaciones civiles.\n\n"
+    "Puedo ayudarte con temas como:\n\n"
+    "- Formalización y registros (SUNARP)\n"
+    "- Identidad tributaria y RUC (SUNAT)\n"
+    "- Donaciones y cooperación internacional (APCI)\n"
+    "- Tributación para organizaciones sin fines de lucro\n"
+    "- Contratación, voluntariado y locación de servicios\n"
+    "- Propiedad intelectual y derechos de autor\n"
+    "- Protección de datos personales\n"
+    "- Gobernanza interna y conflictos\n"
+    "- Contratos, alianzas y consorcios\n"
+    "- Permisos y regulación sectorial\n"
+    "- Marca, identidad y reputación\n"
+    "- Seguridad de la información\n\n"
+    "¿En qué puedo ayudarte hoy?"
+)
+
+
+# =============================================================================
 # MENSAJE FUERA DE ALCANCE (editable)
 # =============================================================================
 
 OUT_OF_SCOPE_MESSAGE = (
     "Lo siento, soy un asistente legal especializado en derecho peruano para "
     "organizaciones civiles. No puedo responder preguntas fuera de este ámbito.\n\n"
-    "Puedo ayudarte con temas como:\n"
-    "• Formalización y registros (SUNARP)\n"
-    "• Identidad tributaria y RUC (SUNAT)\n"
-    "• Donaciones y cooperación internacional (APCI)\n"
-    "• Tributación para organizaciones sin fines de lucro\n"
-    "• Contratación, voluntariado y locación de servicios\n"
-    "• Propiedad intelectual y derechos de autor\n"
-    "• Protección de datos personales\n"
-    "• Gobernanza interna y conflictos\n"
-    "• Contratos, alianzas y consorcios\n"
-    "• Permisos y regulación sectorial\n"
-    "• Marca, identidad y reputación\n"
-    "• Seguridad de la información\n\n"
+    "Puedo ayudarte con temas como:\n\n"
+    "- Formalización y registros (SUNARP)\n"
+    "- Identidad tributaria y RUC (SUNAT)\n"
+    "- Donaciones y cooperación internacional (APCI)\n"
+    "- Tributación para organizaciones sin fines de lucro\n"
+    "- Contratación, voluntariado y locación de servicios\n"
+    "- Propiedad intelectual y derechos de autor\n"
+    "- Protección de datos personales\n"
+    "- Gobernanza interna y conflictos\n"
+    "- Contratos, alianzas y consorcios\n"
+    "- Permisos y regulación sectorial\n"
+    "- Marca, identidad y reputación\n"
+    "- Seguridad de la información\n\n"
     "¿Tu consulta está relacionada con alguno de estos temas?"
 )
 

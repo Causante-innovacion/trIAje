@@ -29,12 +29,12 @@ export function Header() {
       className={clsx(
         "py-3 print:hidden sticky top-0 z-40 transition-all duration-300",
         isScrolled
-          ? "bg-white border-b border-gray-200"
+          ? "bg-white/90 backdrop-blur-md border-b border-primary-200 shadow-sm"
           : "bg-white border-b border-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        {/* Logo + Title */}
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+        {/* Logo + Título "Aplicaciones" */}
         <div className="flex items-center gap-3">
           <Link
             to="/"
@@ -44,15 +44,17 @@ export function Header() {
             <img
               src="https://causante.org/wp-content/uploads/2025/03/causante-logo.webp"
               alt="CAUSANTE"
-              className="h-7 w-auto"
+              className="h-8 w-auto"
             />
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="w-px h-5 bg-gray-200" />
-              <span className="font-heading text-sm font-bold tracking-wide text-gray-900 uppercase">
-                GPT Legal
-              </span>
-            </div>
           </Link>
+
+          {/* Separador y Texto "APLICACIONES" */}
+          <div className="hidden md:flex items-center gap-2">
+            <span className="text-gray-300 font-light">|</span>
+            <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">
+              Aplicaciones
+            </span>
+          </div>
         </div>
 
         {/* Dynamic Right Content */}
