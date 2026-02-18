@@ -88,8 +88,18 @@ def _fuzzy_contains(keyword: str, text_norm: str, threshold: float = 0.80) -> bo
     if kw_norm in text_norm:
         return True
 
+    kw_words = kw_norm.split()
+
+    # Para keywords multi-palabra: las palabras cortas (< 5 chars) deben aparecer
+    # exactamente en el texto. Evita que 'baja provisional' matchee 'secreto profesional'
+    # porque 'baja' (4 chars) no está en el texto.
+    if len(kw_words) > 1:
+        for word in kw_words:
+            if len(word) < 5 and word not in text_norm:
+                return False
+
     # 2. Fuzzy solo para tokens de 5+ caracteres dentro del keyword
-    kw_tokens = [w for w in kw_norm.split() if len(w) >= 5]
+    kw_tokens = [w for w in kw_words if len(w) >= 5]
     if not kw_tokens:
         return False  # keyword corto: solo exacto
 
@@ -288,9 +298,12 @@ class SemaphoreClassifier:
                 if not topic_relevant:
                     continue
 
-            # Solo preguntar si el usuario no proporcionó ya el dato
+            # Solo preguntar si el usuario no proporcionó ya el dato.
+            # Se requiere que TODOS los tokens del field_name estén presentes;
+            # si solo aparece uno (ej. 'voluntarios' pero no 'cantidad'), el
+            # contexto específico sigue siendo necesario.
             field_keywords = field.field_name.replace("_", " ").split()
-            has_context = any(_fuzzy_contains(kw, message_norm) for kw in field_keywords)
+            has_context = all(_fuzzy_contains(kw, message_norm) for kw in field_keywords)
             if not has_context:
                 prompts_needed.append(field.example_prompt)
 
