@@ -86,6 +86,12 @@ export const advisorPrepApi = {
   prepare: (data: Record<string, unknown>) => api.post('/advisor-prep', data),
 }
 
+export const legalAdviserApi = {
+  /** Genera paquete de asesor legal desde un NormalizedProjectIntake */
+  generateFromIntake: (intake: Record<string, unknown>) =>
+    api.post('/legal-adviser/intake', intake),
+}
+
 export const complianceApi = {
   getQuestions: () => api.get('/compliance/questions'),
   generateRoute: (data: Record<string, unknown>) => api.post('/compliance', data),

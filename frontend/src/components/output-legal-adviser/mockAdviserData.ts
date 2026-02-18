@@ -25,6 +25,8 @@ export const mockAdviserData: LegalAdviserPackage = {
 
     fundingDescription: 'USD Internacional | Grants & VC',
 
+    incomeSources: ['Donaciones', 'Cooperación internacional', 'Fondos privados'],
+
     criticalTopics: [
         {
             id: '1',

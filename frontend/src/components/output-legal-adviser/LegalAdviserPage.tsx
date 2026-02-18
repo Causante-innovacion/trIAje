@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Download, ArrowLeft, FileText } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { LegalAdviserPackage } from '../../types/adviser.types'
 import { LoadingScreen } from '../output-evaluation/LoadingScreen'
 import { OrganizationProfileCard } from './OrganizationProfileCard'
@@ -9,20 +9,12 @@ import { LawyerQuestionsSection } from './LawyerQuestionsSection'
 import { RequiredDocumentsChecklist } from './RequiredDocumentsChecklist'
 import { InternalDecisionsChecklist } from './InternalDecisionsChecklist'
 import { mockAdviserData } from './mockAdviserData'
-import clsx from 'clsx'
 
 export function LegalAdviserPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const [isLoading, setIsLoading] = useState(true)
     const [adviserData, setAdviserData] = useState<LegalAdviserPackage | null>(null)
-    const [isScrolled, setIsScrolled] = useState(false)
-
-    useEffect(() => {
-        const handleScroll = () => setIsScrolled(window.scrollY > 20)
-        window.addEventListener('scroll', handleScroll)
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
 
     useEffect(() => {
         const stateData = (location.state as { adviserData?: LegalAdviserPackage })?.adviserData
@@ -72,31 +64,6 @@ export function LegalAdviserPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header with scroll detection */}
-            <header className={clsx(
-                'sticky top-0 z-50 transition-all duration-300',
-                isScrolled
-                    ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm'
-                    : 'bg-white border-b border-transparent'
-            )}>
-                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
-                        <div>
-                            <h1 className="font-bold text-lg text-gray-900">GPT Legal</h1>
-                            <p className="text-xs text-gray-500">
-                                Legal Consultations / {adviserData.organizationProfile.entityName}
-                            </p>
-                        </div>
-                    </div>
-
-                    <button className="btn-action-primary text-sm">
-                        <Download className="w-4 h-4" />
-                        Descargar PDF
-                    </button>
-                </div>
-            </header>
-
             <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
                 {/* Title */}
                 <div className="text-center animate-slide-up">
@@ -114,6 +81,7 @@ export function LegalAdviserPage() {
                     <OrganizationProfileCard
                         profile={adviserData.organizationProfile}
                         fundingDescription={adviserData.fundingDescription}
+                        legalStatusCards={adviserData.legalStatusCards}
                     />
                 </section>
 
@@ -122,6 +90,7 @@ export function LegalAdviserPage() {
                     <CriticalTopicsSection
                         topics={adviserData.criticalTopics}
                         fundingRange={adviserData.fundingCritical}
+                        incomeSources={adviserData.incomeSources}
                     />
                 </section>
 

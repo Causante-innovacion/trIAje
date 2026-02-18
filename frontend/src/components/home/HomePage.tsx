@@ -36,8 +36,7 @@ export function HomePage() {
             ¿Cómo puedo ayudarte hoy?
           </h1>
           <p className="subtitle">
-            Tu asistente legal inteligente para análisis de riesgos y cumplimiento
-            normativo diseñado para organizaciones civiles.
+            Somos un potenciador legal inteligente especializado en proyectos y emprendimientos sociales.
           </p>
         </div>
 

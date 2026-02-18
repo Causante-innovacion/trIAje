@@ -12,6 +12,7 @@ from app.features.intake.router import router as intake_router
 from app.features.evaluation.router import router as evaluation_router
 from app.features.query.router import router as query_router
 from app.features.advisor_prep.router import router as advisor_prep_router
+from app.features.legal_adviser.router import router as legal_adviser_router
 from app.features.compliance.router import router as compliance_router
 from app.features.documents.router import router as documents_router
 from app.features.chat.router import router as chat_router
@@ -59,6 +60,7 @@ app.include_router(intake_router, prefix="/api/v1/intake", tags=["Intake"])
 app.include_router(evaluation_router, prefix="/api/v1/evaluation", tags=["Evaluación"])
 app.include_router(query_router, prefix="/api/v1/query", tags=["Consultas"])
 app.include_router(advisor_prep_router, prefix="/api/v1/advisor-prep", tags=["Preparar Asesor"])
+app.include_router(legal_adviser_router, prefix="/api/v1/legal-adviser", tags=["Asesor Legal"])
 app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["Cumplimiento"])
 app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documentos RAG"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["Chat"])
