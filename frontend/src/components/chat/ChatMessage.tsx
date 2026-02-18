@@ -46,6 +46,20 @@ function AnimatedText({ text, animate }: { text: string; animate: boolean }) {
   )
 }
 
+/** Status pill shown while a streaming message is in progress */
+function StreamingStatusPill({ status }: { status: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 w-fit animate-pulse">
+      <span className="flex gap-0.5">
+        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:0ms]" />
+        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:150ms]" />
+        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:300ms]" />
+      </span>
+      {status}
+    </div>
+  )
+}
+
 export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, animate = false }: ChatMessageProps) {
   const isJusto = message.sender === 'justo'
 
@@ -57,6 +71,11 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
       case 'semaphore_response':
         return (
           <div className="space-y-3">
+            {/* Streaming status pill — shown while tokens haven't started yet */}
+            {message.isStreaming && message.streamingStatus && !message.content && (
+              <StreamingStatusPill status={message.streamingStatus} />
+            )}
+
             {/* Semaphore badge */}
             {message.metadata?.classification && (
               <SemaphoreBadge classification={message.metadata.classification} />
@@ -93,8 +112,17 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
                 </div>
               )}
 
-            {/* Main message text — with typewriter effect */}
-            <AnimatedText text={message.content} animate={animate} />
+            {/* Main message text — typewriter for completed, raw for streaming */}
+            {message.isStreaming ? (
+              <div className="leading-relaxed">
+                <MarkdownRenderer content={message.content} />
+                {message.content && (
+                  <span className="inline-block w-1.5 h-4 bg-gold/60 ml-0.5 animate-pulse rounded-sm" />
+                )}
+              </div>
+            ) : (
+              <AnimatedText text={message.content} animate={animate} />
+            )}
 
             {/* Sources */}
             {message.metadata?.sources && message.metadata.sources.length > 0 && (
