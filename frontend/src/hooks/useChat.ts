@@ -1,8 +1,7 @@
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { chatApi } from '../shared/services/api'
 import { ChatResponse, MAX_MESSAGE_LENGTH } from '../types/chat'
-import axios from 'axios'
 
 // Base URL for the streaming endpoint (same origin as the REST API)
 const STREAM_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/chat/message/stream`
@@ -17,13 +16,11 @@ export function useChat() {
     conversationId,
     addUserMessage,
     addJustoMessage,
-    addIntelligentResponse,
     addErrorMessage,
     setProcessing,
     setTyping,
     nextStep,
     setSessionId,
-    setConversationId,
     startStreamingMessage,
     setStreamingStatus,
     setStreamingClassification,
@@ -31,8 +28,6 @@ export function useChat() {
     appendToStreamingMessage,
     finalizeStreamingMessage,
   } = useChatStore()
-
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Intelligent chat mode: uses /chat/message/stream (SSE)
   const sendIntelligentMessage = useCallback(async (content: string) => {
