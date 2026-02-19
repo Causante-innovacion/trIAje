@@ -8,6 +8,7 @@ import { OrganizationCard } from './OrganizationCard'
 import { ProgressTracker } from './ProgressTracker'
 import { FormBlock } from './FormBlock'
 import { YesNoButtons, SingleSelect, MultiSelectChips } from './FormInputs'
+import { HelpTooltip } from './HelpTooltip'
 import clsx from 'clsx'
 
 interface Organization {
@@ -25,7 +26,7 @@ interface FormState {
   orgTypeOther: string
   orgPurpose: string | null
   orgPurposeOther: string
-  seeksProfits: boolean | null
+  seeksProfits: string | null
 
   // Block 2: Formalization
   hasLegalStatus: string | null
@@ -38,7 +39,7 @@ interface FormState {
   receivesForeignFunds: boolean | null
 
   // Block 4: International Cooperation
-  receivesInternationalCooperation: boolean | null
+  // receivesInternationalCooperation removed - mapped to receivesForeignFunds
   apciStatus: string | null
 
   // Block 4: HR
@@ -64,6 +65,7 @@ interface FormState {
     evaluationGoals?: string[]
     legalAreas?: string[]
     urgency?: string
+    hasReceivedNotification?: boolean | null // New field for urgent cases
 
     // Compliance
     complianceGoal?: string
@@ -95,7 +97,6 @@ const initialFormState: FormState = {
   handlesMoney: null,
   incomeSources: [],
   receivesForeignFunds: null,
-  receivesInternationalCooperation: null,
   apciStatus: null,
   hiringModalities: [],
   contractsValid: null,
@@ -147,9 +148,22 @@ const calculateProgress = (form: FormState) => {
 
   // Block 4
   let b4 = 0
-  if (form.receivesInternationalCooperation !== null) b4++
-  if (form.receivesInternationalCooperation === true && form.apciStatus) b4++
-  if (form.receivesInternationalCooperation === false) b4++
+  // Conditional on Q8 (receivesForeignFunds)
+  if (form.receivesForeignFunds === true) {
+    if (form.apciStatus) b4++
+    // If YES, we expect 1 answer (apciStatus). Total for this block should be dynamic or fixed?
+    // Let's say if YES, total=1. If NO, total=0 (skipped).
+    // But existing structure has fixed totals.
+    // If NO to Q8, this block is skipped or auto-completed.
+  }
+  // We will handle total logic in BLOCKS definition or here.
+  // Let's count completion:
+  if (form.receivesForeignFunds === true && form.apciStatus) b4 = 2 // Fully complete if YES
+  if (form.receivesForeignFunds === false) b4 = 2 // Fully complete if NO (skipped)
+  if (form.receivesForeignFunds === null) b4 = 0 // Not started since Q8 is in Block 3?
+  // Actually Block 4 is separate. But it depends on Q8.
+  // If Q8 is null, we can't show Block 4? 
+  // Let's assume Q8 is answered in Block 3.
   addBlock(b4, 2)
 
   // Block 5 (Old 4)
@@ -180,7 +194,16 @@ const calculateProgress = (form: FormState) => {
   if (form.tool === 'evaluation') {
     if (form.toolSpecific.evaluationGoals?.length) b9++
     if (form.toolSpecific.legalAreas?.length) b9++
-    if (form.toolSpecific.urgency) b9++
+    if (form.toolSpecific.urgency) {
+      b9++
+      // If urgency is 'Inmediata', check for notification
+      if (form.toolSpecific.urgency.startsWith('Inmediata') && form.toolSpecific.hasReceivedNotification === undefined) {
+        // Not counted yet
+      } else if (form.toolSpecific.urgency.startsWith('Inmediata') && form.toolSpecific.hasReceivedNotification !== null) {
+        // Counted as part of urgency step or separate?
+        // Let's add weight if notification is answered
+      }
+    }
     addBlock(b9, 3)
   } else if (form.tool === 'compliance') {
     if (form.toolSpecific.complianceGoal) b9++
@@ -313,21 +336,11 @@ export function LegalFormPage() {
     if (form.receivesForeignFunds !== null) block3++
 
     // Block 4
-    if (form.receivesInternationalCooperation !== null) block4++
-    if (form.receivesInternationalCooperation === true && form.apciStatus) block4++
-    // If NO, apciStatus is not needed, so we count it as complete or we have 1 question total.
-    // Let's adjust logic: 
-    // If receivesIntlCoop is NULL -> 0/1 (or 0/2)
-    // If receivesIntlCoop is FALSE -> 1/1 (completed)
-    // If receivesIntlCoop is TRUE -> 1/2. If apciStatus set -> 2/2.
-    // However, BLOCKS array defines 'total'. We need dynamic total or fixed max. 
-    // Current design uses fixed total. Let's assume max questions = 2.
-    // If NO, we might need to "fake" the second point or handle dynamic total in BLOCKS. 
-    // Looking at BLOCKS definition, it uses `completed` and `total`.
-    // Let's stick to fixed total of 2 for simplicity, and if NO, we grant 2 points? 
-    // Or better: Max 2.
-    // If NO -> block4 = 2 (auto-complete second part)
-    if (form.receivesInternationalCooperation === false) block4++
+    // If receivesForeignFunds (Q8) is TRUE -> 1 question (APCI status)
+    // If receivesForeignFunds (Q8) is FALSE -> 0 questions (Block skipped/completed)
+    // We treat it as 2 points if completed/skipped to match 'total=2' in BLOCKS
+    if (form.receivesForeignFunds === true && form.apciStatus) block4 = 2
+    if (form.receivesForeignFunds === false) block4 = 2
 
     // Block 5 (Old 4)
     if (form.hiringModalities.length > 0) block5++
@@ -335,11 +348,11 @@ export function LegalFormPage() {
 
     // Block 6 (Old 5)
     if (form.hasAccountingRecords !== null) block6++
-    if (form.availableDocuments.length > 0) block6++
+    if (form.availableDocuments.length > 0 || form.orgType === 'Colectivo / iniciativa no formalizada') block6++
 
     // Block 7 (Old 6)
     if (form.governanceBodies !== null) block7++
-    if (form.hasLegalRepresentative !== null) block7++
+    if (form.hasLegalRepresentative !== null || form.orgType === 'Colectivo / iniciativa no formalizada') block7++
 
     // Block 8 (Old 7)
     // Wait, let's create block8 variable
@@ -406,7 +419,7 @@ export function LegalFormPage() {
       org_type_other: f.orgTypeOther || null,
       org_purpose: f.orgPurpose || null,
       org_purpose_other: f.orgPurposeOther || null,
-      seeks_profits: f.seeksProfits,
+      seeks_profits: f.seeksProfits === 'Con fines de lucro (puede haber reparto)' ? true : (f.seeksProfits === 'Sin fines de lucro (no se reparten excedentes)' ? false : null),
     },
     formalization: {
       has_legal_status: f.hasLegalStatus,
@@ -419,7 +432,7 @@ export function LegalFormPage() {
       income_sources: f.incomeSources,
     },
     international_cooperation: {
-      receives_international_cooperation: f.receivesInternationalCooperation,
+      receives_international_cooperation: f.receivesForeignFunds,
       apci_status: f.apciStatus,
     },
     human_resources: {
@@ -444,7 +457,7 @@ export function LegalFormPage() {
   /** Builds the tool_specific payload in backend format */
   const buildToolSpecific = (f: FormState) => {
     if (f.tool === 'evaluation') {
-      return { evaluation: { evaluation_goals: f.toolSpecific.evaluationGoals || [], legal_areas: f.toolSpecific.legalAreas || [], urgency: f.toolSpecific.urgency || null } }
+      return { evaluation: { evaluation_goals: f.toolSpecific.evaluationGoals || [], legal_areas: f.toolSpecific.legalAreas || [], urgency: f.toolSpecific.urgency || null, has_received_notification: f.toolSpecific.hasReceivedNotification } }
     }
     if (f.tool === 'compliance') {
       return { compliance: { compliance_goal: f.toolSpecific.complianceGoal || null, timeline: f.toolSpecific.timeline || null } }
@@ -503,8 +516,9 @@ export function LegalFormPage() {
         }
 
         // Call evaluation endpoint
-        const response = await evaluationApi.evaluateIntake(projectIntake)
-        const backendData: BackendEvaluationResponse = response.data
+        const evaluationResponse = await evaluationApi.evaluateIntake(projectIntake)
+
+        const backendData: BackendEvaluationResponse = evaluationResponse.data
 
         // Map to display type
         const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
@@ -604,9 +618,9 @@ export function LegalFormPage() {
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2">
                       <span className={getQuestionNumberClass(!!form.orgType)}>1</span>
-                      <span className="text-sm font-semibold">¿Con cuál de las siguientes opciones se identifica mejor?</span>
+                      <span className="text-sm font-semibold">¿Cuál es la forma legal actual de su organización o grupo?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Selecciona la figura jurídica que mejor describa tu organización. Es importante usar el término legal correcto:\n\n- **Asociación:** Persona jurídica sin fines de lucro, formada por un grupo de personas con un objetivo común (social, cultural, deportivo, etc.). Los excedentes se reinvierten, no se reparten.\n\n- **Fundación:** Persona jurídica sin fines de lucro, creada a partir de un patrimonio destinado a fines de interés general (educación, investigación, asistencia social). Tiene un consejo directivo que administra los bienes.\n\n- **Empresa:** Persona jurídica con fines de lucro (SAC, SRL, EIRL, etc.). Su objetivo es generar ganancias que pueden distribuirse entre los socios o accionistas.\n\n- **Colectivo / iniciativa no formalizada:** Grupo de personas que trabajan juntas sin haber inscrito una persona jurídica en Registros Públicos. Operan de hecho, como colectivos artísticos, proyectos comunitarios o agrupaciones informales.\n\n- **Otro:** Especifica si tu organización tiene una forma distinta (ej. Comité, Cooperativa, etc.).\n\n**Nota:** \"ONG\" no es una forma legal en Perú, sino un estatus administrativo que algunas organizaciones obtienen ante APCI para recibir cooperación internacional. Si tu organización es una ONG, selecciona \"Asociación\" o \"Fundación\" según corresponda."} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <select
@@ -621,7 +635,6 @@ export function LegalFormPage() {
                       <option value="">Selecciona una opción</option>
                       <option value="Asociación">Asociación</option>
                       <option value="Fundación">Fundación</option>
-                      <option value="ONG">ONG</option>
                       <option value="Empresa">Empresa</option>
                       <option value="Colectivo / iniciativa no formalizada">Colectivo / iniciativa no formalizada</option>
                       <option value="Otro">Otro</option>
@@ -647,7 +660,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(!!form.orgPurpose)}>2</span>
                       <span className="text-sm font-semibold">¿Cuál describe mejor el objeto o fin principal de la organización?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Indica la actividad principal para la que fue creada la organización:\n\nEducativo: Enfocado en enseñanza, formación o investigación.\n\nCultural: Promoción de arte, tradiciones, patrimonio cultural.\n\nAmbiental: Conservación del medio ambiente, ecología, sostenibilidad.\n\nAsistencial / social: Ayuda a personas en situación de vulnerabilidad, servicios sociales.\n\nTecnológico / innovación: Desarrollo de tecnología, investigación aplicada, innovación.\n\nOtro: Especifica si el fin es distinto."} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <select
@@ -685,16 +698,28 @@ export function LegalFormPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2">
-                      <span className={getQuestionNumberClass(form.seeksProfits !== null)}>3</span>
-                      <span className="text-sm font-semibold">¿La organización busca generar ganancias para repartir entre sus miembros?</span>
+                      <span className={getQuestionNumberClass(!!form.seeksProfits)}>3</span>
+                      <span className="text-sm font-semibold">¿Su entidad es con o sin fines de lucro?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Esta pregunta determina el régimen legal y tributario de la organización:\n\n- **Sin fines de lucro:** Los excedentes económicos se reinvierten íntegramente en el objeto social. Corresponde a asociaciones, fundaciones, comités. Pueden acceder a beneficios tributarios como la exoneración del Impuesto a la Renta.\n\n- **Con fines de lucro:** Las utilidades pueden distribuirse entre socios, accionistas o titulares. Corresponde a empresas (SAC, SRL, etc.). Están sujetas al régimen tributario general.\n\n- **Aún no definido / Estamos evaluando:** La organización está en etapa de formación y no ha decidido su naturaleza jurídica. Esta opción activa asesoría para definir la figura más adecuada.\n\n**Importante:** Si seleccionaste \"Asociación\" o \"Fundación\" en la pregunta anterior y aquí eliges \"Con fines de lucro\", existe una contradicción legal que será alertada, ya que estas figuras son estrictamente sin fines de lucro por ley."} />
                   </div>
-                  <YesNoButtons
+                  <SingleSelect
+                    options={[
+                      'Sin fines de lucro (no se reparten excedentes)',
+                      'Con fines de lucro (puede haber reparto)',
+                      'Aún no definido / Estamos evaluando'
+                    ]}
                     value={form.seeksProfits}
                     onChange={(val) => updateForm('seeksProfits', val)}
                     disabled={form.isCompleted}
                   />
+                  {/* Alert for contradiction */}
+                  {(form.orgType === 'Asociación' || form.orgType === 'Fundación') && form.seeksProfits === 'Con fines de lucro (puede haber reparto)' && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
+                      <Info className="w-5 h-5 flex-shrink-0" />
+                      <span><strong>Alerta:</strong> La figura legal es inadecuada para el fin declarado. Las asociaciones y fundaciones son sin fines de lucro por ley.</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </FormBlock>
@@ -714,7 +739,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(!!form.hasLegalStatus)}>4</span>
                       <span className="text-sm font-semibold">¿La organización cuenta actualmente con personería jurídica vigente?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"La personería jurídica es el reconocimiento legal que permite a una organización actuar como sujeto de derechos y obligaciones.\n\nSí: Ya está inscrita en Registros Públicos y tiene existencia legal.\n\nNo: Opera de hecho, sin registro formal.\n\nEn trámite: Ya se inició el proceso de inscripción pero aún no está concluido."} />
                   </div>
                   <SingleSelect
                     options={['Sí', 'No', 'En trámite']}
@@ -730,7 +755,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(!!form.ruc)}>5</span>
                       <span className="text-sm font-semibold">¿Cuál es la situación del RUC?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"El RUC (Registro Único de Contribuyentes) es el número que identifica a la organización ante SUNAT para obligaciones tributarias.\n\nLo tengo: Ya está inscrito y activo.\n\nNo lo tengo: Nunca se ha tramitado.\n\nEn trámite: Se solicitó pero aún no se obtiene."} />
                   </div>
                   <SingleSelect
                     options={['Lo tengo', 'No lo tengo', 'En trámite']}
@@ -744,12 +769,16 @@ export function LegalFormPage() {
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2">
                       <span className={getQuestionNumberClass(form.additionalRegistries.length > 0)}>6</span>
-                      <span className="text-sm font-semibold">¿La organización está inscrita en algún registro especial?</span>
+                      <span className="text-sm font-semibold">¿Cuentan con algún registro especial además de SUNARP y SUNAT?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Estos son registros tributarios administrados por SUNAT que otorgan beneficios específicos:\n\n- **Registro de Entidades Exoneradas del Impuesto a la Renta:** Inscripción que permite a asociaciones y fundaciones sin fines de lucro estar exoneradas del pago del Impuesto a la Renta por sus ingresos propios (si cumplen requisitos).\n\n- **Registro de Entidades Receptoras de Donaciones:** Permite emitir comprobantes de donación que son deducibles de impuestos para los donantes. Es necesario para recibir donaciones con beneficio tributario.\n\n- **Ninguno / No sé:** La organización no está inscrita en estos registros o desconoce su situación.\n\n**Nota:** Los registros relacionados con cooperación internacional (APCI) se consultan más adelante."} />
                   </div>
                   <MultiSelectChips
-                    options={['APCI', 'Exonerada de Impuesto a la renta', 'Ninguno']}
+                    options={[
+                      'Registro de Entidades Exoneradas del Impuesto a la Renta (SUNAT)',
+                      'Registro de Entidades Receptoras de Donaciones (SUNAT)',
+                      'Ninguno / No sé'
+                    ]}
                     value={form.additionalRegistries}
                     onChange={(val) => updateForm('additionalRegistries', val)}
                     disabled={form.isCompleted}
@@ -773,7 +802,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.handlesMoney !== null)}>7</span>
                       <span className="text-sm font-semibold">¿La organización maneja o manejará dinero?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Indica si la organización realiza actividades económicas que impliquen ingresos o egresos de dinero. Si es solo un proyecto sin fondos, responde \"No\". Esto ayuda a determinar obligaciones contables y tributarias."} />
                   </div>
                   <YesNoButtons
                     value={form.handlesMoney}
@@ -788,7 +817,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.receivesForeignFunds !== null)}>8</span>
                       <span className="text-sm font-semibold">¿Recibe o planea recibir fondos desde fuera del Perú?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Se refiere a donaciones, transferencias o ingresos provenientes del extranjero. Esto puede implicar requisitos adicionales como el registro en APCI o regulaciones cambiarias."} />
                   </div>
                   <YesNoButtons
                     value={form.receivesForeignFunds}
@@ -803,7 +832,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.incomeSources.length > 0)}>9</span>
                       <span className="text-sm font-semibold">¿De dónde provienen o provendrán los ingresos?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Selecciona todas las fuentes de financiamiento:\n\nDonaciones: Aportes voluntarios sin contraprestación.\n\nVenta de servicios o productos: Ingresos por actividades comerciales.\n\nFondos públicos: Subvenciones del Estado peruano.\n\nFondos privados: Aportes de empresas, fundaciones u organismos internacionales.\n\nAún no recibe ingresos: La organización está en etapa inicial o sin actividad económica."} />
                   </div>
                   <MultiSelectChips
                     options={['Donaciones', 'Venta de servicios o productos', 'Fondos públicos', 'Fondos privados', 'Cooperación internacional', 'Aún no recibe ingresos']}
@@ -824,42 +853,30 @@ export function LegalFormPage() {
               total={2}
             >
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <span className={getQuestionNumberClass(form.receivesInternationalCooperation !== null)}>10</span>
-                      <span className="text-sm font-semibold">¿Recibe cooperación internacional?</span>
-                    </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
-                  </div>
-                  <YesNoButtons
-                    value={form.receivesInternationalCooperation}
-                    onChange={(val) => {
-                      updateForm('receivesInternationalCooperation', val)
-                      if (val === false) updateForm('apciStatus', 'No aplica')
-                    }}
-                    disabled={form.isCompleted}
-                  />
-                </div>
-
-                {form.receivesInternationalCooperation && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2">
-                        <span className={getQuestionNumberClass(!!form.apciStatus)}>11</span>
-                        <span className="text-sm font-semibold">¿Cuál es su estado en APCI?</span>
-                      </label>
-                      <Lightbulb className="w-4 h-4 text-yellow-400" />
+                <div className="space-y-6">
+                  {form.receivesForeignFunds === true ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2">
+                          <span className={getQuestionNumberClass(!!form.apciStatus)}>11</span>
+                          <span className="text-sm font-semibold">¿Cuál es su estado en APCI?</span>
+                        </label>
+                        <HelpTooltip text={"La Agencia Peruana de Cooperación Internacional (APCI) regula a las organizaciones que reciben fondos o cooperación técnica del extranjero.\n\n- **Registrado:** La organización ya está inscrita en el Registro de Organizaciones No Gubernamentales Receptoras de Cooperación Técnica Internacional (ENIEX) y está al día.\n\n- **Necesita:** La organización recibe fondos del extranjero pero aún no está registrada en APCI. Esto debe regularse para evitar infracciones.\n\n- **No aplica:** Aunque recibe fondos del extranjero, está exenta de registro (ej. ciertos convenios gubernamentales) o la cooperación no requiere inscripción.\n\n**Importante:** Operar sin registro en APCI cuando corresponde puede generar multas y la suspensión de beneficios."} />
+                      </div>
+                      <SingleSelect
+                        options={['Registrado', 'Necesita', 'No aplica']}
+                        value={form.apciStatus}
+                        onChange={(val) => updateForm('apciStatus', val)}
+                        columns={3}
+                        disabled={form.isCompleted}
+                      />
                     </div>
-                    <SingleSelect
-                      options={['Registrado', 'Necesita registro', 'No aplica']}
-                      value={form.apciStatus}
-                      onChange={(val) => updateForm('apciStatus', val)}
-                      columns={3}
-                      disabled={form.isCompleted}
-                    />
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 text-sm text-center">
+                      <p>No recibe fondos del extranjero, por lo que esta sección no aplica.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </FormBlock>
 
@@ -878,7 +895,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.hiringModalities.length > 0)}>12</span>
                       <span className="text-sm font-semibold">¿Bajo qué modalidades contrata personal?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Selecciona las formas de vinculación laboral:\n\nPlanilla (DL 728): Contratos sujetos al régimen laboral privado, con todos los beneficios sociales.\n\nLocación de Servicios: Contratos civiles por servicios independientes, sin vínculo laboral (recibos por honorarios).\n\nVoluntariado: Personas que colaboran de manera solidaria sin remuneración (Ley del Voluntariado).\n\nPracticantes: Convenios de prácticas preprofesionales o profesionales.\n\nNinguno: No hay personal contratado."} />
                   </div>
                   <MultiSelectChips
                     options={['Planilla', 'Locación de servicios', 'Voluntariado', 'Prácticas', 'Ninguno']}
@@ -894,7 +911,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.contractsValid !== null)}>13</span>
                       <span className="text-sm font-semibold">¿Los contratos o acuerdos están actualmente vigentes?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Indica si los contratos con trabajadores, voluntarios o prestadores de servicios están al día y cumplen con los requisitos legales. Si hay contratos vencidos o sin formalizar, responde \"No\". \"No aplica\" si no hay personal."} />
                   </div>
                   <SingleSelect
                     options={['Sí', 'No', 'No aplica']}
@@ -922,7 +939,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.hasAccountingRecords !== null)}>14</span>
                       <span className="text-sm font-semibold">¿Existen registros contables o financieros?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Se refiere a si la organización lleva algún control de ingresos, egresos, libros contables o estados financieros.\n\nSí: Lleva registros. Luego indica si son completos (todos los libros requeridos) o parciales (solo algunos).\n\nNo: No lleva ningún registro.\n\nEn proceso: Está implementando un sistema contable."} />
                   </div>
                   <div className="flex justify-between w-full">
                     <button
@@ -1018,23 +1035,40 @@ export function LegalFormPage() {
                       </button>
                     </div>
                   )}
+                  {/* Warning for Q14 */}
+                  {form.hasAccountingRecords === 'Sí' && (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2 text-yellow-800 text-sm animate-fade-in-up">
+                      <Info className="w-5 h-5 flex-shrink-0" />
+                      <span><strong>Advertencia:</strong> No debe subir archivos financieros reales; solo proporcione descripciones generales de su estado contable.</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <span className={getQuestionNumberClass(form.availableDocuments.length > 0)}>15</span>
-                      <span className="text-sm font-semibold">¿La organización cuenta con alguno de los siguientes documentos?</span>
-                    </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                {form.orgType === 'Colectivo / iniciativa no formalizada' ? (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex gap-3 animate-fade-in-up">
+                    <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold mb-1">Nota sobre Colectivos:</p>
+                      <p>Al ser una iniciativa no formalizada, legalmente operan como una "Asociación no inscrita". No tienen personería jurídica distinta a sus miembros. Se recomienda formalizar para proteger el patrimonio personal y acceder a financiamiento.</p>
+                    </div>
                   </div>
-                  <MultiSelectChips
-                    options={['Estatuto o acta de constitución', 'Libros de actas', 'Estados financieros', 'Memorias anuales', 'Plan de uso de fondos', 'Ninguno']}
-                    value={form.availableDocuments}
-                    onChange={(val) => updateForm('availableDocuments', val)}
-                    disabled={form.isCompleted}
-                  />
-                </div>
+                ) : (
+                  <div className="space-y-3 animate-fade-in-up">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2">
+                        <span className={getQuestionNumberClass(form.availableDocuments.length > 0)}>15</span>
+                        <span className="text-sm font-semibold">¿La organización cuenta con alguno de los siguientes documentos?</span>
+                      </label>
+                      <HelpTooltip text={"Documentos administrativos y legales básicos:\n\nEstatuto o acta de constitución: Documento fundacional que establece las reglas de la organización.\n\nLibros de actas: Registro de las reuniones de asamblea o directorio.\n\nEstados financieros: Balance general, estado de resultados, etc.\n\nNinguno: No posee ninguno de estos."} />
+                    </div>
+                    <MultiSelectChips
+                      options={['Estatuto o acta de constitución', 'Libros de actas', 'Estados financieros', 'Memorias anuales', 'Plan de uso de fondos', 'Ninguno']}
+                      value={form.availableDocuments}
+                      onChange={(val) => updateForm('availableDocuments', val)}
+                      disabled={form.isCompleted}
+                    />
+                  </div>
+                )}
               </div>
             </FormBlock>
 
@@ -1053,7 +1087,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.governanceBodies !== null)}>16</span>
                       <span className="text-sm font-semibold">¿La organización tiene órganos de gobierno definidos (asamblea, consejo, directorio, etc.)?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Estructuras internas como asamblea general, junta directiva, consejo directivo, etc. Estos son los espacios donde se toman decisiones colegiadas. Si no existen órganos formales, responde \"No\"."} />
                   </div>
                   <YesNoButtons
                     value={form.governanceBodies}
@@ -1062,22 +1096,28 @@ export function LegalFormPage() {
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <span className={getQuestionNumberClass(form.hasLegalRepresentative !== null)}>17</span>
-                      <span className="text-sm font-semibold">¿Existe una persona designada como representante legal?</span>
-                    </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                {form.orgType === 'Colectivo / iniciativa no formalizada' ? (
+                  <div className="hidden">
+                    {/* Hidden for Colectivos as per requirements, removed duplicated microcopy to avoid clutter */}
                   </div>
-                  <SingleSelect
-                    options={['Sí', 'No', 'En trámite']}
-                    value={form.hasLegalRepresentative}
-                    onChange={(val) => updateForm('hasLegalRepresentative', val)}
-                    columns={3}
-                    disabled={form.isCompleted}
-                  />
-                </div>
+                ) : (
+                  <div className="space-y-3 animate-fade-in-up">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2">
+                        <span className={getQuestionNumberClass(form.hasLegalRepresentative !== null)}>17</span>
+                        <span className="text-sm font-semibold">¿Existe una persona designada como representante legal?</span>
+                      </label>
+                      <HelpTooltip text={"El representante legal es quien tiene facultades para actuar en nombre de la organización ante terceros (bancos, SUNAT, notarías). Puede ser el presidente, director o apoderado. Si no hay designación formal, responde \"No\" o \"En trámite\"."} />
+                    </div>
+                    <SingleSelect
+                      options={['Sí', 'No', 'En trámite']}
+                      value={form.hasLegalRepresentative}
+                      onChange={(val) => updateForm('hasLegalRepresentative', val)}
+                      columns={3}
+                      disabled={form.isCompleted}
+                    />
+                  </div>
+                )}
               </div>
             </FormBlock>
 
@@ -1096,7 +1136,7 @@ export function LegalFormPage() {
                       <span className={getQuestionNumberClass(form.intangibleAssets.length > 0)}>18</span>
                       <span className="text-sm font-semibold">¿La organización utiliza alguno de los siguientes?</span>
                     </label>
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                    <HelpTooltip text={"Recursos intangibles que pueden requerir protección legal:\n\nSoftware propio: Programas desarrollados internamente (posible propiedad intelectual).\n\nSoftware de terceros: Aplicaciones licenciadas (ej. Office, ERP) que implican cumplir términos de uso.\n\nBases de datos de usuarios: Información personal de beneficiarios, clientes o colaboradores (aplica protección de datos).\n\nMarca o símbolos distintivos: Nombres, logotipos, lemas (propiedad industrial).\n\nNinguno: No utiliza estos activos."} />
                   </div>
                   <MultiSelectChips
                     options={['Software propio', 'Software de terceros', 'Bases de datos de usuarios', 'Marca o símbolos distintivos', 'Contenido con derechos de autor', 'Ninguno']}
@@ -1104,6 +1144,13 @@ export function LegalFormPage() {
                     onChange={(val) => updateForm('intangibleAssets', val)}
                     disabled={form.isCompleted}
                   />
+                  {/* Warning for Data Protection */
+                    form.intangibleAssets.includes('Bases de datos de usuarios') && (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm animate-fade-in-up">
+                        <Info className="w-5 h-5 flex-shrink-0" />
+                        <span><strong>Aviso de Privacidad:</strong> El sistema ha detectado el manejo de datos personales. Recuerde cumplir con la Ley de Protección de Datos Personales. Este sistema no procesa bases de datos sensibles.</span>
+                      </div>
+                    )}
                 </div>
               </div>
             </FormBlock>
@@ -1126,13 +1173,27 @@ export function LegalFormPage() {
                           <span className={getQuestionNumberClass(!!form.toolSpecific.evaluationGoals?.length)}>19</span>
                           <span className="text-sm font-semibold">¿Cuáles son sus objetivos principales?</span>
                         </label>
+                        <HelpTooltip text={"Selecciona los propósitos de esta evaluación legal:\n\n- **Formalización:** Constituir legalmente la organización o regularizar su situación.\n\n- **Gestión de riesgos:** Identificar posibles problemas legales y prevenirlos.\n\n- **Preparación para auditoría:** Alistarse para una revisión externa o fiscalización.\n\n- **Mejora de gobernanza:** Fortalecer la estructura interna y la toma de decisiones.\n\n- **Resolver un conflicto actual:** La organización enfrenta un problema legal en curso (ej. disputa laboral, fiscalización, controversia con terceros).\n\n**⚠️ Importante:** Si seleccionas \"Resolver un conflicto actual\", el sistema activará un protocolo especial y podría derivar tu caso a un asesor humano, ya que este tipo de consultas requieren atención personalizada y no pueden resolverse completamente con recomendaciones automatizadas."} />
                       </div>
                       <MultiSelectChips
-                        options={['Viabilidad legal del proyecto', 'Identificación de riesgos', 'Brechas regulatorias', 'Análisis tributario', 'Evaluación general']}
+                        options={[
+                          'Formalización',
+                          'Gestión de riesgos',
+                          'Preparación para auditoría',
+                          'Mejora de gobernanza',
+                          'Resolver un conflicto actual'
+                        ]}
                         value={form.toolSpecific.evaluationGoals || []}
                         onChange={(val) => updateToolSpecific('evaluationGoals', val)}
                         disabled={form.isCompleted}
                       />
+                      {/* Warning for Conflict */}
+                      {form.toolSpecific.evaluationGoals?.includes('Resolver un conflicto actual') && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
+                          <Info className="w-5 h-5 flex-shrink-0" />
+                          <span><strong>Aviso importante:</strong> El sistema no realiza mediación ni defensa en litigios activos. Su caso podría ser derivado a un especialista humano.</span>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -1140,9 +1201,10 @@ export function LegalFormPage() {
                           <span className={getQuestionNumberClass(!!form.toolSpecific.legalAreas?.length)}>20</span>
                           <span className="text-sm font-semibold">¿Qué áreas legales le preocupan más?</span>
                         </label>
+                        <HelpTooltip text={"Indica los temas jurídicos prioritarios:\n\nTributario: Impuestos, RUC, obligaciones fiscales.\n\nLaboral: Contratación, planilla, derechos de trabajadores.\n\nCorporativo: Estatutos, asambleas, representación legal.\n\nPropiedad Intelectual: Registro de marcas, derechos de autor, patentes.\n\nProtección de Datos: Manejo de información personal y cumplimiento de la ley de datos."} />
                       </div>
                       <MultiSelectChips
-                        options={['Tributario', 'Cooperación internacional (APCI)', 'Laboral', 'Propiedad intelectual', 'Contratos', 'Formalización', 'Gobernanza']}
+                        options={['Tributario', 'Cooperación internacional (APCI)', 'Laboral', 'Propiedad intelectual', 'Contratos', 'Formalización', 'Gobernanza', 'Protección de Datos']}
                         value={form.toolSpecific.legalAreas || []}
                         onChange={(val) => updateToolSpecific('legalAreas', val)}
                         disabled={form.isCompleted}
@@ -1152,15 +1214,34 @@ export function LegalFormPage() {
                       <div className="flex items-center justify-between">
                         <label className="flex items-center gap-2">
                           <span className={getQuestionNumberClass(!!form.toolSpecific.urgency)}>21</span>
-                          <span className="text-sm font-semibold">¿Nivel de urgencia?</span>
+                          <span className="text-sm font-semibold">¿Con qué rapidez necesita una respuesta u orientación?</span>
                         </label>
+                        <HelpTooltip text={"Define el nivel de urgencia para recibir orientación:\n\n- **Inmediata (tengo un plazo venciendo):** Existe una fecha límite próxima (ej. vence un plazo para declarar, presentar un documento, responder a un requerimiento). Esta opción activa una alerta prioritaria y se te preguntará si has recibido una notificación formal de SUNAT, APCI u otra entidad.\n\n- **Semanal (planeamiento):** Necesitas orientación en el corto plazo para tomar decisiones, pero sin una fecha límite apremiante.\n\n- **Informativa (estoy explorando):** Estás recopilando información general para conocimiento futuro, sin presión de tiempo.\n\n**Importante:** Si seleccionas \"Inmediata\", el sistema priorizará tu consulta y aplicará un protocolo de urgencia para evaluar si requieres derivación inmediata a un especialista."} />
                       </div>
                       <SingleSelect
-                        options={['Inmediato (días)', 'Corto plazo (semanas)', 'Mediano plazo (meses)', 'Solo planificación']}
+                        options={[
+                          'Inmediata (tengo un plazo venciendo)',
+                          'Semanal (planeamiento)',
+                          'Informativa (estoy explorando)'
+                        ]}
                         value={form.toolSpecific.urgency || null}
                         onChange={(val) => updateToolSpecific('urgency', val)}
                         disabled={form.isCompleted}
                       />
+                      {/* Urgent Case Follow-up */}
+                      {form.toolSpecific.urgency === 'Inmediata (tengo un plazo venciendo)' && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg space-y-3 animate-fade-in-up">
+                          <p className="text-red-800 font-semibold text-sm">¿Ha recibido una notificación formal (SUNAT/APCI) u otra entidad?</p>
+                          <YesNoButtons
+                            value={form.toolSpecific.hasReceivedNotification ?? null}
+                            onChange={(val) => updateToolSpecific('hasReceivedNotification', val)}
+                            disabled={form.isCompleted}
+                          />
+                          {form.toolSpecific.hasReceivedNotification === true && (
+                            <p className="text-red-700 text-xs italic">Se ha activado la derivación prioritaria a un especialista humano.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

@@ -9,6 +9,7 @@ import { LegalStatusTable } from './LegalStatusTable'
 import { ViabilityConditionCard } from './ViabilityConditionCard'
 import { ImplementationRoute } from './ImplementationRoute'
 import { AlternativesSection } from './AlternativesSection'
+import { exportEvaluationToDocx } from './evaluationExport'
 import clsx from 'clsx'
 
 export function ProjectEvaluationPage() {
@@ -17,6 +18,19 @@ export function ProjectEvaluationPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [evaluationData, setEvaluationData] = useState<ProjectEvaluation | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
+
+    const handleExport = async () => {
+        if (!evaluationData || isExporting) return
+        setIsExporting(true)
+        try {
+            await exportEvaluationToDocx(evaluationData)
+        } catch (err) {
+            console.error('Error al exportar evaluación:', err)
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20)
@@ -25,7 +39,7 @@ export function ProjectEvaluationPage() {
     }, [])
 
     useEffect(() => {
-        const stateData = (location.state as { evaluationData?: ProjectEvaluation })?.evaluationData
+        const stateData = (location.state as { evaluationData?: ProjectEvaluation } | null)?.evaluationData
 
         if (stateData) {
             const timer = setTimeout(() => {
@@ -91,9 +105,13 @@ export function ProjectEvaluationPage() {
                         </div>
                     </div>
 
-                    <button className="btn-action-primary text-sm">
+                    <button
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="btn-action-primary text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
                         <Download className="w-4 h-4" />
-                        Descargar PDF
+                        {isExporting ? 'Generando...' : 'Descargar Evaluación'}
                     </button>
                 </div>
             </header>
@@ -180,7 +198,10 @@ export function ProjectEvaluationPage() {
 
                 {/* Action Buttons */}
                 <section className="flex flex-col sm:flex-row gap-4 justify-center pb-10 animate-fade-in">
-                    <button className="btn-action-secondary">
+                    <button
+                        className="btn-action-secondary"
+                        onClick={() => navigate('/formalization')}
+                    >
                         <FileText className="w-5 h-5" />
                         Ver ruta completa
                     </button>

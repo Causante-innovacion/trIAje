@@ -46,11 +46,11 @@ export function FormBlock({
 
   return (
     <section
-      className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm"
+      className="bg-white border border-gray-100 rounded-2xl shadow-sm"
       style={{ width, height }}
     >
       {/* Header */}
-      <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+      <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/30 rounded-t-2xl">
         <div className="flex items-center gap-3">
           <div className={clsx('p-2 rounded-lg', iconColorStyles[iconColor])}>
             <Icon className="w-5 h-5" />

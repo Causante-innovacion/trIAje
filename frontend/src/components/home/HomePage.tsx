@@ -36,9 +36,8 @@ export function HomePage() {
           <h1 className="font-heading text-4xl md:text-5xl font-bold text-black mb-5 tracking-tight">
             ¿Cómo puedo ayudarte?
           </h1>
-          <p className="text-gray-500 text-base md:text-lg leading-relaxed max-w-lg mx-auto">
-            Asistente legal inteligente para organizaciones civiles en Perú.
-            Análisis de riesgos y cumplimiento normativo.
+          <p className="subtitle">
+            Somos un potenciador legal inteligente especializado en proyectos y emprendimientos sociales.
           </p>
         </div>
 

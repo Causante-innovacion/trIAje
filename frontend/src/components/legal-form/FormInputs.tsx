@@ -23,17 +23,16 @@ export function YesNoButtons({
   disabled = false,
 }: YesNoButtonsProps) {
   return (
-    <div className={clsx(threeOptions ? 'flex justify-between w-full' : 'grid grid-cols-2 gap-3')}>
+    <div className={clsx('grid gap-3', threeOptions ? 'grid-cols-3' : 'grid-cols-2')}>
       <button
         type="button"
         onClick={() => !disabled && onChange(true)}
         disabled={disabled}
         className={clsx(
-          'py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
+          'w-full min-h-[56px] p-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
           value === true
             ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
             : 'border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50',
-          threeOptions && 'w-[201px] h-[73px] text-xs',
           disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
         )}
       >
@@ -45,11 +44,10 @@ export function YesNoButtons({
         onClick={() => !disabled && onChange(false)}
         disabled={disabled}
         className={clsx(
-          'py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
+          'w-full min-h-[56px] p-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
           value === false
             ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
             : 'border border-gray-200 hover:border-gray-300 hover:bg-gray-50',
-          threeOptions && 'w-[201px] h-[73px] text-xs',
           disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
         )}
       >
@@ -62,11 +60,10 @@ export function YesNoButtons({
           onClick={() => !disabled && onChange(null as unknown as boolean)}
           disabled={disabled}
           className={clsx(
-            'py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
+            'w-full min-h-[56px] p-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all',
             value === null
               ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
               : 'border border-gray-200 hover:border-gray-300 hover:bg-yellow-50',
-            threeOptions && 'w-[201px] h-[73px] text-xs',
             disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
           )}
         >
@@ -87,39 +84,10 @@ interface SingleSelectProps {
 }
 
 export function SingleSelect({ options, value, onChange, columns = 3, disabled = false }: SingleSelectProps) {
-  const isThreeOrLess = options.length <= 3 && columns <= 3
-
   const gridClass = {
     2: 'grid-cols-2',
     3: 'grid-cols-2 md:grid-cols-3',
     4: 'grid-cols-2 md:grid-cols-4',
-  }
-
-  const isExactlyThree = options.length === 3 && columns === 3
-
-  if (isExactlyThree) {
-    return (
-      <div className="flex justify-between w-full">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => !disabled && onChange(option)}
-            disabled={disabled}
-            className={clsx(
-              'rounded-xl font-medium transition-all text-center flex items-center justify-center p-2',
-              value === option
-                ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
-                : 'border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50',
-              'w-[201px] h-[73px] text-xs',
-              disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
-            )}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    )
   }
 
   return (
@@ -131,11 +99,10 @@ export function SingleSelect({ options, value, onChange, columns = 3, disabled =
           onClick={() => !disabled && onChange(option)}
           disabled={disabled}
           className={clsx(
-            'rounded-xl font-medium transition-all text-center flex items-center justify-center p-2',
+            'w-full min-h-[56px] rounded-xl text-sm font-medium transition-all text-center flex items-center justify-center p-3',
             value === option
               ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
               : 'border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50',
-            isThreeOrLess ? 'w-[201px] h-[73px] text-xs' : 'w-[151px] h-[55px] text-[10px]',
             disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
           )}
         >
@@ -175,7 +142,7 @@ export function MultiSelectChips({ options, value, onChange, disabled = false }:
             onClick={() => toggleOption(option)}
             disabled={disabled}
             className={clsx(
-              'rounded-xl text-[10px] font-medium transition-all flex items-center justify-center p-2 text-center w-[151px] h-[55px]',
+              'rounded-xl text-sm font-medium transition-all flex items-center justify-center p-3 text-center min-w-[140px] min-h-[56px]',
               isSelected
                 ? 'border-2 border-yellow-400 bg-yellow-50 text-yellow-800'
                 : 'border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50',
@@ -216,7 +183,7 @@ export function MultiSelectCheckbox({ options, value, onChange, disabled = false
           <label
             key={option}
             className={clsx(
-              'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all',
+              'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all min-h-[56px]',
               isSelected
                 ? 'border-2 border-yellow-400 bg-yellow-50'
                 : 'border border-gray-100 hover:bg-gray-50',

@@ -5,13 +5,13 @@ import { ChatPage } from './components/chat'
 import { LegalFormPage } from './components/legal-form'
 import { ProjectEvaluationPage } from './components/output-evaluation/ProjectEvaluationPage'
 import { LegalAdviserPage } from './components/output-legal-adviser/LegalAdviserPage'
+import { FormalizationPage } from './components/output-formalization/FormalizationPage'
 
 function AppContent() {
   const location = useLocation()
   const isLegalForm = location.pathname === '/legal-form'
   const isEvaluation = location.pathname === '/evaluation'
   const isLegalAdviser = location.pathname === '/legal-adviser'
-
   // Legal form, evaluation, and legal adviser pages have their own layouts
   if (isLegalForm) {
     return <LegalFormPage />
@@ -23,6 +23,10 @@ function AppContent() {
 
   if (isLegalAdviser) {
     return <LegalAdviserPage />
+  }
+
+  if (location.pathname === '/formalization') {
+    return <FormalizationPage />
   }
 
   return (
@@ -46,6 +50,7 @@ function App() {
         <Route path="/legal-form" element={<LegalFormPage />} />
         <Route path="/evaluation" element={<ProjectEvaluationPage />} />
         <Route path="/legal-adviser" element={<LegalAdviserPage />} />
+        <Route path="/formalization" element={<FormalizationPage />} />
         <Route path="*" element={<AppContent />} />
       </Routes>
     </BrowserRouter>
