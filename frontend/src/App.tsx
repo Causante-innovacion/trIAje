@@ -30,7 +30,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-main">
+    <div className="h-[calc(100vh-64px)] flex flex-col bg-gradient-main overflow-hidden">
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/chat" element={<ChatPage />} />
@@ -51,6 +51,8 @@ function App() {
         <Route path="/evaluation" element={<ProjectEvaluationPage />} />
         <Route path="/legal-adviser" element={<LegalAdviserPage />} />
         <Route path="/formalization" element={<FormalizationPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat/:tool" element={<ChatPage />} />
         <Route path="*" element={<AppContent />} />
       </Routes>
     </BrowserRouter>

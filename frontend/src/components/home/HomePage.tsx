@@ -27,7 +27,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex-1 flex flex-col">
       {/* Main content — centered vertically */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 max-w-3xl mx-auto w-full">
 

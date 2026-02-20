@@ -35,7 +35,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pt-16 pb-4">
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden">
       <ChatContainer />
     </div>
   )
