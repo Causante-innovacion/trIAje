@@ -263,7 +263,11 @@ export function ChatContainer() {
 
   const renderMessage = (message: typeof messages[0]) => {
     // Should this message animate?
-    const shouldAnimate = message.id === lastJustoMessageId && message.sender === 'justo'
+    // Streamed messages (wasStreamed=true) already showed content building up
+    // token by token, so we skip the typewriter re-play after streaming ends.
+    const shouldAnimate = message.id === lastJustoMessageId &&
+      message.sender === 'justo' &&
+      !message.wasStreamed
 
     // Special rendering for project info card
     if (message.content === 'project_info_card' && message.sender === 'justo') {

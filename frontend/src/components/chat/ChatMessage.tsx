@@ -6,8 +6,15 @@ import { ProgressBar } from '../ui/ProgressBar'
 import { SourcesCitation } from './SourcesCitation'
 import { ActionCard } from './ActionCard'
 import { MarkdownRenderer } from '../ui/MarkdownRenderer'
-import { AlertCircle, WifiOff, ServerCrash, Clock } from 'lucide-react'
+import { AlertCircle, WifiOff, ServerCrash, Clock, Paperclip } from 'lucide-react'
 import { useTypewriter } from '../../hooks/useTypewriter'
+
+/** Detect file-attachment messages and extract just the filename */
+function parseFileAttachment(content: string): string | null {
+  // Matches: Analiza mi proyecto. 📎 He adjuntado el archivo "filename.ext":
+  const match = content.match(/📎 He adjuntado el archivo "([^"]+)"/)
+  return match ? match[1] : null
+}
 
 interface ChatMessageProps {
   message: Message
@@ -235,7 +242,23 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
     <div className="chat-message">
       <div className="flex justify-end">
         <div className="bg-black text-white rounded-3xl px-5 py-3 max-w-lg">
-          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+          {parseFileAttachment(message.content) ? (
+            // Render a compact file card instead of the raw document dump
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                <Paperclip className="w-4 h-4 text-white/80" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-white/50 uppercase tracking-wide mb-0.5">Documento adjunto</p>
+                <p className="text-sm font-medium truncate leading-tight">
+                  {parseFileAttachment(message.content)}
+                </p>
+                <p className="text-xs text-white/50 mt-0.5">Solicitando análisis de proyecto…</p>
+              </div>
+            </div>
+          ) : (
+            <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+          )}
         </div>
       </div>
     </div>

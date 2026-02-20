@@ -50,7 +50,7 @@ interface ChatStore {
   setStreamingClassification: (id: string, classification: ChatClassification) => void
   setStreamingSources: (id: string, sources: LegalSource[]) => void
   appendToStreamingMessage: (id: string, text: string) => void
-  finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string }) => void
+  finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string; content?: string }) => void
   setUploadProgress: (progress: number) => void
   setPendingFile: (file: UploadedFile | null) => void
   updateFileStatus: (fileId: string, status: UploadedFile['status'], progress?: number) => void
@@ -261,7 +261,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }))
   },
 
-  finalizeStreamingMessage: (id, { actions, disclaimers, conversation_id }) => {
+  finalizeStreamingMessage: (id, { actions, disclaimers, conversation_id, content }) => {
     if (conversation_id) {
       set({ conversationId: conversation_id })
     }
@@ -274,20 +274,26 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       : null
     set((state) => ({
       pendingAmberContext: newPendingAmberContext,
-      messages: state.messages.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              isStreaming: false,
-              streamingStatus: undefined,
-              metadata: {
-                ...m.metadata,
-                actions: actions ?? [],
-                disclaimers: disclaimers ?? [],
-              },
-            }
-          : m
-      ),
+      messages: state.messages.map((m) => {
+        if (m.id !== id) return m
+        // wasStreamed = content arrived token by token and was already visible;
+        // in that case we skip the typewriter re-play after streaming ends.
+        // If `content` is provided it means content arrived all-at-once (greeting/
+        // out-of-scope), so we DO animate it (wasStreamed = false).
+        const wasStreamed = content === undefined && m.content.length > 0
+        return {
+          ...m,
+          isStreaming: false,
+          streamingStatus: undefined,
+          wasStreamed,
+          ...(content !== undefined ? { content } : {}),
+          metadata: {
+            ...m.metadata,
+            actions: actions ?? [],
+            disclaimers: disclaimers ?? [],
+          },
+        }
+      }),
     }))
   },
 

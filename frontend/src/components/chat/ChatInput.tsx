@@ -46,9 +46,11 @@ export function ChatInput({ onSend }: ChatInputProps) {
       const filename = (data.filename as string) || file.name
       const preview = (data.content_preview as string) || ''
 
+      // Start with a recognised project-analysis trigger so the classifier
+      // routes this directly into the project analysis pipeline.
       const msg = preview
-        ? `📎 He adjuntado el archivo "${filename}":\n\n${preview}\n\nPor favor analiza el contenido y orientame sobre los aspectos legales relevantes.`
-        : `📎 He adjuntado el archivo "${filename}". Por favor analiza su contenido y orientame sobre los aspectos legales relevantes.`
+        ? `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}":\n\n${preview}`
+        : `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}".`
 
       onSend(msg)
     } catch {

@@ -385,23 +385,79 @@ class ProjectAnalysisDetector:
     # Palabras que indican un proyecto o emprendimiento
     _PROJECT_WORDS = ("proyecto", "emprendimiento", "iniciativa", "propuesta")
 
+    # Formas canónicas completas para fuzzy matching (cubre también formas con tilde)
+    _VERB_CANONICAL = (
+        "analizar", "analiza", "analize", "analisis",
+        "evaluar", "evalua", "evalúa", "evalúar",
+        "revisar", "revisa",
+        "viabilidad",
+        "verificar", "checar",
+    )
+    _PROJECT_CANONICAL = (
+        "proyecto", "proyectos",
+        "emprendimiento", "emprendimientos",
+        "iniciativa", "iniciativas",
+        "propuesta", "propuestas",
+        "negocio", "negocios",
+        "startup",
+    )
+    # Umbral de similitud para fuzzy: 0.78 captura 1-2 chars intercambiados/faltantes
+    _FUZZY_THRESHOLD = 0.78
+    # Longitud mínima de token para evitar falsos positivos con palabras cortas
+    _MIN_TOKEN_LEN = 4
+
+    @staticmethod
+    def _normalize(text: str) -> str:
+        """Minúsculas y sin tildes/diacríticos para comparar sin importar acentuación."""
+        nfkd = unicodedata.normalize("NFKD", text.lower())
+        return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+    @staticmethod
+    def _fuzzy_token_matches(tokens: list, canonical: tuple) -> bool:
+        """
+        Devuelve True si algún token del mensaje tiene similitud ≥ FUZZY_THRESHOLD
+        con cualquiera de los términos canónicos (después de normalizar ambos).
+        """
+        norm_canonical = [
+            ProjectAnalysisDetector._normalize(c) for c in canonical
+        ]
+        for tok in tokens:
+            if len(tok) < ProjectAnalysisDetector._MIN_TOKEN_LEN:
+                continue
+            for canon in norm_canonical:
+                ratio = SequenceMatcher(None, tok, canon).ratio()
+                if ratio >= ProjectAnalysisDetector._FUZZY_THRESHOLD:
+                    return True
+        return False
+
     @staticmethod
     def is_project_analysis(message: str) -> bool:
         """
         Verifica si el mensaje indica análisis de proyecto.
 
-        Utiliza dos estrategias:
-        1. Match exacto de frases en PROJECT_ANALYSIS_TRIGGERS (rápido y determinista).
-        2. Combinación de raíz verbal + palabra de proyecto (captura variaciones
-           como "analiza mi proyecto", "evalúa el proyecto de la ONG", etc.).
+        Estrategias (en orden de costo):
+        1. Match exacto de frases en PROJECT_ANALYSIS_TRIGGERS (rápido, determinista).
+        2. Combinación de raíz verbal + palabra de proyecto (captura conjugaciones
+           y artículos variados: "analiza mi proyecto", "evalúa el proyecto", …).
+        3. Fuzzy token matching: detecta errores tipográficos como "royecto",
+           "poryecto", "anaizar", etc. comparando cada token del mensaje contra
+           formas canónicas usando similitud de cadenas (≥78 %).
         """
         message_lower = message.lower()
 
-        # 1. Exact phrase match (mantiene compatibilidad con tests y frases conocidas)
+        # 1. Exact phrase match
         if any(trigger in message_lower for trigger in PROJECT_ANALYSIS_TRIGGERS):
             return True
 
-        # 2. Hybrid: verb stem + project word (cubre conjugaciones y artículos variados)
+        # 2. Verb stem + project word (substring)
         has_verb = any(stem in message_lower for stem in ProjectAnalysisDetector._VERB_STEMS)
         has_project = any(word in message_lower for word in ProjectAnalysisDetector._PROJECT_WORDS)
-        return has_verb and has_project
+        if has_verb and has_project:
+            return True
+
+        # 3. Fuzzy token matching (handles typos)
+        norm_msg = ProjectAnalysisDetector._normalize(message)
+        tokens = re.findall(r"\w+", norm_msg)
+        fuzzy_verb = ProjectAnalysisDetector._fuzzy_token_matches(tokens, ProjectAnalysisDetector._VERB_CANONICAL)
+        fuzzy_project = ProjectAnalysisDetector._fuzzy_token_matches(tokens, ProjectAnalysisDetector._PROJECT_CANONICAL)
+        return fuzzy_verb and fuzzy_project

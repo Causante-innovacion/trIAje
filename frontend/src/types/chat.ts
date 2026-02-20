@@ -86,6 +86,8 @@ export interface Message {
   timestamp: Date
   /** True mientras el mensaje se está recibiendo token a token (streaming) */
   isStreaming?: boolean
+  /** True si el contenido llegó token a token (ya se vio construirse; no re-animar con typewriter) */
+  wasStreamed?: boolean
   /** Texto de estado mostrado durante el streaming ("Buscando normativa...") */
   streamingStatus?: string
   metadata?: {

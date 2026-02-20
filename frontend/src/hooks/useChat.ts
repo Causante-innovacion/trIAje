@@ -118,10 +118,6 @@ export function useChat() {
                 appendToStreamingMessage(streamId, event.text)
                 break
               case 'done':
-                // 'done' may carry a full message (greeting / out-of-scope / rojo)
-                if (event.message) {
-                  appendToStreamingMessage(streamId, event.message)
-                }
                 if (event.classification) {
                   setStreamingClassification(streamId, event.classification)
                 }
@@ -129,6 +125,11 @@ export function useChat() {
                   actions: event.actions,
                   disclaimers: event.disclaimers,
                   conversation_id: event.conversation_id,
+                  // Pass one-shot content (greeting/out-of-scope) directly into
+                  // finalize so it never appears in the streaming render.  This
+                  // lets AnimatedText show it with the typewriter from the start
+                  // instead of flashing the raw text first.
+                  ...(event.message ? { content: event.message } : {}),
                 })
                 break
             }
