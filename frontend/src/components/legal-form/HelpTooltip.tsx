@@ -55,21 +55,21 @@ export function HelpTooltip({ text }: HelpTooltipProps) {
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1 rounded-full hover:bg-yellow-100 transition-colors focus:outline-none"
+        className="p-1 rounded-full hover:bg-gold-50 transition-colors focus:outline-none"
         aria-label="Ayuda"
       >
-        <Lightbulb className="w-4 h-4 text-yellow-400" />
+        <Lightbulb className="w-4 h-4 text-causante-ocre" />
       </button>
 
       {isOpen && (
         <div
           ref={tooltipRef}
-          className="absolute z-50 right-0 top-full mt-2 w-80 max-w-[90vw] max-h-80 overflow-y-auto bg-white border border-yellow-200 rounded-xl shadow-lg p-4 animate-fade-in"
+          className="absolute z-50 right-0 top-full mt-2 w-80 max-w-[90vw] max-h-80 overflow-y-auto bg-white border border-causante-ocre/20 rounded-2xl shadow-lg p-4 animate-fade-in"
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
         >
           {/* Arrow */}
-          <div className="absolute -top-2 right-3 w-4 h-4 bg-white border-l border-t border-yellow-200 transform rotate-45" />
+          <div className="absolute -top-2 right-3 w-4 h-4 bg-white border-l border-t border-causante-ocre/20 transform rotate-45" />
 
           {/* Close button for mobile */}
           <button

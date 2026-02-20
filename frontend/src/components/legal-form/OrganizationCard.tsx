@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react'
+import { Building2, LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 
 interface Organization {
@@ -17,46 +17,39 @@ interface OrganizationCardProps {
 }
 
 export function OrganizationCard({ organization, isSelected, onClick }: OrganizationCardProps) {
-  const { name, role, progress, color, icon: Icon } = organization
+  const Icon = organization.icon || Building2
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={clsx(
-        'text-left bg-white p-4 rounded-xl border-2 shadow-sm transition-all hover:shadow-md',
-        !isSelected && 'border-gray-100 hover:border-gray-300'
+        'flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 text-left w-full',
+        isSelected
+          ? 'border-causante-ocre bg-gold-50'
+          : 'border-gray-100 bg-white hover:border-gray-300'
       )}
-      style={isSelected ? {
-        borderColor: color,
-        boxShadow: `0 0 0 4px ${color}1A`
-      } : undefined}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="p-2 rounded-lg"
-            style={{ backgroundColor: `${color}1A`, color: color }}
-          >
-            <Icon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-sm">{name}</h3>
-            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{role}</p>
-          </div>
-        </div>
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: organization.color + '15', color: organization.color }}
+      >
+        <Icon className="w-5 h-5" />
       </div>
-
-      <div className="space-y-1">
-        <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase">
-          <span>Progreso</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${progress}%`, backgroundColor: color }}
-          />
-        </div>
+      <div className="flex-1 min-w-0">
+        <p className={clsx(
+          'font-heading font-semibold text-sm truncate',
+          isSelected ? 'text-gray-900' : 'text-gray-700'
+        )}>{organization.name}</p>
+        <p className="text-xs text-gray-400 truncate">{organization.role}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <span className={clsx(
+          'text-lg font-bold',
+          organization.progress === 100 ? 'text-causante-ocre' : 'text-gray-300'
+        )}>
+          {organization.progress}%
+        </span>
       </div>
     </button>
   )
