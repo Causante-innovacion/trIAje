@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send } from 'lucide-react'
+import { Send, Loader2 } from 'lucide-react'
 import { ActionMenu } from '../chat/ActionMenu'
 import { MAX_MESSAGE_LENGTH } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
+import { documentsApi } from '../../shared/services/api'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { startIntelligentChat } = useChatStore()
+  const { startIntelligentChat, setExtractedPlan } = useChatStore()
   const [inputValue, setInputValue] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const isOverLimit = inputValue.length > MAX_MESSAGE_LENGTH
 
@@ -23,6 +26,75 @@ export function HomePage() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       handleSubmit(e)
+    }
+  }
+
+  const handleFileSelect = async (file: File) => {
+    setUploadError(null)
+
+    // Validate extension
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!['pdf', 'docx'].includes(ext)) {
+      setUploadError('Solo se aceptan archivos PDF o DOCX.')
+      return
+    }
+    const sizeMB = file.size / 1024 / 1024
+    if (sizeMB > 10) {
+      setUploadError('El archivo excede el tamaño máximo de 10 MB.')
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      // Use the same extractPlan flow as ChatContainer.handleFileUpload
+      const fileId = Math.random().toString(36).substring(2)
+
+      // Initialize chat state (sets currentTool='chat', sessionId, etc.)
+      // Skip greeting since the ProjectInfoCard will be the first response.
+      startIntelligentChat(undefined, true)
+
+      // Show upload message in chat store (will appear when navigated)
+      useChatStore.getState().addMessage({
+        sender: 'user',
+        content: `Archivo subido: ${file.name}`,
+        contentType: 'file_uploaded',
+        file: {
+          id: fileId,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          progress: 0,
+          status: 'uploading',
+        },
+      })
+
+      // Call extractPlan (same as ChatContainer)
+      const response = await documentsApi.extractPlan(file)
+      const plan = response.data
+
+      // Update file status to complete
+      useChatStore.getState().updateFileStatus(fileId, 'complete', 100)
+
+      // Store extracted data in the global store
+      setExtractedPlan(plan)
+
+      // Add the project info card message
+      useChatStore.getState().addMessage({
+        sender: 'justo',
+        content: 'project_info_card',
+        contentType: 'text',
+      })
+
+      // Navigate to chat — ChatContainer will reconstruct projectInfo from extractedPlan
+      navigate('/chat')
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error procesando el archivo'
+      setUploadError(
+        `No se pudo procesar el archivo. ${errorMessage}\nVerifica que el servidor esté activo.`
+      )
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -44,14 +116,15 @@ export function HomePage() {
         {/* Chat input — single pill input */}
         <form onSubmit={handleSubmit} className="w-full">
           <div className="chat-input-container">
-            <ActionMenu />
+            <ActionMenu onFileSelect={handleFileSelect} />
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Escribe tu consulta legal aquí..."
+              placeholder={isUploading ? 'Procesando archivo...' : 'Escribe tu consulta legal aquí...'}
               className="chat-input"
+              disabled={isUploading}
             />
             <div className="flex items-center gap-2">
               {/* Character counter */}
@@ -60,15 +133,24 @@ export function HomePage() {
                   {inputValue.length}/{MAX_MESSAGE_LENGTH}
                 </span>
               )}
-              <button
-                type="submit"
-                className="send-button"
-                disabled={!inputValue.trim() || isOverLimit}
-              >
-                <Send className="w-5 h-5" />
-              </button>
+              {isUploading ? (
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  className="send-button"
+                  disabled={!inputValue.trim() || isOverLimit}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
+          {uploadError && (
+            <p className="text-red-500 text-xs mt-2 pl-1">{uploadError}</p>
+          )}
 
           {/* Subtle hint */}
           <p className="text-center text-xs text-gray-400 mt-4">

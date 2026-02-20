@@ -91,7 +91,10 @@ class ChatService:
             return self._build_greeting_response(conversation_id)
 
         # 2. Detectar si quiere analizar un proyecto
-        if ProjectAnalysisDetector.is_project_analysis(message):
+        #    Si el mensaje ya trae un archivo adjunto (📎), saltar el detector
+        #    para que el flujo normal clasifique y analice el contenido.
+        has_file_attached = "📎" in message
+        if not has_file_attached and ProjectAnalysisDetector.is_project_analysis(message):
             return self._build_project_analysis_response(message, conversation_id)
 
         # 3. Clasificar intención
@@ -157,7 +160,10 @@ class ChatService:
             return
 
         # ── Análisis de proyecto ─────────────────────────────────────────────
-        if ProjectAnalysisDetector.is_project_analysis(message):
+        #    Si el mensaje ya trae un archivo adjunto (📎), saltar el detector
+        #    para que el flujo normal clasifique y analice el contenido.
+        has_file_attached = "📎" in message
+        if not has_file_attached and ProjectAnalysisDetector.is_project_analysis(message):
             resp = self._build_project_analysis_response(message, conversation_id)
             yield sse({"type": "done", "message": resp.message,
                        "classification": resp.classification.model_dump(),
@@ -683,9 +689,7 @@ class ChatService:
                 "Te recomiendo **subir un archivo** con la descripción de tu proyecto "
                 "(puede ser un PDF, Word o texto). Esto me permitirá hacer una evaluación "
                 "más precisa.\n\n"
-                "Alternativamente, puedes responder las preguntas del formulario de "
-                "evaluación para que analice tu caso paso a paso.\n\n"
-                "¿Cómo prefieres proceder?"
+                "Puedes adjuntar tu documento usando el botón 📎 en la barra de mensajes."
             ),
             classification=ChatClassification(
                 intention=Intention.FORMALIZACION,
@@ -703,13 +707,111 @@ class ChatService:
                     description="Sube un documento con la descripción de tu proyecto para análisis automático.",
                     endpoint="/api/v1/documents/upload",
                 ),
-                SuggestedAction(
-                    type=ActionType.PROVIDE_CONTEXT,
-                    label="Llenar formulario de evaluación",
-                    description="Responde preguntas guiadas para evaluar tu proyecto.",
-                    endpoint="/api/v1/intake/questions?tool=evaluation",
-                ),
             ],
+            disclaimers=STANDARD_DISCLAIMERS,
+            conversation_id=conversation_id,
+        )
+
+    # =========================================================================
+    # ANÁLISIS DE VIABILIDAD LEGAL DE PROYECTO (con archivo adjunto)
+    # =========================================================================
+
+    @staticmethod
+    def _get_project_analysis_system_prompt() -> str:
+        """Prompt de sistema para análisis de viabilidad legal de proyecto."""
+        return (
+            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
+            "El usuario ha subido un documento con la descripción de su proyecto. "
+            "Tu tarea es realizar un ANÁLISIS DE VIABILIDAD LEGAL completo del proyecto descrito en el documento. "
+            "\n\nDebe cubrir las siguientes áreas:\n"
+            "1. **Tipo de organización recomendada**: Evalúa si el proyecto debería operarse como asociación, "
+            "ONG, fundación, cooperativa, empresa social, etc. según la legislación peruana.\n"
+            "2. **Requisitos de formalización**: Pasos legales necesarios para constituir la organización "
+            "(escritura pública, SUNARP, RUC, licencias, etc.).\n"
+            "3. **Régimen tributario aplicable**: Beneficios fiscales, exoneraciones, obligaciones tributarias.\n"
+            "4. **Marco normativo relevante**: Leyes, decretos y normas que regulan el tipo de actividad del proyecto.\n"
+            "5. **Riesgos legales potenciales**: Identifica posibles riesgos o contingencias legales.\n"
+            "6. **Recomendaciones**: Pasos a seguir para la viabilidad legal del proyecto.\n\n"
+            "Cita los artículos normativos aplicables cuando sea posible. "
+            "Responde en español, de forma clara, con estructura y encabezados. "
+            "NO des respuestas genéricas; analiza el contenido específico del documento."
+        )
+
+    @staticmethod
+    def _get_project_analysis_prompt(message: str, rag_context: str) -> str:
+        """Construye el prompt para análisis de viabilidad legal."""
+        if rag_context:
+            return (
+                f"El usuario ha subido un documento para análisis de viabilidad legal. "
+                f"Contenido del documento y mensaje del usuario:\n\n{message}\n\n"
+                f"Normativa relevante encontrada:\n{rag_context}\n\n"
+                "Realiza un análisis de viabilidad legal completo del proyecto descrito, "
+                "citando la normativa proporcionada donde aplique."
+            )
+        return (
+            f"El usuario ha subido un documento para análisis de viabilidad legal. "
+            f"Contenido del documento y mensaje del usuario:\n\n{message}\n\n"
+            "Realiza un análisis de viabilidad legal completo del proyecto descrito. "
+            "Indica qué normativa peruana aplica a cada aspecto del proyecto."
+        )
+
+    async def _handle_project_file_analysis(
+        self,
+        message: str,
+        conversation_id: str,
+        history: list | None = None,
+    ) -> ChatResponse:
+        """Analiza la viabilidad legal de un proyecto a partir de un archivo adjunto."""
+        sources: List[LegalSource] = []
+        rag_context = ""
+        response_text = ""
+
+        # Buscar normativa relevante con RAG
+        try:
+            rag_module = get_rag_module()
+            if rag_module:
+                rag_result = await rag_module.retrieve_and_ground(
+                    query=message,
+                    top_k_initial=10,
+                    intention_filter=Intention.FORMALIZACION.value,
+                )
+                if rag_result and rag_result.chunks:
+                    rag_context = self._build_rag_context_from_chunks(rag_result)
+                    sources = self._extract_sources_from_chunks(rag_result)
+        except Exception:
+            pass
+
+        # Generar análisis con LLM
+        system_prompt = self._get_project_analysis_system_prompt()
+        prompt = self._get_project_analysis_prompt(message, rag_context)
+
+        try:
+            response = await self._ai_router.reason(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                history=history,
+            )
+            response_text = response.content
+        except Exception:
+            response_text = (
+                "No pude completar el análisis de viabilidad legal en este momento. "
+                "Por favor, intenta de nuevo o describe tu proyecto directamente en el chat."
+            )
+
+        classification = ChatClassification(
+            intention=Intention.FORMALIZACION,
+            intention_name="Análisis de Proyecto",
+            semaphore=Semaphore.VERDE,
+            confidence=0.95,
+            gatillos_detected=[],
+            requires_context=[],
+        )
+
+        return ChatResponse(
+            message=response_text,
+            classification=classification,
+            sources=sources,
+            actions=[],
             disclaimers=STANDARD_DISCLAIMERS,
             conversation_id=conversation_id,
         )

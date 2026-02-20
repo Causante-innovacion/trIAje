@@ -30,7 +30,7 @@ interface ChatStore {
 
   // Actions
   startTool: (tool: ToolType) => void
-  startIntelligentChat: (initialMessage?: string) => void
+  startIntelligentChat: (initialMessage?: string, skipGreeting?: boolean) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
   addJustoMessage: (content: string, options?: Message['options']) => void
   addUserMessage: (content: string) => void
@@ -117,7 +117,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }, 300)
   },
 
-  startIntelligentChat: (initialMessage?: string) => {
+  startIntelligentChat: (initialMessage?: string, skipGreeting?: boolean) => {
     set({
       currentTool: 'chat',
       currentStep: 1,
@@ -131,7 +131,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     })
 
     const toolConfig = TOOLS.find(t => t.id === 'chat')
-    if (toolConfig && !initialMessage) {
+    if (toolConfig && !initialMessage && !skipGreeting) {
       setTimeout(() => {
         get().addJustoMessage(toolConfig.initialMessage)
       }, 300)

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { chatApi } from '../shared/services/api'
 import { ChatResponse, MAX_MESSAGE_LENGTH } from '../types/chat'
@@ -29,6 +29,9 @@ export function useChat() {
     finalizeStreamingMessage,
     consumePendingAmberContext,
   } = useChatStore()
+
+  // Ref to hold the active AbortController for the streaming fetch
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Intelligent chat mode: uses /chat/message/stream (SSE)
   const sendIntelligentMessage = useCallback(async (content: string) => {
@@ -63,9 +66,14 @@ export function useChat() {
     const streamId = startStreamingMessage()
 
     try {
+      // Create an AbortController so we can cancel the request
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
+
       const response = await fetch(STREAM_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortController.signal,
         body: JSON.stringify({
           message: content,
           conversation_id: conversationId || undefined,
@@ -139,20 +147,25 @@ export function useChat() {
         }
       }
     } catch (error) {
-      // Remove the empty streaming bubble on error and show error message
-      finalizeStreamingMessage(streamId, {})
-      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('network'))) {
+      // If the request was aborted by the user, just clean up silently
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        finalizeStreamingMessage(streamId, {})
+      } else if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('network'))) {
+        // Remove the empty streaming bubble on error and show error message
+        finalizeStreamingMessage(streamId, {})
         addErrorMessage(
           'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta de nuevo.',
           'network'
         )
       } else {
+        finalizeStreamingMessage(streamId, {})
         addErrorMessage(
           'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
           'server'
         )
       }
     } finally {
+      abortControllerRef.current = null
       setProcessing(false)
     }
   }, [
@@ -278,6 +291,15 @@ export function useChat() {
     nextStep,
   ])
 
+  // Stop any in-progress streaming request
+  const stopProcessing = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setProcessing(false)
+  }, [setProcessing])
+
   return {
     messages,
     currentTool,
@@ -285,5 +307,6 @@ export function useChat() {
     sendMessage,
     sendIntelligentMessage,
     selectOption,
+    stopProcessing,
   }
 }

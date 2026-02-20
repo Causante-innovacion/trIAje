@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useLayoutEffect, useRef } from 'react'
 
 interface UseTypewriterOptions {
     /** Words per batch to reveal at once (default: 2) */
@@ -12,6 +12,10 @@ interface UseTypewriterOptions {
 /**
  * Hook that reveals text word-by-word, creating a typewriter effect.
  * Returns the currently visible portion of the text and whether it's still animating.
+ *
+ * Uses useLayoutEffect so that `setVisibleText('')` runs synchronously
+ * before the browser paints. This prevents the one-frame flash of full
+ * text that would otherwise appear when `enabled` transitions to true.
  */
 export function useTypewriter(
     fullText: string,
@@ -25,7 +29,9 @@ export function useTypewriter(
     const indexRef = useRef(0)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-    useEffect(() => {
+    // useLayoutEffect fires synchronously after DOM mutations but BEFORE
+    // the browser paints, so the user never sees the stale visibleText value.
+    useLayoutEffect(() => {
         if (!enabled || !fullText) {
             setVisibleText(fullText)
             setIsAnimating(false)

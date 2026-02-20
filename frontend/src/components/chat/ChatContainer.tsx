@@ -66,7 +66,7 @@ export function ChatContainer() {
     consumePendingMessage,
   } = useChatStore()
 
-  const { sendMessage } = useChat()
+  const { sendMessage, stopProcessing } = useChat()
 
   const [projectInfo, setProjectInfo] = useState<ReturnType<typeof buildProjectInfo> | null>(null)
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
@@ -399,7 +399,11 @@ export function ChatContainer() {
 
       {/* Input area - fixed at bottom */}
       <div className="flex-shrink-0">
-        <ChatInput onSend={handleSendMessage} />
+        <ChatInput
+          onSend={handleSendMessage}
+          onFileUpload={handleFileUpload}
+          onStopProcessing={stopProcessing}
+        />
       </div>
     </div>
   )

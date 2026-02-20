@@ -2,13 +2,14 @@ import { useState, useRef } from 'react'
 import { Send, Square, Loader2 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { ActionMenu } from './ActionMenu'
-import { api } from '../../shared/services/api'
 
 interface ChatInputProps {
   onSend: (message: string) => void
+  onFileUpload?: (file: File) => void
+  onStopProcessing?: () => void
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -32,8 +33,16 @@ export function ChatInput({ onSend }: ChatInputProps) {
       return
     }
 
+    // Use the same extractPlan flow as the dedicated FileUpload component
+    if (onFileUpload) {
+      onFileUpload(file)
+      return
+    }
+
+    // Fallback: if no onFileUpload handler, upload via chat/upload endpoint
     setIsUploading(true)
     try {
+      const { api } = await import('../../shared/services/api')
       const formData = new FormData()
       formData.append('file', file)
       formData.append('tool', 'general')
@@ -46,8 +55,6 @@ export function ChatInput({ onSend }: ChatInputProps) {
       const filename = (data.filename as string) || file.name
       const preview = (data.content_preview as string) || ''
 
-      // Start with a recognised project-analysis trigger so the classifier
-      // routes this directly into the project analysis pipeline.
       const msg = preview
         ? `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}":\n\n${preview}`
         : `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}".`
@@ -73,6 +80,12 @@ export function ChatInput({ onSend }: ChatInputProps) {
     }
   }
 
+  const handleStop = () => {
+    if (onStopProcessing) {
+      onStopProcessing()
+    }
+  }
+
   return (
     <div className="border-t border-gray-100 bg-white/80 backdrop-blur-sm px-4 py-4">
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
@@ -89,8 +102,8 @@ export function ChatInput({ onSend }: ChatInputProps) {
               isUploading
                 ? 'Subiendo archivo...'
                 : isDisabled
-                ? 'Espere a que termine el procesamiento...'
-                : 'Escribe tu respuesta aquí...'
+                  ? 'Espere a que termine el procesamiento...'
+                  : 'Escribe tu respuesta aquí...'
             }
             className="chat-input"
             disabled={isDisabled}
@@ -115,10 +128,11 @@ export function ChatInput({ onSend }: ChatInputProps) {
                 </span>
                 <button
                   type="button"
-                  className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center"
-                  disabled
+                  className="w-10 h-10 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors cursor-pointer"
+                  onClick={handleStop}
+                  title="Detener procesamiento"
                 >
-                  <Square className="w-4 h-4 text-gray-400" />
+                  <Square className="w-4 h-4 text-red-500" />
                 </button>
               </>
             ) : (
