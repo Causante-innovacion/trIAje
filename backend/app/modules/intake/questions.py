@@ -14,22 +14,22 @@ from .schemas import (
 
 
 # =============================================================================
-# FICHA LEGAL MÍNIMA - Bloques de preguntas base (comunes a todas las herramientas)
+# FICHA LEGAL MÍNIMA V2 - Bloques de preguntas consolidados
 # =============================================================================
 
 BLOCK_IDENTITY = QuestionBlock(
     id="identity",
-    name="Identidad y naturaleza",
-    description="Información básica sobre la organización",
+    name="Identificación y Naturaleza",
+    description="¿Quién eres y qué haces con tus fondos?",
     icon="Fingerprint",
     order=1,
     questions=[
         QuestionDefinition(
-            id="org_type",
-            text="¿Con cuál de las siguientes opciones se identifica mejor?",
+            id="identity_v2",
+            text="¿Cómo está organizada tu iniciativa y qué hacen con el dinero que generan?",
             input_type=InputType.ENUM,
-            options=ValidOptions.ORG_TYPES,
-            help_text="Seleccione el tipo de organización que mejor describe su situación actual.",
+            options=ValidOptions.IDENTITY_V2,
+            help_text="- **Asociación/Fundación:** Sin fines de lucro.\n- **Empresa:** Con fines de lucro.\n- **Colectivo:** Sin personería jurídica.",
             block="identity",
             order=1,
         ),
@@ -38,233 +38,116 @@ BLOCK_IDENTITY = QuestionBlock(
             text="¿Cuál describe mejor el objeto o fin principal de la organización?",
             input_type=InputType.ENUM,
             options=ValidOptions.ORG_PURPOSES,
-            help_text="El objeto social determina muchas obligaciones legales y beneficios tributarios.",
+            help_text="El entorno legal varía según el sector de impacto.",
             block="identity",
             order=2,
-        ),
-        QuestionDefinition(
-            id="seeks_profits",
-            text="¿La organización busca generar ganancias para repartir entre sus miembros?",
-            input_type=InputType.BOOLEAN,
-            help_text="Las organizaciones sin fines de lucro no distribuyen utilidades entre sus miembros.",
-            block="identity",
-            order=3,
         ),
     ],
 )
 
-BLOCK_FORMALIZATION = QuestionBlock(
-    id="formalization",
-    name="Nivel de formalización",
-    description="Estado de inscripción y registros",
+BLOCK_SUNAT = QuestionBlock(
+    id="sunat",
+    name="Situación Tributaria (SUNAT)",
+    description="Estado formal ante la administración tributaria",
     icon="Gavel",
     order=2,
     questions=[
         QuestionDefinition(
-            id="has_legal_status",
-            text="¿La organización cuenta actualmente con personería jurídica vigente?",
+            id="sunat_v2",
+            text="¿Cómo es tu relación actual con la SUNAT?",
             input_type=InputType.ENUM,
-            options=ValidOptions.YES_NO_IN_PROGRESS,
-            help_text="La personería jurídica se obtiene al inscribirse en Registros Públicos (SUNARP).",
-            block="formalization",
+            options=ValidOptions.SUNAT_V2,
+            help_text="Define si tienes RUC activo, problemas fiscales o eres informal.",
+            block="sunat",
             order=1,
-        ),
-        QuestionDefinition(
-            id="ruc_status",
-            text="¿Cuál es la situación del RUC?",
-            input_type=InputType.ENUM,
-            options=ValidOptions.RUC_STATUS,
-            help_text="El RUC es necesario para emitir comprobantes y cumplir obligaciones tributarias.",
-            block="formalization",
-            order=2,
-        ),
-        QuestionDefinition(
-            id="special_registries",
-            text="¿La organización está inscrita en algún registro especial?",
-            input_type=InputType.MULTI_SELECT,
-            options=ValidOptions.SPECIAL_REGISTRIES,
-            help_text="Estos registros otorgan beneficios específicos según el tipo de organización.",
-            block="formalization",
-            order=3,
         ),
     ],
 )
 
-BLOCK_INCOME = QuestionBlock(
-    id="income",
-    name="Fuentes de ingreso",
-    description="Manejo de fondos y financiamiento",
+BLOCK_FUNDS = QuestionBlock(
+    id="funds",
+    name="Fondos y Cooperación",
+    description="Manejo de dinero del exterior",
     icon="Banknote",
     order=3,
     questions=[
         QuestionDefinition(
-            id="handles_money",
-            text="¿La organización maneja o manejará dinero?",
-            input_type=InputType.BOOLEAN,
-            help_text="Incluye donaciones, cuotas, pagos por servicios, etc.",
-            block="income",
+            id="funds_v2",
+            text="¿Recibes dinero de fuentes fuera del Perú o de Cooperación Internacional?",
+            input_type=InputType.ENUM,
+            options=ValidOptions.FUNDS_V2,
+            help_text="Determina la necesidad de registro en APCI y beneficios tributarios.",
+            block="funds",
             order=1,
-        ),
-        QuestionDefinition(
-            id="receives_foreign_funds",
-            text="¿Recibe o planea recibir fondos desde fuera del Perú?",
-            input_type=InputType.BOOLEAN,
-            help_text="Fondos extranjeros pueden requerir registro en APCI y tienen tratamiento tributario especial.",
-            block="income",
-            order=2,
-        ),
-        QuestionDefinition(
-            id="income_sources",
-            text="¿De dónde provienen o provendrán los ingresos?",
-            input_type=InputType.MULTI_SELECT,
-            options=ValidOptions.INCOME_SOURCES,
-            help_text="Seleccione todas las fuentes de ingreso que apliquen.",
-            block="income",
-            order=3,
         ),
     ],
 )
 
-BLOCK_INTERNATIONAL_COOPERATION = QuestionBlock(
-    id="international_cooperation",
-    name="Cooperación internacional",
-    description="Registro y requisitos APCI",
-    icon="Globe",
+BLOCK_RESOURCES = QuestionBlock(
+    id="resources",
+    name="Recursos Humanos",
+    description="Modalidades de vinculación del equipo",
+    icon="Users",
     order=4,
     questions=[
         QuestionDefinition(
-            id="receives_international_cooperation",
-            text="¿La organización recibe o planea recibir cooperación técnica internacional?",
-            input_type=InputType.BOOLEAN,
-            help_text="La cooperación técnica incluye asistencia, capacitación, transferencia de tecnología y donaciones de fuentes internacionales.",
-            block="international_cooperation",
-            order=1,
-        ),
-        QuestionDefinition(
-            id="apci_status",
-            text="¿Cuál es la situación respecto al registro en APCI?",
-            input_type=InputType.ENUM,
-            options=ValidOptions.APCI_STATUS,
-            help_text="La APCI es la Agencia Peruana de Cooperación Internacional. El registro es obligatorio para recibir cooperación internacional.",
-            depends_on={"receives_international_cooperation": True},
-            block="international_cooperation",
-            order=2,
-        ),
-    ],
-)
-
-BLOCK_HUMAN_RESOURCES = QuestionBlock(
-    id="human_resources",
-    name="Recursos humanos",
-    description="Modalidades de contratación",
-    icon="Users",
-    order=5,
-    questions=[
-        QuestionDefinition(
-            id="hiring_modalities",
-            text="¿Qué modalidades de contratación utiliza o planea utilizar la organización?",
+            id="hiring_v2",
+            text="¿Bajo qué modalidades vinculas a las personas de tu equipo?",
             input_type=InputType.MULTI_SELECT,
-            options=ValidOptions.HIRING_MODALITIES,
-            help_text="Cada modalidad tiene diferentes obligaciones legales y costos asociados.",
-            block="human_resources",
+            options=ValidOptions.HIRING_V2,
+            help_text="Planilla, Locación, Voluntariado, Practicantes o Gestión de fundadores.",
+            block="resources",
             order=1,
-        ),
-        QuestionDefinition(
-            id="contracts_valid",
-            text="¿Los contratos o acuerdos con el personal están actualmente vigentes y formalizados?",
-            input_type=InputType.ENUM,
-            options=ValidOptions.YES_NO_NA,
-            help_text="Contratos escritos y vigentes protegen tanto a la organización como a los trabajadores.",
-            block="human_resources",
-            order=2,
-        ),
-    ],
-)
-
-BLOCK_ACCOUNTING = QuestionBlock(
-    id="accounting",
-    name="Información contable",
-    description="Registros financieros y documentación",
-    icon="BookOpen",
-    order=6,
-    questions=[
-        QuestionDefinition(
-            id="has_accounting_records",
-            text="¿Existen registros contables o financieros?",
-            input_type=InputType.ENUM,
-            options=ValidOptions.ACCOUNTING_STATUS,
-            help_text="Los registros contables son obligatorios para organizaciones con RUC.",
-            block="accounting",
-            order=1,
-        ),
-        QuestionDefinition(
-            id="available_documents",
-            text="¿La organización cuenta con alguno de los siguientes documentos?",
-            input_type=InputType.MULTI_SELECT,
-            options=ValidOptions.AVAILABLE_DOCUMENTS,
-            help_text="Estos documentos son importantes para la trazabilidad legal y financiera.",
-            block="accounting",
-            order=2,
-        ),
-    ],
-)
-
-BLOCK_GOVERNANCE = QuestionBlock(
-    id="governance",
-    name="Gobernanza y representación",
-    description="Órganos de gobierno y representación legal",
-    icon="Network",
-    order=7,
-    questions=[
-        QuestionDefinition(
-            id="has_governance_bodies",
-            text="¿La organización tiene órganos de gobierno definidos (asamblea, consejo, directorio, etc.)?",
-            input_type=InputType.BOOLEAN,
-            help_text="Los órganos de gobierno son necesarios para la toma de decisiones válidas.",
-            block="governance",
-            order=1,
-        ),
-        QuestionDefinition(
-            id="has_legal_representative",
-            text="¿Existe una persona designada como representante legal inscrito en Registros Públicos?",
-            input_type=InputType.ENUM,
-            options=ValidOptions.YES_NO_IN_PROGRESS,
-            help_text="El representante legal puede actuar en nombre de la organización.",
-            block="governance",
-            order=2,
         ),
     ],
 )
 
 BLOCK_INTANGIBLES = QuestionBlock(
     id="intangibles",
-    name="Uso de intangibles",
-    description="Software, datos y propiedad intelectual",
+    name="Activos e Intangibles",
+    description="Uso de software, marcas y datos personales",
     icon="Lightbulb",
-    order=8,
+    order=5,
     questions=[
         QuestionDefinition(
-            id="intangible_assets",
-            text="¿La organización utiliza alguno de los siguientes?",
+            id="intangibles_v2",
+            text="¿La organización utiliza o gestiona alguno de los siguientes?",
             input_type=InputType.MULTI_SELECT,
-            options=ValidOptions.INTANGIBLE_ASSETS,
-            help_text="El uso de intangibles puede generar obligaciones de licenciamiento y protección de datos.",
+            options=ValidOptions.INTANGIBLES_V2,
+            help_text="Software, Bases de datos (usuarios/beneficiarios) o Marcas/Logos.",
             block="intangibles",
             order=1,
         ),
     ],
 )
 
-# Lista de todos los bloques de la Ficha Legal Mínima
+BLOCK_URGENCY = QuestionBlock(
+    id="urgency",
+    name="Nivel de Urgencia",
+    description="Prioridad de la consulta legal",
+    icon="ClipboardList",
+    order=6,
+    questions=[
+        QuestionDefinition(
+            id="urgency_v2",
+            text="¿Cuál es el nivel de urgencia o necesidad de tu consulta?",
+            input_type=InputType.ENUM,
+            options=ValidOptions.URGENCY_V2,
+            help_text="Urgente disparará una derivación prioritaria a un especialista.",
+            block="urgency",
+            order=1,
+        ),
+    ],
+)
+
+# Lista de todos los bloques de la Ficha Legal Mínima V2
 LEGAL_PROFILE_BLOCKS = [
     BLOCK_IDENTITY,
-    BLOCK_FORMALIZATION,
-    BLOCK_INCOME,
-    BLOCK_INTERNATIONAL_COOPERATION,
-    BLOCK_HUMAN_RESOURCES,
-    BLOCK_ACCOUNTING,
-    BLOCK_GOVERNANCE,
+    BLOCK_SUNAT,
+    BLOCK_FUNDS,
+    BLOCK_RESOURCES,
     BLOCK_INTANGIBLES,
+    BLOCK_URGENCY,
 ]
 
 
@@ -301,7 +184,7 @@ BLOCK_EVALUATION_SPECIFIC = QuestionBlock(
             id="urgency",
             text="¿Cuál es la urgencia de esta evaluación?",
             input_type=InputType.ENUM,
-            options=ValidOptions.URGENCY_LEVELS,
+            options=ValidOptions.URGENCY_V2,
             help_text="Esto nos ayuda a priorizar las recomendaciones.",
             block="evaluation_specific",
             order=3,

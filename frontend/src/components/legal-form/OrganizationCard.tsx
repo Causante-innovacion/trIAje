@@ -24,29 +24,33 @@ export function OrganizationCard({ organization, isSelected, onClick }: Organiza
       type="button"
       onClick={onClick}
       className={clsx(
-        'flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 text-left w-full',
+        'flex items-center gap-4 p-4 rounded-[1.5rem] border-2 transition-all duration-300 text-left w-full shadow-sm',
         isSelected
-          ? 'border-causante-ocre bg-gold-50'
-          : 'border-gray-100 bg-white hover:border-gray-300'
+          ? 'border-causante-ocre bg-causante-crema/20 ring-4 ring-causante-ocre/5'
+          : 'border-gray-50 bg-white hover:border-gray-200'
       )}
     >
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: organization.color + '15', color: organization.color }}
+        style={{ backgroundColor: organization.color + '10', color: organization.color }}
       >
         <Icon className="w-5 h-5" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 py-1">
         <p className={clsx(
-          'font-heading font-semibold text-sm truncate',
+          'font-heading font-bold text-sm leading-tight break-words',
           isSelected ? 'text-gray-900' : 'text-gray-700'
-        )}>{organization.name}</p>
-        <p className="text-xs text-gray-400 truncate">{organization.role}</p>
+        )}>
+          {organization.name}
+        </p>
+        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mt-1 break-words">
+          {organization.role}
+        </p>
       </div>
-      <div className="text-right flex-shrink-0">
+      <div className="text-right flex-shrink-0 pl-2">
         <span className={clsx(
-          'text-lg font-bold',
-          organization.progress === 100 ? 'text-causante-ocre' : 'text-gray-300'
+          'text-lg font-black',
+          organization.progress === 100 ? 'text-causante-ocre' : 'text-gray-200'
         )}>
           {organization.progress}%
         </span>

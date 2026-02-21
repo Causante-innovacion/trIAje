@@ -50,77 +50,64 @@ class DerivationColor(str, Enum):
 # =============================================================================
 
 class ValidOptions:
-    """Opciones válidas para cada campo del intake"""
+    """Opciones válidas para cada campo del intake V2"""
 
-    # Identidad
-    ORG_TYPES = [
-        "Asociación",
-        "Fundación",
-        "ONG",
-        "Empresa",
-        "Colectivo / iniciativa no formalizada",
-        "Otro"
+    # Bloque 1: Identidad
+    IDENTITY_V2 = [
+        "Organización formal (Asociación o Fundación): Sin fines de lucro; el dinero se reinvierte en el objeto social.",
+        "Empresa (SAC, SA, SRL, EIRL): Con fines de lucro; el objetivo es generar utilidades para los socios.",
+        "Colectivo o Grupo: Iniciativa no formalizada (sin personería jurídica ante SUNARP)."
     ]
 
     ORG_PURPOSES = [
         "Educativo",
         "Cultural",
         "Ambiental",
-        "Asistencial / social",
-        "Tecnológico / innovación",
+        "Asistencial / Social",
+        "Tecnológico / Innovación",
         "Otro"
     ]
 
-    # Formalización
-    YES_NO_IN_PROGRESS = ["Sí", "No", "En trámite"]
-    RUC_STATUS = ["Lo tengo", "No lo tengo", "En trámite"]
-    SPECIAL_REGISTRIES = ["APCI", "Exonerada de Impuesto a la renta", "Ninguno"]
-
-    # Cooperación Internacional
-    APCI_STATUS = ["Registrado", "Necesita registro", "No aplica"]
-
-    # Ingresos
-    INCOME_SOURCES = [
-        "Donaciones",
-        "Venta de servicios o productos",
-        "Fondos públicos",
-        "Fondos privados",
-        "Cooperación internacional",
-        "Aún no recibe ingresos"
+    # Bloque 2: SUNAT
+    SUNAT_V2 = [
+        "Tengo RUC y está al día: Emito comprobantes y mis declaraciones están vigentes.",
+        "Tengo RUC, pero está pausado o con problemas: Estado 'Suspendido', 'Baja de Oficio' o figura como 'No Habido'.",
+        "No tengo RUC: Somos un colectivo o aún no iniciamos trámites ante impuestos.",
+        "No estoy seguro: Existe un número de RUC pero desconozco la situación legal actual."
     ]
 
-    # RRHH
-    HIRING_MODALITIES = [
-        "Planilla",
-        "Locación de servicios",
-        "Voluntariado",
-        "Prácticas",
-        "Ninguno"
-    ]
-    YES_NO_NA = ["Sí", "No", "No aplica"]
-
-    # Contable
-    ACCOUNTING_STATUS = ["Sí, completos", "Sí, parciales", "No", "En proceso"]
-    AVAILABLE_DOCUMENTS = [
-        "Estatuto o acta de constitución",
-        "Libros de actas",
-        "Estados financieros",
-        "Memorias anuales",
-        "Plan de uso de fondos",
-        "Ninguno"
+    # Bloque 3: Fondos y Cooperación
+    FUNDS_V2 = [
+        "No recibo fondos externos (Solo recibo dinero de ingresos propios o locales).",
+        "Sí, y estamos registrados ante APCI (Vigente).",
+        "Sí, pero no tenemos registro ante APCI o está vencido."
     ]
 
-    # Intangibles
-    INTANGIBLE_ASSETS = [
-        "Software propio",
-        "Software de terceros",
-        "Bases de datos de usuarios",
-        "Marca o símbolos distintivos",
-        "Contenido con derechos de autor",
-        "Ninguno"
+    # Bloque 4: RRHH
+    HIRING_V2 = [
+        "Personal en Planilla (Contrato de trabajo).",
+        "Locación de Servicios (Recibos por Honorarios).",
+        "Voluntariado (Bajo la Ley de Voluntariado).",
+        "Practicantes (Modalidades formativas).",
+        "Solo gestión de fundadores (Sin pagos externos)."
     ]
 
-    # Tool-specific: Evaluación
+    # Bloque 5: Intangibles
+    INTANGIBLES_V2 = [
+        "Software propio o desarrollado por terceros.",
+        "Bases de datos de usuarios o beneficiarios.",
+        "Marcas, logotipos o símbolos distintivos.",
+        "Ninguno de los anteriores."
+    ]
+
+    # Bloque 6: Urgencia
+    URGENCY_V2 = [
+        "Urgente: Tengo un plazo que vence pronto o recibí una notificación/demanda formal.",
+        "Medio: Es para planeamiento, prevención o proyectos que recién van a empezar.",
+        "Informativa: Solo estoy explorando el sistema o quiero aprender sobre el tema."
+    ]
+
+    # Tool-specific: Evaluación (se mantienen o ajustan si es necesario)
     EVALUATION_GOALS = [
         "Viabilidad legal del proyecto",
         "Identificación de riesgos",
@@ -137,13 +124,6 @@ class ValidOptions:
         "Contratos",
         "Formalización",
         "Gobernanza"
-    ]
-
-    URGENCY_LEVELS = [
-        "Inmediato (días)",
-        "Corto plazo (semanas)",
-        "Mediano plazo (meses)",
-        "Solo planificación"
     ]
 
     # Tool-specific: Compliance
@@ -220,68 +200,44 @@ class QuestionSet(BaseModel):
 
 class IdentityData(BaseModel):
     """Bloque 1: Identidad y naturaleza de la organización"""
-    org_type: str | None = None
-    org_type_other: str | None = None
+    identity_v2: str | None = None
     org_purpose: str | None = None
     org_purpose_other: str | None = None
-    seeks_profits: bool | None = None
 
 
-class FormalizationData(BaseModel):
-    """Bloque 2: Nivel de formalización"""
-    has_legal_status: str | None = None  # Sí/No/En trámite
-    ruc_status: str | None = None  # Lo tengo/No lo tengo/En trámite
-    special_registries: list[str] = Field(default_factory=list)
+class SunatData(BaseModel):
+    """Bloque 2: Situación Tributaria (SUNAT)"""
+    sunat_v2: str | None = None
 
 
-class IncomeData(BaseModel):
-    """Bloque 3: Fuentes de ingreso y manejo de fondos"""
-    handles_money: bool | None = None
-    receives_foreign_funds: bool | None = None
-    income_sources: list[str] = Field(default_factory=list)
-
-
-class InternationalCooperationData(BaseModel):
-    """Bloque 4: Cooperación internacional"""
-    receives_international_cooperation: bool | None = None
-    apci_status: str | None = None  # Registrado/Necesita registro/No aplica
+class FundsData(BaseModel):
+    """Bloque 3: Fondos y Cooperación"""
+    funds_v2: str | None = None
 
 
 class HumanResourcesData(BaseModel):
-    """Bloque 5: Recursos humanos"""
-    hiring_modalities: list[str] = Field(default_factory=list)
-    contracts_valid: str | None = None  # Sí/No/No aplica
-
-
-class AccountingData(BaseModel):
-    """Bloque 6: Información contable y administrativa"""
-    has_accounting_records: str | None = None  # Sí, completos/Sí, parciales/No/En proceso
-    available_documents: list[str] = Field(default_factory=list)
-
-
-class GovernanceData(BaseModel):
-    """Bloque 7: Gobernanza y representación"""
-    has_governance_bodies: bool | None = None
-    has_legal_representative: str | None = None  # Sí/No/En trámite
+    """Bloque 4: Recursos Humanos"""
+    hiring_v2: list[str] = Field(default_factory=list)
 
 
 class IntangiblesData(BaseModel):
-    """Bloque 8: Uso de intangibles y datos"""
-    intangible_assets: list[str] = Field(default_factory=list)
+    """Bloque 5: Activos e Intangibles"""
+    intangibles_v2: list[str] = Field(default_factory=list)
+
+
+class UrgencyData(BaseModel):
+    """Bloque 6: Nivel de Urgencia"""
+    urgency_v2: str | None = None
 
 
 class LegalProfile(BaseModel):
-    """Ficha Legal Mínima completa"""
+    """Ficha Legal Mínima completa V2"""
     identity: IdentityData = Field(default_factory=IdentityData)
-    formalization: FormalizationData = Field(default_factory=FormalizationData)
-    income: IncomeData = Field(default_factory=IncomeData)
-    international_cooperation: InternationalCooperationData = Field(
-        default_factory=InternationalCooperationData
-    )
+    sunat: SunatData = Field(default_factory=SunatData)
+    funds: FundsData = Field(default_factory=FundsData)
     human_resources: HumanResourcesData = Field(default_factory=HumanResourcesData)
-    accounting: AccountingData = Field(default_factory=AccountingData)
-    governance: GovernanceData = Field(default_factory=GovernanceData)
     intangibles: IntangiblesData = Field(default_factory=IntangiblesData)
+    urgency: UrgencyData = Field(default_factory=UrgencyData)
 
 
 # =============================================================================

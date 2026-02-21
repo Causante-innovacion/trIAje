@@ -64,29 +64,18 @@ async def get_all_questions():
 @router.get("/options")
 async def get_valid_options():
     """
-    Obtiene todas las opciones válidas para los campos del intake.
-
-    Útil para validación en el frontend y para poblar selects/checkboxes.
-
-    Returns:
-        Dict con todas las opciones válidas por campo
+    Obtiene todas las opciones válidas para los campos del intake V2.
     """
     return {
-        "org_types": ValidOptions.ORG_TYPES,
+        "identity_v2": ValidOptions.IDENTITY_V2,
         "org_purposes": ValidOptions.ORG_PURPOSES,
-        "yes_no_in_progress": ValidOptions.YES_NO_IN_PROGRESS,
-        "ruc_status": ValidOptions.RUC_STATUS,
-        "special_registries": ValidOptions.SPECIAL_REGISTRIES,
-        "apci_status": ValidOptions.APCI_STATUS,
-        "income_sources": ValidOptions.INCOME_SOURCES,
-        "hiring_modalities": ValidOptions.HIRING_MODALITIES,
-        "yes_no_na": ValidOptions.YES_NO_NA,
-        "accounting_status": ValidOptions.ACCOUNTING_STATUS,
-        "available_documents": ValidOptions.AVAILABLE_DOCUMENTS,
-        "intangible_assets": ValidOptions.INTANGIBLE_ASSETS,
+        "sunat_v2": ValidOptions.SUNAT_V2,
+        "funds_v2": ValidOptions.FUNDS_V2,
+        "hiring_v2": ValidOptions.HIRING_V2,
+        "intangibles_v2": ValidOptions.INTANGIBLES_V2,
+        "urgency_v2": ValidOptions.URGENCY_V2,
         "evaluation_goals": ValidOptions.EVALUATION_GOALS,
         "legal_areas": ValidOptions.LEGAL_AREAS,
-        "urgency_levels": ValidOptions.URGENCY_LEVELS,
         "compliance_goals": ValidOptions.COMPLIANCE_GOALS,
         "timeline_options": ValidOptions.TIMELINE_OPTIONS,
         "query_areas": ValidOptions.QUERY_AREAS,

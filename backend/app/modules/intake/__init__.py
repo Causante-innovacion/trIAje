@@ -37,13 +37,11 @@ from .schemas import (
     # Legal Profile (Ficha Legal Mínima)
     LegalProfile,
     IdentityData,
-    FormalizationData,
-    IncomeData,
-    InternationalCooperationData,
+    SunatData,
+    FundsData,
     HumanResourcesData,
-    AccountingData,
-    GovernanceData,
     IntangiblesData,
+    UrgencyData,
     # Tool-specific data
     ToolSpecificData,
     EvaluationSpecificData,
@@ -95,13 +93,11 @@ __all__ = [
     # Legal Profile
     "LegalProfile",
     "IdentityData",
-    "FormalizationData",
-    "IncomeData",
-    "InternationalCooperationData",
+    "SunatData",
+    "FundsData",
     "HumanResourcesData",
-    "AccountingData",
-    "GovernanceData",
     "IntangiblesData",
+    "UrgencyData",
     # Tool-specific data
     "ToolSpecificData",
     "EvaluationSpecificData",

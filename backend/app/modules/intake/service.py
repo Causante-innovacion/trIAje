@@ -74,15 +74,15 @@ class IntakeService:
         )
 
     def _validate_required_fields(self, request: IntakeRequest) -> list[ValidationError]:
-        """Valida que todos los campos requeridos estén presentes"""
+        """Valida que todos los campos requeridos estén presentes (V2)"""
         errors = []
         lp = request.legal_profile
 
-        # Bloque 1: Identidad (todos requeridos)
-        if not lp.identity.org_type:
+        # Bloque 1: Identidad
+        if not lp.identity.identity_v2:
             errors.append(ValidationError(
-                field="org_type",
-                message="Debe seleccionar el tipo de organización",
+                field="identity_v2",
+                message="Debe seleccionar cómo está organizada su iniciativa",
                 block="identity"
             ))
         if not lp.identity.org_purpose:
@@ -91,386 +91,156 @@ class IntakeService:
                 message="Debe seleccionar el fin principal de la organización",
                 block="identity"
             ))
-        if lp.identity.seeks_profits is None:
+
+        # Bloque 2: SUNAT
+        if not lp.sunat.sunat_v2:
             errors.append(ValidationError(
-                field="seeks_profits",
-                message="Debe indicar si la organización busca generar ganancias",
-                block="identity"
+                field="sunat_v2",
+                message="Debe indicar su relación actual con la SUNAT",
+                block="sunat"
             ))
 
-        # Bloque 2: Formalización
-        if not lp.formalization.has_legal_status:
+        # Bloque 3: Fondos
+        if not lp.funds.funds_v2:
             errors.append(ValidationError(
-                field="has_legal_status",
-                message="Debe indicar si tiene personería jurídica",
-                block="formalization"
-            ))
-        if not lp.formalization.ruc_status:
-            errors.append(ValidationError(
-                field="ruc_status",
-                message="Debe indicar la situación del RUC",
-                block="formalization"
+                field="funds_v2",
+                message="Debe indicar si recibe fondos extranjeros o de cooperación",
+                block="funds"
             ))
 
-        # Bloque 3: Ingresos
-        if lp.income.handles_money is None:
+        # Bloque 4: RRHH
+        if not lp.human_resources.hiring_v2:
             errors.append(ValidationError(
-                field="handles_money",
-                message="Debe indicar si maneja dinero",
-                block="income"
-            ))
-
-        # Bloque 4: Cooperación Internacional (condicional)
-        if lp.income.receives_foreign_funds is None:
-            errors.append(ValidationError(
-                field="receives_foreign_funds",
-                message="Debe indicar si recibe fondos extranjeros",
-                block="income"
-            ))
-
-        # Bloque 5: RRHH (modalidades requerido)
-        if not lp.human_resources.hiring_modalities:
-            errors.append(ValidationError(
-                field="hiring_modalities",
-                message="Debe seleccionar al menos una modalidad de contratación (o 'Ninguno')",
+                field="hiring_v2",
+                message="Debe seleccionar al menos una modalidad de vinculación",
                 block="human_resources"
             ))
 
-        # Bloque 6: Contable
-        if not lp.accounting.has_accounting_records:
+        # Bloque 5: Intangibles
+        if not lp.intangibles.intangibles_v2:
             errors.append(ValidationError(
-                field="has_accounting_records",
-                message="Debe indicar si existen registros contables",
-                block="accounting"
-            ))
-
-        # Bloque 7: Gobernanza
-        if lp.governance.has_governance_bodies is None:
-            errors.append(ValidationError(
-                field="has_governance_bodies",
-                message="Debe indicar si tiene órganos de gobierno",
-                block="governance"
-            ))
-
-        # Bloque 8: Intangibles
-        if not lp.intangibles.intangible_assets:
-            errors.append(ValidationError(
-                field="intangible_assets",
-                message="Debe seleccionar los intangibles que utiliza (o 'Ninguno')",
+                field="intangibles_v2",
+                message="Debe seleccionar los activos que gestiona (o 'Ninguno')",
                 block="intangibles"
             ))
 
-        # Validar campos específicos de herramienta
-        errors.extend(self._validate_tool_specific_required(request))
-
-        return errors
-
-    def _validate_tool_specific_required(self, request: IntakeRequest) -> list[ValidationError]:
-        """Valida campos requeridos específicos de cada herramienta"""
-        errors = []
-        ts = request.tool_specific
-
-        if request.tool == ToolType.EVALUATION:
-            if not ts.evaluation or not ts.evaluation.evaluation_goals:
-                errors.append(ValidationError(
-                    field="evaluation_goals",
-                    message="Debe seleccionar al menos un objetivo de evaluación",
-                    block="evaluation_specific"
-                ))
-
-        elif request.tool == ToolType.COMPLIANCE:
-            if not ts.compliance or not ts.compliance.compliance_goal:
-                errors.append(ValidationError(
-                    field="compliance_goal",
-                    message="Debe seleccionar el objetivo de cumplimiento",
-                    block="compliance_specific"
-                ))
-
-        elif request.tool == ToolType.QUERY:
-            if not ts.query or not ts.query.query_area:
-                errors.append(ValidationError(
-                    field="query_area",
-                    message="Debe seleccionar el área de consulta",
-                    block="query_specific"
-                ))
-            if not ts.query or not ts.query.specific_question:
-                errors.append(ValidationError(
-                    field="specific_question",
-                    message="Debe escribir su consulta específica",
-                    block="query_specific"
-                ))
+        # Bloque 6: Urgencia
+        if not lp.urgency.urgency_v2:
+            errors.append(ValidationError(
+                field="urgency_v2",
+                message="Debe indicar el nivel de urgencia de su consulta",
+                block="urgency"
+            ))
 
         return errors
 
     def _enforce_selector_inputs(self, request: IntakeRequest) -> list[ValidationError]:
-        """Verifica que los valores correspondan a opciones válidas"""
+        """Verifica que los valores correspondan a opciones válidas V2"""
         errors = []
         lp = request.legal_profile
 
-        # Identidad
-        if lp.identity.org_type and lp.identity.org_type not in ValidOptions.ORG_TYPES:
-            errors.append(ValidationError(
-                field="org_type",
-                message=f"'{lp.identity.org_type}' no es un tipo de organización válido",
-                block="identity"
-            ))
+        if lp.identity.identity_v2 and lp.identity.identity_v2 not in ValidOptions.IDENTITY_V2:
+            errors.append(ValidationError(field="identity_v2", message="Opción de identidad no válida", block="identity"))
+        
         if lp.identity.org_purpose and lp.identity.org_purpose not in ValidOptions.ORG_PURPOSES:
-            errors.append(ValidationError(
-                field="org_purpose",
-                message=f"'{lp.identity.org_purpose}' no es un fin válido",
-                block="identity"
-            ))
+            errors.append(ValidationError(field="org_purpose", message="Opción de fin no válida", block="identity"))
 
-        # Formalización
-        if lp.formalization.has_legal_status and lp.formalization.has_legal_status not in ValidOptions.YES_NO_IN_PROGRESS:
-            errors.append(ValidationError(
-                field="has_legal_status",
-                message="Valor no válido para personería jurídica",
-                block="formalization"
-            ))
-        if lp.formalization.ruc_status and lp.formalization.ruc_status not in ValidOptions.RUC_STATUS:
-            errors.append(ValidationError(
-                field="ruc_status",
-                message="Valor no válido para situación de RUC",
-                block="formalization"
-            ))
-        for registry in lp.formalization.special_registries:
-            if registry not in ValidOptions.SPECIAL_REGISTRIES:
-                errors.append(ValidationError(
-                    field="special_registries",
-                    message=f"'{registry}' no es un registro especial válido",
-                    block="formalization"
-                ))
+        if lp.sunat.sunat_v2 and lp.sunat.sunat_v2 not in ValidOptions.SUNAT_V2:
+            errors.append(ValidationError(field="sunat_v2", message="Opción SUNAT no válida", block="sunat"))
 
-        # Ingresos
-        for source in lp.income.income_sources:
-            if source not in ValidOptions.INCOME_SOURCES:
-                errors.append(ValidationError(
-                    field="income_sources",
-                    message=f"'{source}' no es una fuente de ingreso válida",
-                    block="income"
-                ))
+        if lp.funds.funds_v2 and lp.funds.funds_v2 not in ValidOptions.FUNDS_V2:
+            errors.append(ValidationError(field="funds_v2", message="Opción de fondos no válida", block="funds"))
 
-        # Cooperación internacional
-        if lp.international_cooperation.apci_status and lp.international_cooperation.apci_status not in ValidOptions.APCI_STATUS:
-            errors.append(ValidationError(
-                field="apci_status",
-                message="Valor no válido para situación APCI",
-                block="international_cooperation"
-            ))
+        for h in lp.human_resources.hiring_v2:
+            if h not in ValidOptions.HIRING_V2:
+                errors.append(ValidationError(field="hiring_v2", message=f"'{h}' no es una modalidad válida", block="human_resources"))
 
-        # RRHH
-        for modality in lp.human_resources.hiring_modalities:
-            if modality not in ValidOptions.HIRING_MODALITIES:
-                errors.append(ValidationError(
-                    field="hiring_modalities",
-                    message=f"'{modality}' no es una modalidad de contratación válida",
-                    block="human_resources"
-                ))
-        if lp.human_resources.contracts_valid and lp.human_resources.contracts_valid not in ValidOptions.YES_NO_NA:
-            errors.append(ValidationError(
-                field="contracts_valid",
-                message="Valor no válido para vigencia de contratos",
-                block="human_resources"
-            ))
+        for i in lp.intangibles.intangibles_v2:
+            if i not in ValidOptions.INTANGIBLES_V2:
+                errors.append(ValidationError(field="intangibles_v2", message=f"'{i}' no es un activo válido", block="intangibles"))
 
-        # Contable
-        if lp.accounting.has_accounting_records and lp.accounting.has_accounting_records not in ValidOptions.ACCOUNTING_STATUS:
-            errors.append(ValidationError(
-                field="has_accounting_records",
-                message="Valor no válido para registros contables",
-                block="accounting"
-            ))
-        for doc in lp.accounting.available_documents:
-            if doc not in ValidOptions.AVAILABLE_DOCUMENTS:
-                errors.append(ValidationError(
-                    field="available_documents",
-                    message=f"'{doc}' no es un documento válido",
-                    block="accounting"
-                ))
-
-        # Gobernanza
-        if lp.governance.has_legal_representative and lp.governance.has_legal_representative not in ValidOptions.YES_NO_IN_PROGRESS:
-            errors.append(ValidationError(
-                field="has_legal_representative",
-                message="Valor no válido para representante legal",
-                block="governance"
-            ))
-
-        # Intangibles
-        for asset in lp.intangibles.intangible_assets:
-            if asset not in ValidOptions.INTANGIBLE_ASSETS:
-                errors.append(ValidationError(
-                    field="intangible_assets",
-                    message=f"'{asset}' no es un activo intangible válido",
-                    block="intangibles"
-                ))
+        if lp.urgency.urgency_v2 and lp.urgency.urgency_v2 not in ValidOptions.URGENCY_V2:
+            errors.append(ValidationError(field="urgency_v2", message="Opción de urgencia no válida", block="urgency"))
 
         return errors
 
     def _validate_cross_field(
         self, request: IntakeRequest
     ) -> tuple[list[ValidationError], list[ValidationWarning]]:
-        """
-        Valida consistencia entre campos relacionados.
-        Detecta inconsistencias lógicas.
-        """
+        """Valida consistencia entre campos según Gatillos Críticos V2"""
         errors = []
         warnings = []
         lp = request.legal_profile
 
-        # Si recibe fondos extranjeros pero no tiene registro APCI
-        if (lp.income.receives_foreign_funds and
-            lp.international_cooperation.apci_status != "Registrado" and
-            "APCI" not in lp.formalization.special_registries):
-            warnings.append(ValidationWarning(
-                field="apci_status",
-                message="Recibe fondos extranjeros pero no está registrado en APCI. Esto podría ser un requisito pendiente.",
-                severity="medium"
-            ))
+        # Alerta Asociación + Fines de Lucro
+        if lp.identity.identity_v2 and "Asociación" in lp.identity.identity_v2:
+            # En V2 la opción ya dice "Sin fines de lucro", pero si hubiera un checkbox separado...
+            # Aquí la validación es intrínseca a la opción elegida.
+            pass
 
-        # Si maneja dinero pero no tiene RUC
-        if lp.income.handles_money and lp.formalization.ruc_status == "No lo tengo":
-            warnings.append(ValidationWarning(
-                field="ruc_status",
-                message="Maneja dinero pero no tiene RUC. Esto podría generar problemas tributarios.",
-                severity="medium"
-            ))
-
-        # Si tiene personal en planilla pero no tiene personería jurídica
-        if ("Planilla" in lp.human_resources.hiring_modalities and
-            lp.formalization.has_legal_status == "No"):
+        # Alerta No RUC + Planilla
+        no_ruc = lp.sunat.sunat_v2 == "No tengo RUC: Somos un colectivo o aún no iniciamos trámites ante impuestos."
+        has_planilla = "Personal en Planilla (Contrato de trabajo)." in lp.human_resources.hiring_v2
+        if no_ruc and has_planilla:
             errors.append(ValidationError(
-                field="hiring_modalities",
-                message="No puede tener personal en planilla sin personería jurídica",
+                field="hiring_v2",
+                message="Inconsistencia Laboral: No se puede contratar en planilla sin un RUC activo.",
                 block="human_resources"
             ))
 
-        # Si busca ganancias pero dice ser ONG/Asociación
-        if (lp.identity.seeks_profits and
-            lp.identity.org_type in ["Asociación", "Fundación", "ONG"]):
+        # Alerta Bases de Datos + Colectivo
+        is_colectivo = lp.identity.identity_v2 == "Colectivo o Grupo: Iniciativa no formalizada (sin personería jurídica ante SUNARP)."
+        has_db = "Bases de datos de usuarios o beneficiarios." in lp.intangibles.intangibles_v2
+        if is_colectivo and has_db:
             warnings.append(ValidationWarning(
-                field="seeks_profits",
-                message="Las asociaciones, fundaciones y ONGs no pueden distribuir ganancias entre sus miembros.",
+                field="intangibles_v2",
+                message="Riesgo de Datos: Un grupo sin personería jurídica no puede cumplir plenamente la Ley de Protección de Datos Personales.",
                 severity="medium"
             ))
 
-        # Si tiene contratos vigentes pero no tiene ninguna modalidad de contratación
-        if (lp.human_resources.contracts_valid == "Sí" and
-            "Ninguno" in lp.human_resources.hiring_modalities):
-            errors.append(ValidationError(
-                field="contracts_valid",
-                message="Indica contratos vigentes pero no tiene modalidades de contratación",
-                block="human_resources"
-            ))
-
-        # Si usa bases de datos de usuarios pero no tiene personería jurídica
-        if ("Bases de datos de usuarios" in lp.intangibles.intangible_assets and
-            lp.formalization.has_legal_status == "No"):
+        # Alerta Empresa + Voluntariado
+        is_empresa = lp.identity.identity_v2 == "Empresa (SAC, SA, SRL, EIRL): Con fines de lucro; el objetivo es generar utilidades para los socios."
+        has_voluntariado = "Voluntariado (Bajo la Ley de Voluntariado)." in lp.human_resources.hiring_v2
+        if is_empresa and has_voluntariado:
             warnings.append(ValidationWarning(
-                field="intangible_assets",
-                message="Maneja datos personales sin personería jurídica. Considere la formalización para cumplir con la Ley de Protección de Datos Personales.",
+                field="hiring_v2",
+                message="Alerta de Desnaturalización: El voluntariado legal solo aplica a entidades sin fines de lucro. Riesgo de multas en empresas.",
                 severity="medium"
             ))
 
         return errors, warnings
 
     def _assess_risk(self, request: IntakeRequest) -> RiskAssessment:
-        """
-        Evalúa el nivel de riesgo y determina si requiere derivación a abogado.
-        Implementa los criterios de color según la documentación legal.
-        """
+        """Evalúa riesgos y gatillos globales V2"""
         signals: list[RiskSignal] = []
         reasons: list[str] = []
         lp = request.legal_profile
 
-        # === SEÑALES DE RIESGO ALTO (posible derivación) ===
+        # Gatillo Global: Urgencia
+        is_urgent = lp.urgency.urgency_v2 and "Urgente" in lp.urgency.urgency_v2
+        if is_urgent:
+            signals.append(RiskSignal(signal_type="global_trigger", description="Urgencia inmediata detectada", source_field="urgency_v2"))
+            reasons.append("Se requiere derivación prioritaria a un especialista humano debido a plazos o notificaciones.")
 
-        # Sin personería jurídica pero maneja dinero o personal
-        if lp.formalization.has_legal_status == "No":
-            if lp.income.handles_money:
-                signals.append(RiskSignal(
-                    signal_type="structure_risk",
-                    description="Maneja dinero sin personería jurídica",
-                    source_field="has_legal_status"
-                ))
-                reasons.append("Operar sin personería jurídica manejando dinero genera riesgos legales significativos")
+        # Riesgo Laboral (Inconsistencia)
+        no_ruc = lp.sunat.sunat_v2 == "No tengo RUC: Somos un colectivo o aún no iniciamos trámites ante impuestos."
+        if no_ruc and "Personal en Planilla (Contrato de trabajo)." in lp.human_resources.hiring_v2:
+            signals.append(RiskSignal(signal_type="labor_risk", description="Intento de planilla sin RUC", source_field="hiring_v2"))
+            reasons.append("Riesgo crítico de incumplimiento laboral y tributario.")
 
-            if "Planilla" in lp.human_resources.hiring_modalities:
-                signals.append(RiskSignal(
-                    signal_type="labor_risk",
-                    description="Intenta contratar en planilla sin personería jurídica",
-                    source_field="hiring_modalities"
-                ))
-                reasons.append("No es posible tener trabajadores en planilla sin personería jurídica")
+        # Riesgo de Cooperación (Fondos sin registro)
+        if lp.funds.funds_v2 == "Sí, pero no tenemos registro ante APCI o está vencido.":
+            signals.append(RiskSignal(signal_type="apci_risk", description="Fondos extranjeros sin APCI vigente", source_field="funds_v2"))
+            reasons.append("Es indispensable regularizar la situación ante APCI para gestionar fondos internacionales.")
 
-        # Recibe cooperación internacional sin registro APCI
-        if (lp.international_cooperation.receives_international_cooperation and
-            lp.international_cooperation.apci_status == "Necesita registro"):
-            signals.append(RiskSignal(
-                signal_type="apci_risk",
-                description="Recibe cooperación internacional sin estar registrado en APCI",
-                source_field="apci_status"
-            ))
-            reasons.append("El registro en APCI es obligatorio para recibir cooperación técnica internacional")
+        # Determinar nivel final
+        derivation_required = is_urgent
+        derivation_color = DerivationColor.RED if is_urgent else DerivationColor.GREEN
+        risk_level = RiskLevel.HIGH if is_urgent else RiskLevel.LOW
 
-        # Sin registros contables manejando dinero
-        if lp.income.handles_money and lp.accounting.has_accounting_records == "No":
-            signals.append(RiskSignal(
-                signal_type="accounting_risk",
-                description="Maneja dinero sin registros contables",
-                source_field="has_accounting_records"
-            ))
-            reasons.append("La falta de registros contables puede generar problemas tributarios y de transparencia")
-
-        # Locación de servicios con posible subordinación (riesgo laboral)
-        if "Locación de servicios" in lp.human_resources.hiring_modalities:
-            signals.append(RiskSignal(
-                signal_type="labor_risk",
-                description="Usa locación de servicios - verificar que no haya subordinación",
-                source_field="hiring_modalities"
-            ))
-            reasons.append("La locación de servicios mal utilizada puede derivar en demandas laborales")
-
-        # === DETERMINAR NIVEL DE RIESGO Y COLOR ===
-
-        derivation_required = False
-        derivation_color = DerivationColor.GREEN
-        risk_level = RiskLevel.LOW
-
-        high_risk_signals = [s for s in signals if s.signal_type in [
-            "labor_risk", "apci_risk"
-        ]]
-        medium_risk_signals = [s for s in signals if s.signal_type in [
-            "structure_risk", "accounting_risk"
-        ]]
-
-        if len(high_risk_signals) >= 2:
-            derivation_required = True
-            derivation_color = DerivationColor.RED
-            risk_level = RiskLevel.HIGH
-        elif len(high_risk_signals) >= 1:
-            derivation_color = DerivationColor.YELLOW
-            risk_level = RiskLevel.HIGH
-        elif len(medium_risk_signals) >= 2:
+        if signals and not is_urgent:
             derivation_color = DerivationColor.YELLOW
             risk_level = RiskLevel.MEDIUM
-        elif len(signals) > 0:
-            risk_level = RiskLevel.MEDIUM
-
-        # === VERIFICAR INTENCIONES QUE SIEMPRE SON AMARILLAS/ROJAS ===
-
-        # Query en áreas sensibles
-        if request.tool == ToolType.QUERY:
-            ts = request.tool_specific
-            if ts.query and ts.query.query_area in [
-                "Contratación de personal",
-                "Cooperación internacional",
-                "Propiedad intelectual"
-            ]:
-                if derivation_color == DerivationColor.GREEN:
-                    derivation_color = DerivationColor.YELLOW
-                    risk_level = RiskLevel.MEDIUM
 
         return RiskAssessment(
             derivation_required=derivation_required,
@@ -483,8 +253,7 @@ class IntakeService:
     def _normalize(
         self, request: IntakeRequest, risk_assessment: RiskAssessment
     ) -> NormalizedIntake:
-        """Normaliza los datos del intake para procesamiento posterior"""
-        # Detectar intenciones según las respuestas
+        """Normaliza los datos del intake V2"""
         detected_intentions = self._detect_intentions(request)
 
         return NormalizedIntake(
@@ -501,75 +270,33 @@ class IntakeService:
         )
 
     def _detect_intentions(self, request: IntakeRequest) -> list[str]:
-        """
-        Detecta las intenciones legales según la documentación del equipo legal.
-        Las intenciones son:
-        1. Formalización y registros
-        2. Evaluación de viabilidad
-        3. Financiamiento y tributación
-        4. Contratación de personal
-        5. Cooperación internacional
-        6. Propiedad intelectual
-        7. Preparación de reuniones
-        8. Riesgos y gestión
-        9. Registro de donaciones
-        10. Casos grises (derivación)
-        """
+        """Detecta intenciones legales V2"""
         intentions = []
         lp = request.legal_profile
 
-        # Formalización y registros
-        if (lp.formalization.has_legal_status in ["No", "En trámite"] or
-            lp.formalization.ruc_status in ["No lo tengo", "En trámite"]):
+        if lp.identity.identity_v2 == "Colectivo o Grupo: Iniciativa no formalizada (sin personería jurídica ante SUNARP).":
             intentions.append("formalization")
-
-        # Financiamiento y tributación
-        if lp.income.handles_money or lp.income.income_sources:
+        
+        if lp.sunat.sunat_v2 and "No tengo RUC" in lp.sunat.sunat_v2:
             intentions.append("taxation")
 
-        # Contratación de personal
-        if lp.human_resources.hiring_modalities and "Ninguno" not in lp.human_resources.hiring_modalities:
+        if lp.human_resources.hiring_v2 and "Solo gestión de fundadores" not in lp.human_resources.hiring_v2:
             intentions.append("hiring")
 
-        # Cooperación internacional
-        if (lp.income.receives_foreign_funds or
-            lp.international_cooperation.receives_international_cooperation):
+        if lp.funds.funds_v2 and "Sí" in lp.funds.funds_v2:
             intentions.append("international_cooperation")
 
-        # Propiedad intelectual
-        if lp.intangibles.intangible_assets and "Ninguno" not in lp.intangibles.intangible_assets:
+        if lp.intangibles.intangibles_v2 and "Ninguno" not in lp.intangibles.intangibles_v2:
             intentions.append("intellectual_property")
 
-        # Donaciones
-        if "Donaciones" in lp.income.income_sources:
-            intentions.append("donations")
-
-        # Gobernanza
-        if (lp.governance.has_governance_bodies is False or
-            lp.governance.has_legal_representative in ["No", "En trámite"]):
-            intentions.append("governance")
-
-        # Basado en herramienta
-        if request.tool == ToolType.EVALUATION:
-            intentions.append("viability_evaluation")
-        elif request.tool == ToolType.COMPLIANCE:
-            intentions.append("compliance_route")
-
-        return list(set(intentions))  # Eliminar duplicados
-
-    # =========================================================================
-    # MULTI-ORGANIZACIÓN - Validación de proyectos con múltiples organizaciones
-    # =========================================================================
+        return list(set(intentions))
 
     def validate_project(
         self, request: "ProjectIntakeRequest"
     ) -> "ProjectValidationResponse":
-        """
-        Valida un proyecto con múltiples organizaciones (1-3).
-        Retorna errores, warnings y evaluación de riesgo agregada.
-        """
+        """Valida un proyecto multi-org V2"""
         from .schemas import (
-            ProjectIntakeRequest,
+            IntakeRequest,
             ProjectValidationResponse,
             ProjectValidationError,
             ProjectRiskAssessment,
@@ -583,9 +310,7 @@ class IntakeService:
         org_risks: list[OrganizationRiskAssessment] = []
         all_intentions: list[str] = []
 
-        # Validar cada organización
         for org in request.organizations:
-            # Crear un IntakeRequest temporal para reutilizar validación existente
             temp_request = IntakeRequest(
                 tool=request.tool,
                 legal_profile=org.legal_profile,
@@ -594,64 +319,30 @@ class IntakeService:
                 organization_id=org.id,
             )
 
-            # Validar campos requeridos
             req_errors = self._validate_required_fields(temp_request)
             for err in req_errors:
-                errors.append(ProjectValidationError(
-                    organization_id=org.id,
-                    organization_name=org.name,
-                    field=err.field,
-                    message=err.message,
-                    block=err.block,
-                ))
+                errors.append(ProjectValidationError(organization_id=org.id, organization_name=org.name, field=err.field, message=err.message, block=err.block))
 
-            # Validar opciones de selector
             sel_errors = self._enforce_selector_inputs(temp_request)
             for err in sel_errors:
-                errors.append(ProjectValidationError(
-                    organization_id=org.id,
-                    organization_name=org.name,
-                    field=err.field,
-                    message=err.message,
-                    block=err.block,
-                ))
+                errors.append(ProjectValidationError(organization_id=org.id, organization_name=org.name, field=err.field, message=err.message, block=err.block))
 
-            # Validar cross-field
             cross_errors, cross_warnings = self._validate_cross_field(temp_request)
             for err in cross_errors:
-                errors.append(ProjectValidationError(
-                    organization_id=org.id,
-                    organization_name=org.name,
-                    field=err.field,
-                    message=err.message,
-                    block=err.block,
-                ))
+                errors.append(ProjectValidationError(organization_id=org.id, organization_name=org.name, field=err.field, message=err.message, block=err.block))
             warnings.extend(cross_warnings)
 
-            # Evaluar riesgo de la organización
             risk = self._assess_risk(temp_request)
-            org_risks.append(OrganizationRiskAssessment(
-                organization_id=org.id,
-                organization_name=org.name,
-                risk_level=risk.risk_level,
-                signals=risk.signals,
-            ))
+            org_risks.append(OrganizationRiskAssessment(organization_id=org.id, organization_name=org.name, risk_level=risk.risk_level, signals=risk.signals))
+            all_intentions.extend(self._detect_intentions(temp_request))
 
-            # Detectar intenciones
-            intentions = self._detect_intentions(temp_request)
-            all_intentions.extend(intentions)
-
-        # Detectar riesgos compartidos entre organizaciones
         shared_signals, shared_reasons = self._detect_shared_risks(request.organizations)
-
-        # Calcular riesgo agregado del proyecto
         project_risk = self._calculate_project_risk(org_risks, shared_signals)
         project_risk.organization_risks = org_risks
         project_risk.shared_signals = shared_signals
         project_risk.shared_reasons = shared_reasons
         project_risk.detected_intentions = list(set(all_intentions))
 
-        # Normalizar si es válido
         normalized_data = None
         if not errors:
             normalized_data = NormalizedProjectIntake(
@@ -667,114 +358,45 @@ class IntakeService:
                 total_organizations=len(request.organizations),
             )
 
-        return ProjectValidationResponse(
-            valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
-            risk_assessment=project_risk,
-            normalized_data=normalized_data,
-        )
+        return ProjectValidationResponse(valid=len(errors) == 0, errors=errors, warnings=warnings, risk_assessment=project_risk, normalized_data=normalized_data)
 
-    def _detect_shared_risks(
-        self, organizations: list["OrganizationProfile"]
-    ) -> tuple[list[RiskSignal], list[str]]:
-        """Detecta riesgos que surgen de la interacción entre organizaciones"""
-        from .schemas import OrganizationProfile
-
+    def _detect_shared_risks(self, organizations: list["OrganizationProfile"]) -> tuple[list[RiskSignal], list[str]]:
+        """Detecta riesgos compartidos V2"""
         signals: list[RiskSignal] = []
         reasons: list[str] = []
 
         if len(organizations) < 2:
             return signals, reasons
 
-        # Verificar si todas las orgs manejan datos de usuarios
-        orgs_with_user_data = [
-            org for org in organizations
-            if "Bases de datos de usuarios" in org.legal_profile.intangibles.intangible_assets
-        ]
-        if len(orgs_with_user_data) > 1:
-            signals.append(RiskSignal(
-                signal_type="data_sharing_risk",
-                description=f"{len(orgs_with_user_data)} organizaciones manejan bases de datos de usuarios - verificar transferencia de datos",
-                source_field="intangible_assets",
-            ))
-            reasons.append("Múltiples organizaciones manejan datos personales. Verificar cumplimiento de Ley de Protección de Datos Personales en transferencias.")
-
-        # Verificar si hay organizaciones sin personería jurídica
-        orgs_without_legal = [
-            org for org in organizations
-            if org.legal_profile.formalization.has_legal_status == "No"
-        ]
-        if orgs_without_legal and len(organizations) > 1:
-            signals.append(RiskSignal(
-                signal_type="informal_partner_risk",
-                description=f"{len(orgs_without_legal)} organización(es) sin personería jurídica participando en proyecto conjunto",
-                source_field="has_legal_status",
-            ))
-            reasons.append("Proyecto incluye organizaciones no formalizadas. Considerar riesgos de responsabilidad y capacidad contractual.")
-
-        # Verificar si hay mezcla de orgs con y sin APCI cuando hay fondos internacionales
-        orgs_receiving_intl = [
-            org for org in organizations
-            if org.legal_profile.income.receives_foreign_funds or
-               org.legal_profile.international_cooperation.receives_international_cooperation
-        ]
-        orgs_with_apci = [
-            org for org in organizations
-            if org.legal_profile.international_cooperation.apci_status == "Registrado" or
-               "APCI" in org.legal_profile.formalization.special_registries
-        ]
-        if orgs_receiving_intl and len(orgs_with_apci) < len(orgs_receiving_intl):
-            signals.append(RiskSignal(
-                signal_type="apci_gap_risk",
-                description="No todas las organizaciones que reciben fondos internacionales están registradas en APCI",
-                source_field="apci_status",
-            ))
-            reasons.append("Verificar que cada organización que canalice fondos internacionales esté registrada en APCI.")
+        # Orgs informales vinculadas a formales
+        has_formal = any("Organización formal" in org.legal_profile.identity.identity_v2 or "Empresa" in org.legal_profile.identity.identity_v2 for org in organizations)
+        has_informal = any("Colectivo" in org.legal_profile.identity.identity_v2 for org in organizations)
+        
+        if has_formal and has_informal:
+            signals.append(RiskSignal(signal_type="informal_partner_risk", description="Mezcla de entidades formales e informales en el proyecto", source_field="identity_v2"))
+            reasons.append("Riesgo de responsabilidad: Las entidades formales podrían asumir pasivos de las informales.")
 
         return signals, reasons
 
-    def _calculate_project_risk(
-        self,
-        org_risks: list["OrganizationRiskAssessment"],
-        shared_signals: list[RiskSignal],
-    ) -> "ProjectRiskAssessment":
-        """Calcula el riesgo agregado del proyecto"""
+    def _calculate_project_risk(self, org_risks: list["OrganizationRiskAssessment"], shared_signals: list[RiskSignal]) -> "ProjectRiskAssessment":
+        """Calcula riesgo agregado V2"""
         from .schemas import ProjectRiskAssessment
-
-        # El riesgo del proyecto es el máximo de las organizaciones
         max_risk = RiskLevel.LOW
-        for org_risk in org_risks:
-            if org_risk.risk_level == RiskLevel.HIGH:
-                max_risk = RiskLevel.HIGH
-                break
-            elif org_risk.risk_level == RiskLevel.MEDIUM:
-                max_risk = RiskLevel.MEDIUM
-
-        # Si hay riesgos compartidos significativos, aumentar el nivel
-        if len(shared_signals) >= 2 and max_risk == RiskLevel.LOW:
-            max_risk = RiskLevel.MEDIUM
-        elif len(shared_signals) >= 2 and max_risk == RiskLevel.MEDIUM:
-            max_risk = RiskLevel.HIGH
-
-        # Determinar color de derivación
-        derivation_color = DerivationColor.GREEN
         derivation_required = False
+        derivation_color = DerivationColor.GREEN
 
-        high_risk_count = sum(1 for r in org_risks if r.risk_level == RiskLevel.HIGH)
-        if high_risk_count >= 2 or (high_risk_count >= 1 and len(shared_signals) >= 2):
-            derivation_color = DerivationColor.RED
-            derivation_required = True
-        elif max_risk == RiskLevel.HIGH or len(shared_signals) >= 2:
-            derivation_color = DerivationColor.YELLOW
-        elif max_risk == RiskLevel.MEDIUM:
-            derivation_color = DerivationColor.YELLOW
+        for r in org_risks:
+            if r.risk_level == RiskLevel.HIGH:
+                max_risk = RiskLevel.HIGH
+                derivation_color = DerivationColor.RED
+                derivation_required = True
+            elif r.risk_level == RiskLevel.MEDIUM and max_risk == RiskLevel.LOW:
+                max_risk = RiskLevel.MEDIUM
+                derivation_color = DerivationColor.YELLOW
 
-        return ProjectRiskAssessment(
-            overall_risk_level=max_risk,
-            derivation_color=derivation_color,
-            derivation_required=derivation_required,
-        )
+        return ProjectRiskAssessment(overall_risk_level=max_risk, derivation_color=derivation_color, derivation_required=derivation_required)
+
+intake_service = IntakeService()
 
 
 # Instancia singleton para uso en la aplicación

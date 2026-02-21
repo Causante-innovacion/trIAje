@@ -162,20 +162,20 @@ body {
 .stagger-6 { animation-delay: 0.6s; }
 
 /* ── SCROLLBAR (subtle) ── */
-::-webkit-scrollbar {
-  width: 5px;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
 
-::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-200 rounded-full;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-100 rounded-full transition-colors;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-300;
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  @apply bg-gray-200;
 }
 
 /* ── FOCUS STYLES ── */

@@ -2,10 +2,10 @@ import { Check, X } from 'lucide-react'
 import clsx from 'clsx'
 
 // ─── Causante Design Tokens ───
-const SELECTED = 'border-2 border-causante-ocre bg-gold-50 text-gray-900 font-semibold'
-const UNSELECTED = 'border border-gray-200 hover:border-causante-ocre/40 hover:bg-gold-50/50'
-const DISABLED = 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-200'
-const BASE_CHIP = 'rounded-full text-sm transition-all duration-200 flex items-center justify-center p-3 text-center'
+const SELECTED = 'border-2 border-causante-ocre bg-causante-crema/20 text-gray-900 font-bold shadow-[0_8px_20px_-6px_rgba(179,153,76,0.25)] ring-1 ring-causante-ocre/10'
+const UNSELECTED = 'border border-gray-100 bg-white text-gray-600 hover:border-causante-ocre/40 hover:bg-causante-crema/5 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
+const DISABLED = 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-gray-100 hover:shadow-none hover:translate-y-0'
+const BASE_CHIP = 'rounded-2xl text-[13px] transition-all duration-300 flex items-center justify-center p-3 text-center leading-tight'
 
 // Yes/No Button Group
 interface YesNoButtonsProps {
@@ -28,7 +28,7 @@ export function YesNoButtons({
   disabled = false,
 }: YesNoButtonsProps) {
   return (
-    <div className={clsx('grid gap-3', threeOptions ? 'grid-cols-3' : 'grid-cols-2')}>
+    <div className={clsx('grid gap-4', threeOptions ? 'grid-cols-3' : 'grid-cols-2')}>
       <button
         type="button"
         onClick={() => !disabled && onChange(true)}
@@ -39,7 +39,7 @@ export function YesNoButtons({
           disabled && DISABLED
         )}
       >
-        <Check className={clsx('w-4 h-4 mr-2', value === true ? 'text-green-600' : 'text-gray-400')} />
+        <Check className={clsx('w-5 h-5 mr-2', value === true ? 'text-causante-ocre' : 'text-gray-300')} />
         {yesLabel}
       </button>
       <button
@@ -52,7 +52,7 @@ export function YesNoButtons({
           disabled && DISABLED
         )}
       >
-        <X className={clsx('w-4 h-4 mr-2', value === false ? 'text-red-500' : 'text-gray-400')} />
+        <X className={clsx('w-5 h-5 mr-2', value === false ? 'text-red-400' : 'text-gray-300')} />
         {noLabel}
       </button>
       {threeOptions && (
@@ -78,19 +78,20 @@ interface SingleSelectProps {
   options: string[]
   value: string | null
   onChange: (value: string) => void
-  columns?: 2 | 3 | 4
+  columns?: 1 | 2 | 3 | 4
   disabled?: boolean
 }
 
-export function SingleSelect({ options, value, onChange, columns = 3, disabled = false }: SingleSelectProps) {
+export function SingleSelect({ options, value, onChange, columns = 1, disabled = false }: SingleSelectProps) {
   const gridClass = {
+    1: 'grid-cols-1',
     2: 'grid-cols-1 sm:grid-cols-2',
     3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
     4: 'grid-cols-2 md:grid-cols-4',
   }
 
   return (
-    <div className={clsx('grid gap-3', gridClass[columns])}>
+    <div className={clsx('grid gap-4', gridClass[columns])}>
       {options.map((option) => (
         <button
           key={option}
@@ -98,12 +99,20 @@ export function SingleSelect({ options, value, onChange, columns = 3, disabled =
           onClick={() => !disabled && onChange(option)}
           disabled={disabled}
           className={clsx(
-            `${BASE_CHIP} min-h-[52px] px-4`,
+            `${BASE_CHIP} min-h-[60px] px-5 text-left justify-start relative overflow-hidden`,
             value === option ? SELECTED : UNSELECTED,
             disabled && DISABLED
           )}
         >
-          {option}
+          {value === option && (
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-causante-ocre" />
+          )}
+          <span className="flex-1 font-medium">{option}</span>
+          {value === option && (
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-causante-ocre text-white ml-2 shadow-sm">
+              <Check className="w-4 h-4" />
+            </div>
+          )}
         </button>
       ))}
     </div>
@@ -129,7 +138,7 @@ export function MultiSelectChips({ options, value, onChange, disabled = false }:
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {options.map((option) => {
         const isSelected = value.includes(option)
         return (
@@ -139,12 +148,12 @@ export function MultiSelectChips({ options, value, onChange, disabled = false }:
             onClick={() => toggleOption(option)}
             disabled={disabled}
             className={clsx(
-              `${BASE_CHIP} min-w-[120px] min-h-[48px] px-5`,
+              `${BASE_CHIP} min-h-[48px] px-5`,
               isSelected ? SELECTED : UNSELECTED,
               disabled && DISABLED
             )}
           >
-            {isSelected && <Check className="w-3.5 h-3.5 mr-1.5 text-causante-ocre" />}
+            {isSelected && <Check className="w-4 h-4 mr-2 text-causante-ocre" />}
             {option}
           </button>
         )
