@@ -238,6 +238,7 @@ def process_pdfs(dry_run: bool = False):
             "intenciones": ", ".join(tags.get("intenciones", [])),  # String para Qdrant
             "tipo_fuente": tags.get("tipo", "complementario"),
             "categoria": tags.get("categoria", "general"),
+            "url": tags.get("url", ""),  # Añadir URL desde las etiquetas
         }
 
         print(f"  🏷️  Intenciones: {metadata['intenciones']}")
