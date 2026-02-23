@@ -101,6 +101,8 @@ export interface Message {
     errorType?: 'network' | 'server' | 'validation' | 'timeout'
     /** Documentos que se van encontrando durante el RAG (se acumula en streaming) */
     scanningDocs?: string[]
+    /** Tipo de reporte generado a partir de este mensaje (para mostrar enlace inline) */
+    generatedReport?: 'evaluation' | 'adviser'
   }
 }
 

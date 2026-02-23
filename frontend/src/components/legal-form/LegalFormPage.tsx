@@ -6,7 +6,7 @@ import { useChatStore } from '../../stores/chatStore'
 import {
   Check, ChevronLeft, ChevronRight, Fingerprint, Gavel, Banknote, Users,
   Lightbulb, Building2, LucideIcon,
-  ClipboardList, ArrowLeft,
+  ClipboardList, ArrowLeft, Pencil, RefreshCw,
 } from 'lucide-react'
 import { OrganizationCard } from './OrganizationCard'
 import { ProgressTracker } from './ProgressTracker'
@@ -240,6 +240,14 @@ export function LegalFormPage() {
     const completedForm = { ...form, isCompleted: true }
     setForm(completedForm)
     saveToStorage(selectedOrg, completedForm)
+  }
+
+  // Unlocks the form for re-editing
+  const handleResetForm = () => {
+    const resetForm = { ...form, isCompleted: false, hasConfirmed: false }
+    setForm(resetForm)
+    saveToStorage(selectedOrg, resetForm)
+    setCurrentStep(0)
   }
 
   // Calls the evaluation API and navigates to the diagnostic page
@@ -580,37 +588,103 @@ export function LegalFormPage() {
           <div className="lg:col-span-8">
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-causante-ocre/5 border border-gray-50 overflow-hidden lg:h-[620px] flex flex-col">
               <div className="flex-1 overflow-y-auto p-6 sm:p-10 custom-scrollbar">
-                {stepRenderers[currentStep]()}
+                {form.isCompleted ? (
+                  /* ── Completed state view ─────────────────────────────────── */
+                  <div className="h-full flex flex-col items-center justify-center text-center py-8 space-y-8">
+                    {/* Badge */}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center shadow-inner">
+                        <Check className="w-8 h-8 text-green-600 stroke-[3]" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Ficha completada</h3>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {organizations.find(o => o.id === selectedOrg)?.name}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Data summary */}
+                    <div className="w-full max-w-xs grid grid-cols-2 gap-2.5 text-left">
+                      {[
+                        { label: 'Tipo', value: form.identityV2?.startsWith('Organización') ? 'Formal (Asoc./Fund.)' : form.identityV2?.startsWith('Empresa') ? 'Empresa (SAC/SRL)' : form.identityV2?.startsWith('Colectivo') ? 'Colectivo' : null },
+                        { label: 'Propósito', value: form.orgPurpose === 'Otro' ? form.orgPurposeOther || 'Otro' : form.orgPurpose },
+                        { label: 'SUNAT', value: form.sunatV2?.startsWith('Tengo RUC y está al día') ? 'RUC activo' : form.sunatV2?.startsWith('Tengo RUC, pero') ? 'RUC con problemas' : form.sunatV2?.startsWith('No tengo RUC') ? 'Sin RUC' : form.sunatV2?.startsWith('No estoy') ? 'Desconocido' : null },
+                        { label: 'Urgencia', value: form.urgencyV2?.startsWith('Urgente') ? '🔴 Urgente' : form.urgencyV2?.startsWith('Medio') ? '🟡 Medio' : form.urgencyV2?.startsWith('Informativa') ? '🟢 Explorando' : null },
+                      ].filter(item => item.value).map(item => (
+                        <div key={item.label} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{item.label}</p>
+                          <p className="text-xs font-semibold text-gray-700 mt-0.5 leading-tight">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Error */}
+                    {submitError && (
+                      <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-2 max-w-xs">{submitError}</p>
+                    )}
+
+                    {/* CTA buttons */}
+                    <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                      <button
+                        onClick={handleGenerateDiagnostic}
+                        disabled={isSubmitting}
+                        className={clsx(
+                          'w-full px-6 py-3.5 rounded-2xl font-black text-[10px] tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 uppercase',
+                          isSubmitting
+                            ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
+                            : 'bg-causante-ocre text-white hover:bg-opacity-90 active:scale-[0.98] shadow-causante-ocre/20'
+                        )}
+                      >
+                        {isSubmitting ? (
+                          <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Generando...</>
+                        ) : (
+                          <>Generar diagnóstico <ChevronRight className="w-3.5 h-3.5" /></>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleResetForm}
+                        disabled={isSubmitting}
+                        className="w-full px-6 py-3 rounded-2xl font-bold text-[10px] tracking-widest text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-all flex items-center justify-center gap-2 uppercase disabled:opacity-50"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Editar datos
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  stepRenderers[currentStep]()
+                )}
               </div>
 
-              {/* Navigation Footer */}
-              <div className="px-6 sm:px-10 py-6 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
-                <button
-                  onClick={goPrev}
-                  disabled={currentStep === 0}
-                  className={clsx(
-                    'flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all',
-                    currentStep === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:text-gray-900'
-                  )}
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                  Anterior
-                </button>
+              {/* Navigation Footer — hidden when form is completed */}
+              {!form.isCompleted && (
+                <div className="px-6 sm:px-10 py-6 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
+                  <button
+                    onClick={goPrev}
+                    disabled={currentStep === 0}
+                    className={clsx(
+                      'flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all',
+                      currentStep === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:text-gray-900'
+                    )}
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                    Anterior
+                  </button>
 
-                <div className="flex items-center gap-2">
-                  {STEPS.map((_, i) => (
-                    <div
-                      key={i}
-                      className={clsx(
-                        'h-1.5 rounded-full transition-all duration-700',
-                        i === currentStep ? 'w-8 bg-causante-ocre shadow-lg shadow-causante-ocre/30' : 'w-1.5 bg-gray-200'
-                      )}
-                    />
-                  ))}
-                </div>
+                  <div className="flex items-center gap-2">
+                    {STEPS.map((_, i) => (
+                      <div
+                        key={i}
+                        className={clsx(
+                          'h-1.5 rounded-full transition-all duration-700',
+                          i === currentStep ? 'w-8 bg-causante-ocre shadow-lg shadow-causante-ocre/30' : 'w-1.5 bg-gray-200'
+                        )}
+                      />
+                    ))}
+                  </div>
 
-                {isLastStep ? (
-                  !form.isCompleted ? (
+                  {isLastStep ? (
                     <button
                       onClick={handleSubmit}
                       disabled={isSubmitting || completedQuestions < totalQuestions || !form.hasConfirmed}
@@ -625,22 +699,20 @@ export function LegalFormPage() {
                       {!isSubmitting && <ChevronRight className="w-4 h-4" />}
                     </button>
                   ) : (
-                    <div /> /* Espacio vacío: el botón de generar diagnóstico está arriba */
-                  )
-                ) : (
-                  <button
-                    onClick={goNext}
-                    disabled={isLastStep}
-                    className={clsx(
-                      'flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all',
-                      isLastStep ? 'text-gray-200 cursor-not-allowed' : 'text-causante-ocre hover:opacity-70'
-                    )}
-                  >
-                    Siguiente
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                )}
-              </div>
+                    <button
+                      onClick={goNext}
+                      disabled={isLastStep}
+                      className={clsx(
+                        'flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all',
+                        isLastStep ? 'text-gray-200 cursor-not-allowed' : 'text-causante-ocre hover:opacity-70'
+                      )}
+                    >
+                      Siguiente
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

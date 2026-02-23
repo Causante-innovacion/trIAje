@@ -7,6 +7,7 @@ import { advisorPrepApi } from '../../shared/services/api'
 
 interface ActionCardProps {
     action: SuggestedAction
+    messageId?: string
     onFileUploadRequest?: () => void
 }
 
@@ -42,9 +43,10 @@ const ACTION_CONFIG: Record<ActionType, {
     },
 }
 
-export function ActionCard({ action, onFileUploadRequest }: ActionCardProps) {
+export function ActionCard({ action, messageId, onFileUploadRequest }: ActionCardProps) {
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const config = ACTION_CONFIG[action.type] || ACTION_CONFIG.none
     const Icon = isLoading ? Loader2 : config.icon
 
@@ -58,6 +60,7 @@ export function ActionCard({ action, onFileUploadRequest }: ActionCardProps) {
 
             case 'derive_to_advisor': {
                 setIsLoading(true)
+                setError(null)
                 try {
                     // Recopilar historial de conversación del store
                     const { messages, conversationId } = useChatStore.getState()
@@ -78,10 +81,13 @@ export function ActionCard({ action, onFileUploadRequest }: ActionCardProps) {
                         conversationId ?? undefined
                     )
                     useChatStore.getState().setLastAdviserData(response.data)
+                    if (messageId) {
+                        useChatStore.getState().markMessageWithReport(messageId, 'adviser')
+                    }
                     navigate('/legal-adviser', { state: { adviserData: response.data } })
-                } catch {
-                    // Si el API falla, navegar igual (usará mockData como fallback)
-                    navigate('/legal-adviser')
+                } catch (err) {
+                    console.error('[ActionCard] derive_to_advisor error:', err)
+                    setError('No se pudo preparar el paquete. Intenta de nuevo.')
                 } finally {
                     setIsLoading(false)
                 }
@@ -95,29 +101,34 @@ export function ActionCard({ action, onFileUploadRequest }: ActionCardProps) {
     }
 
     return (
-        <button
-            onClick={handleClick}
-            disabled={isLoading}
-            className={`w-full mt-3 p-4 rounded-xl border ${config.borderClass} ${config.bgClass} text-left transition-all duration-200 hover:shadow-sm group animate-fade-in disabled:opacity-70 disabled:cursor-wait`}
-        >
-            <div className="flex items-start gap-3">
-                <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${config.bgClass}`}>
-                    <Icon className={`w-5 h-5 ${config.colorClass} ${isLoading ? 'animate-spin' : ''}`} />
+        <div className="mt-3">
+            <button
+                onClick={handleClick}
+                disabled={isLoading}
+                className={`w-full p-4 rounded-xl border ${config.borderClass} ${config.bgClass} text-left transition-all duration-200 hover:shadow-sm group animate-fade-in disabled:opacity-70 disabled:cursor-wait`}
+            >
+                <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${config.bgClass}`}>
+                        <Icon className={`w-5 h-5 ${config.colorClass} ${isLoading ? 'animate-spin' : ''}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className={`font-semibold text-sm ${config.colorClass}`}>
+                            {isLoading ? 'Preparando paquete para tu asesor…' : action.label}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                            {isLoading
+                                ? 'Analizando la conversación y generando contenido personalizado.'
+                                : action.description}
+                        </p>
+                    </div>
+                    {action.type !== 'provide_context' && !isLoading && (
+                        <ArrowRight className={`w-4 h-4 flex-shrink-0 mt-1 ${config.colorClass} opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all`} />
+                    )}
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p className={`font-semibold text-sm ${config.colorClass}`}>
-                        {isLoading ? 'Preparando paquete para tu asesor…' : action.label}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                        {isLoading
-                            ? 'Analizando la conversación y generando contenido personalizado.'
-                            : action.description}
-                    </p>
-                </div>
-                {action.type !== 'provide_context' && !isLoading && (
-                    <ArrowRight className={`w-4 h-4 flex-shrink-0 mt-1 ${config.colorClass} opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all`} />
-                )}
-            </div>
-        </button>
+            </button>
+            {error && (
+                <p className="mt-1.5 text-xs text-red-600 font-medium px-1">{error}</p>
+            )}
+        </div>
     )
 }

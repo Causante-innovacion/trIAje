@@ -66,6 +66,7 @@ interface ChatStore {
   setExtractedPlan: (data: PlanExtractionResponse | null) => void
   setLastEvaluationData: (data: ProjectEvaluation | null) => void
   setLastAdviserData: (data: LegalAdviserPackage | null) => void
+  markMessageWithReport: (messageId: string, reportType: 'evaluation' | 'adviser') => void
   setError: (error: string | null) => void
   clearError: () => void
   consumePendingMessage: () => string | null
@@ -354,6 +355,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setLastEvaluationData: (data) => set({ lastEvaluationData: data }),
   setLastAdviserData: (data) => set({ lastAdviserData: data }),
+
+  markMessageWithReport: (messageId, reportType) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId
+          ? { ...m, metadata: { ...m.metadata, generatedReport: reportType } }
+          : m
+      ),
+    }))
+  },
 
   setError: (error) => set({ error }),
 
