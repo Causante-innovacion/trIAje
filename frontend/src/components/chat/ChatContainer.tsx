@@ -62,6 +62,7 @@ export function ChatContainer() {
     currentTool,
     extractedPlan,
     setExtractedPlan,
+    lastEvaluationData,
     consumePendingMessage,
   } = useChatStore()
 
@@ -309,6 +310,18 @@ export function ChatContainer() {
         ? organizations
         : [{ id: '1', name: 'Organización principal' }]
 
+      // Check if all org forms are completed in localStorage
+      const STORAGE_KEY = (id: string) => `gpt_legal_form_progress_${id}`
+      const allOrgsCompleted = orgs.every(org => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY(org.id))
+          if (!raw) return false
+          const parsed = JSON.parse(raw)
+          const data = parsed.data ?? parsed
+          return data.isCompleted === true
+        } catch { return false }
+      })
+
       return (
         <div key={message.id} className="chat-message">
           <div className="flex items-start gap-4">
@@ -323,6 +336,9 @@ export function ChatContainer() {
                 timePerOrg="5-8 min"
                 totalTime={`${orgs.length * 5}-${orgs.length * 8} minutos`}
                 onStartForms={handleStartLegalForms}
+                allOrgsCompleted={allOrgsCompleted}
+                hasEvaluation={!!lastEvaluationData}
+                onViewEvaluation={() => navigate('/evaluation', { state: { evaluationData: lastEvaluationData } })}
               />
             </div>
           </div>
