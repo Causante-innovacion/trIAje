@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface MarkdownRendererProps {
     content: string
@@ -13,6 +14,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     return (
         <div className={`markdown-content ${className}`}>
             <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                     // Headings
                     h1: ({ children }) => (
@@ -91,6 +93,31 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                     // Horizontal rule
                     hr: () => (
                         <hr className="border-gray-200 my-3" />
+                    ),
+                    // Tables (GFM)
+                    table: ({ children }) => (
+                        <div className="overflow-x-auto my-3 rounded-lg border border-gray-200">
+                            <table className="w-full text-sm border-collapse">{children}</table>
+                        </div>
+                    ),
+                    thead: ({ children }) => (
+                        <thead className="bg-gray-50">{children}</thead>
+                    ),
+                    tbody: ({ children }) => (
+                        <tbody className="divide-y divide-gray-100">{children}</tbody>
+                    ),
+                    tr: ({ children }) => (
+                        <tr className="hover:bg-gray-50/60 transition-colors">{children}</tr>
+                    ),
+                    th: ({ children }) => (
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 whitespace-nowrap">
+                            {children}
+                        </th>
+                    ),
+                    td: ({ children }) => (
+                        <td className="px-3 py-2 text-gray-700 leading-relaxed align-top">
+                            {children}
+                        </td>
                     ),
                 }}
             >
