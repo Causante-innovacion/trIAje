@@ -1,9 +1,18 @@
 import { useState } from 'react'
-import { BookOpen, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import type { LegalSource } from '../../types/chat'
 
 interface SourcesCitationProps {
     sources: LegalSource[]
+}
+
+/** Extrae el dominio legible de una URL, e.g. "congreso.gob.pe" */
+function extractDomain(url: string): string {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '')
+    } catch {
+        return ''
+    }
 }
 
 export function SourcesCitation({ sources }: SourcesCitationProps) {
@@ -11,57 +20,60 @@ export function SourcesCitation({ sources }: SourcesCitationProps) {
 
     if (!sources || sources.length === 0) return null
 
+    const withUrl = sources.filter(s => s.url).length
+
     return (
-        <div className="mt-4 animate-fade-in">
+        <div className="mt-3 animate-fade-in">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors group"
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors group"
             >
-                <BookOpen className="w-4 h-4" />
-                <span className="font-medium">Fuentes citadas ({sources.length})</span>
-                {isExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-gray-400" />
-                ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                )}
+                <BookOpen className="w-3.5 h-3.5" />
+                <span className="font-medium">
+                    {sources.length} {sources.length === 1 ? 'fuente' : 'fuentes'}
+                    {withUrl > 0 && <span className="text-gray-300 ml-1">· verificables</span>}
+                </span>
+                {isExpanded
+                    ? <ChevronUp className="w-3 h-3 text-gray-300" />
+                    : <ChevronDown className="w-3 h-3 text-gray-300" />
+                }
             </button>
 
             {isExpanded && (
-                <div className="mt-3 space-y-2 pl-1 border-l-2 border-gray-100">
+                <div className="mt-2 space-y-1.5 pl-1 border-l-2 border-gray-100">
                     {sources.map((source, index) => (
                         <div
                             key={index}
-                            className="pl-4 py-2 text-sm animate-slide-in"
-                            style={{ animationDelay: `${index * 50}ms` }}
+                            className="pl-3 py-1.5 animate-slide-in"
+                            style={{ animationDelay: `${index * 40}ms` }}
                         >
-                            <div className="flex items-start gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-800 truncate">
-                                        {source.title}
-                                    </p>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                                        {source.article && (
-                                            <span className="text-xs text-gray-500">
-                                                {source.article}
-                                            </span>
-                                        )}
-                                        {source.authority && (
-                                            <span className="text-xs text-gray-400">
-                                                {source.authority}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                            {/* Title — clickable link if URL available */}
+                            {source.url ? (
+                                <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group/link inline-flex items-baseline gap-1 text-xs font-medium text-gray-700 hover:text-causante-ocre transition-colors leading-snug"
+                                >
+                                    <span>{source.title}</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover/link:opacity-60 transition-opacity flex-shrink-0 self-center" />
+                                </a>
+                            ) : (
+                                <p className="text-xs font-medium text-gray-700 leading-snug">{source.title}</p>
+                            )}
+
+                            {/* Metadata row */}
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                                {source.article && (
+                                    <span className="text-[11px] text-gray-500">{source.article}</span>
+                                )}
+                                {source.authority && (
+                                    <span className="text-[11px] text-gray-400">{source.authority}</span>
+                                )}
                                 {source.url && (
-                                    <a
-                                        href={source.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-shrink-0 text-gold hover:text-gold-dark p-1 rounded transition-colors"
-                                        title="Abrir fuente"
-                                    >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                    </a>
+                                    <span className="text-[10px] text-gray-300 font-mono">
+                                        {extractDomain(source.url)}
+                                    </span>
                                 )}
                             </div>
                         </div>
