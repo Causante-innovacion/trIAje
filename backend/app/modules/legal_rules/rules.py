@@ -1,5 +1,5 @@
 """
-Legal Rules - Business Rules Definitions
+Legal Rules - Business Rules Definitions (V2 Schema)
 Reglas de negocio para determinar requisitos legales.
 
 ESTRUCTURA DE CADA REGLA:
@@ -9,6 +9,14 @@ ESTRUCTURA DE CADA REGLA:
 - check: Función que verifica el cumplimiento
 - requirements: Requisitos asociados
 - gap_generator: Función que genera la brecha si no cumple
+
+IMPORTANT: All rules use the V2 LegalProfile schema with fields:
+  - identity:  identity_v2, org_purpose, org_purpose_other
+  - sunat:     sunat_v2
+  - funds:     funds_v2
+  - human_resources: hiring_v2 (list[str])
+  - intangibles:     intangibles_v2 (list[str])
+  - urgency:   urgency_v2
 """
 
 from typing import Any, Callable
@@ -23,6 +31,124 @@ from .schemas import (
     GapSeverity,
 )
 
+
+# =============================================================================
+# V2 HELPER FUNCTIONS
+# Derive old concepts from V2 schema fields.
+# =============================================================================
+
+def _is_formal_org(p: LegalProfile) -> bool:
+    """True if org is a formally constituted entity (Asociación/Fundación)."""
+    v = p.identity.identity_v2 or ""
+    return v.startswith("Organización formal")
+
+
+def _is_empresa(p: LegalProfile) -> bool:
+    """True if org is a for-profit company."""
+    v = p.identity.identity_v2 or ""
+    return v.startswith("Empresa")
+
+
+def _is_colectivo(p: LegalProfile) -> bool:
+    """True if org is an informal collective."""
+    v = p.identity.identity_v2 or ""
+    return v.startswith("Colectivo")
+
+
+def _has_legal_status(p: LegalProfile) -> bool:
+    """True if org has formal legal personhood (registered)."""
+    return _is_formal_org(p) or _is_empresa(p)
+
+
+def _seeks_profits(p: LegalProfile) -> bool:
+    """True if org is for-profit."""
+    return _is_empresa(p)
+
+
+def _is_nonprofit(p: LegalProfile) -> bool:
+    """True if org is a non-profit."""
+    return _is_formal_org(p)
+
+
+def _handles_money(p: LegalProfile) -> bool:
+    """True if org handles money (any formal or company entity)."""
+    return not _is_colectivo(p)
+
+
+def _has_ruc(p: LegalProfile) -> bool:
+    """True if org has an active RUC."""
+    v = p.sunat.sunat_v2 or ""
+    return "Tengo RUC y está al día" in v
+
+
+def _ruc_has_problems(p: LegalProfile) -> bool:
+    """True if org has RUC but with problems."""
+    v = p.sunat.sunat_v2 or ""
+    return "pausado o con problemas" in v
+
+
+def _no_ruc(p: LegalProfile) -> bool:
+    """True if org has no RUC."""
+    v = p.sunat.sunat_v2 or ""
+    return "No tengo RUC" in v
+
+
+def _receives_foreign_funds(p: LegalProfile) -> bool:
+    """True if org receives international funds."""
+    v = p.funds.funds_v2 or ""
+    return v.startswith("Sí")
+
+
+def _has_apci(p: LegalProfile) -> bool:
+    """True if org is registered with APCI."""
+    v = p.funds.funds_v2 or ""
+    return "registrados ante APCI" in v and "Vigente" in v
+
+
+def _needs_apci(p: LegalProfile) -> bool:
+    """True if org receives foreign funds but lacks APCI."""
+    v = p.funds.funds_v2 or ""
+    return "no tenemos registro ante APCI" in v or "vencido" in v
+
+
+def _uses_planilla(p: LegalProfile) -> bool:
+    """True if org has employees on payroll."""
+    return any("Planilla" in h for h in p.human_resources.hiring_v2)
+
+
+def _uses_locacion(p: LegalProfile) -> bool:
+    """True if org uses service contracts (locación de servicios)."""
+    return any("Locación de Servicios" in h for h in p.human_resources.hiring_v2)
+
+
+def _has_databases(p: LegalProfile) -> bool:
+    """True if org handles user databases."""
+    return any("Bases de datos" in i for i in p.intangibles.intangibles_v2)
+
+
+def _has_software(p: LegalProfile) -> bool:
+    """True if org has proprietary software."""
+    return any("Software" in i for i in p.intangibles.intangibles_v2)
+
+
+def _has_brands(p: LegalProfile) -> bool:
+    """True if org has brand/logos."""
+    return any("Marcas" in i or "logotipos" in i for i in p.intangibles.intangibles_v2)
+
+
+def _has_ip_assets(p: LegalProfile) -> bool:
+    """True if org has any IP assets."""
+    return _has_software(p) or _has_brands(p)
+
+
+def _only_founders(p: LegalProfile) -> bool:
+    """True if org only has founder management, no external hiring."""
+    return any("Solo gestión de fundadores" in h for h in p.human_resources.hiring_v2)
+
+
+# =============================================================================
+# RULE DATACLASS
+# =============================================================================
 
 @dataclass
 class LegalRule:
@@ -65,10 +191,9 @@ RULE_LEGAL_STATUS = LegalRule(
     related_laws=["Código Civil Art. 76-98", "Ley de Asociaciones"],
     required_documents=["Estatuto o acta de constitución"],
     required_registrations=["Inscripción en Registros Públicos"],
-    trigger=lambda p: p.income.handles_money is True,
+    trigger=lambda p: _handles_money(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.formalization.has_legal_status == "Sí"
-        else RequirementStatus.PARTIALLY_FULFILLED if p.formalization.has_legal_status == "En trámite"
+        RequirementStatus.FULFILLED if _has_legal_status(p)
         else RequirementStatus.NOT_FULFILLED
     ),
     default_gap_severity=GapSeverity.CRITICAL,
@@ -83,8 +208,8 @@ RULE_LEGAL_STATUS = LegalRule(
         impact="Riesgo de responsabilidad personal de los miembros. Imposibilidad de abrir cuentas bancarias institucionales. Limitaciones para recibir donaciones formales.",
         recommendation="Iniciar proceso de formalización como asociación, fundación u otra figura jurídica apropiada.",
         rag_query_hint="requisitos constitución asociación civil Perú registros públicos",
-        source_fields=["income.handles_money", "formalization.has_legal_status"],
-    ) if p.formalization.has_legal_status != "Sí" else None,
+        source_fields=["identity.identity_v2"],
+    ) if _is_colectivo(p) else None,
 )
 
 RULE_RUC = LegalRule(
@@ -94,10 +219,10 @@ RULE_RUC = LegalRule(
     description="Organizaciones que manejan dinero deben tener RUC",
     related_laws=["Decreto Legislativo 943", "Resolución SUNAT 210-2004"],
     required_registrations=["RUC activo en SUNAT"],
-    trigger=lambda p: p.income.handles_money is True,
+    trigger=lambda p: _handles_money(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.formalization.ruc_status == "Lo tengo"
-        else RequirementStatus.PARTIALLY_FULFILLED if p.formalization.ruc_status == "En trámite"
+        RequirementStatus.FULFILLED if _has_ruc(p)
+        else RequirementStatus.PARTIALLY_FULFILLED if _ruc_has_problems(p)
         else RequirementStatus.NOT_FULFILLED
     ),
     default_gap_severity=GapSeverity.HIGH,
@@ -106,14 +231,22 @@ RULE_RUC = LegalRule(
         requirement_id="formalization_ruc",
         organization_id=org_id,
         organization_name=org_name,
-        severity=GapSeverity.HIGH,
+        severity=GapSeverity.HIGH if _no_ruc(p) else GapSeverity.MEDIUM,
         intention=LegalIntention.TAXATION,
-        description="La organización maneja dinero sin RUC",
+        description=(
+            "La organización no tiene RUC"
+            if _no_ruc(p)
+            else "El RUC de la organización presenta problemas o está suspendido"
+        ),
         impact="Imposibilidad de emitir comprobantes de pago. Riesgo de multas tributarias. Limitaciones para operar formalmente.",
-        recommendation="Tramitar RUC ante SUNAT como persona jurídica.",
+        recommendation=(
+            "Tramitar RUC ante SUNAT como persona jurídica."
+            if _no_ruc(p)
+            else "Regularizar la situación del RUC ante SUNAT (reactivar o corregir estado)."
+        ),
         rag_query_hint="requisitos obtener RUC asociación sin fines de lucro SUNAT",
-        source_fields=["income.handles_money", "formalization.ruc_status"],
-    ) if p.formalization.ruc_status != "Lo tengo" else None,
+        source_fields=["sunat.sunat_v2"],
+    ) if not _has_ruc(p) else None,
 )
 
 
@@ -133,15 +266,10 @@ RULE_APCI_REGISTRATION = LegalRule(
     ],
     required_documents=["Plan de uso de fondos", "Memorias anuales"],
     required_registrations=["Registro en APCI"],
-    trigger=lambda p: (
-        p.international_cooperation.receives_international_cooperation is True
-        or p.income.receives_foreign_funds is True
-        or "Cooperación internacional" in p.income.income_sources
-    ),
+    trigger=lambda p: _receives_foreign_funds(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.international_cooperation.apci_status == "Registrado"
-        else RequirementStatus.NOT_FULFILLED if p.international_cooperation.apci_status == "Necesita registro"
-        else RequirementStatus.NOT_APPLICABLE
+        RequirementStatus.FULFILLED if _has_apci(p)
+        else RequirementStatus.NOT_FULFILLED
     ),
     default_gap_severity=GapSeverity.CRITICAL,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -155,8 +283,8 @@ RULE_APCI_REGISTRATION = LegalRule(
         impact="Incumplimiento legal obligatorio. Posibles sanciones. Impedimento para recibir nuevos fondos internacionales. Riesgo reputacional con cooperantes.",
         recommendation="Iniciar trámite de inscripción en el Registro de ENIEX de APCI.",
         rag_query_hint="requisitos registro APCI ENIEX cooperación técnica internacional Perú",
-        source_fields=["international_cooperation.receives_international_cooperation", "international_cooperation.apci_status", "income.receives_foreign_funds"],
-    ) if p.international_cooperation.apci_status == "Necesita registro" else None,
+        source_fields=["funds.funds_v2"],
+    ) if _needs_apci(p) else None,
 )
 
 
@@ -176,14 +304,12 @@ RULE_IR_EXONERATION = LegalRule(
     ],
     required_documents=["Estatuto con cláusula de no distribución de utilidades"],
     required_registrations=["Inscripción como entidad exonerada en SUNAT"],
-    trigger=lambda p: (
-        p.identity.seeks_profits is False
-        and p.identity.org_type in ["Asociación", "Fundación", "ONG"]
-        and p.formalization.has_legal_status == "Sí"
-    ),
+    # Only applies to formally registered non-profits
+    trigger=lambda p: _is_nonprofit(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if "Exonerada de Impuesto a la renta" in p.formalization.special_registries
-        else RequirementStatus.NOT_FULFILLED
+        # With V2 schema we can't know if they already have it;
+        # flag as UNKNOWN to generate an advisory gap
+        RequirementStatus.UNKNOWN
     ),
     default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -191,14 +317,14 @@ RULE_IR_EXONERATION = LegalRule(
         requirement_id="taxation_ir_exoneration",
         organization_id=org_id,
         organization_name=org_name,
-        severity=GapSeverity.MEDIUM,
+        severity=GapSeverity.LOW,
         intention=LegalIntention.TAXATION,
-        description="La organización sin fines de lucro no ha solicitado exoneración del Impuesto a la Renta",
+        description="Verificar si la organización sin fines de lucro ha solicitado exoneración del Impuesto a la Renta",
         impact="Pago innecesario de impuestos. Menor disponibilidad de recursos para fines institucionales.",
         recommendation="Evaluar si cumple requisitos y solicitar inscripción como entidad exonerada ante SUNAT.",
         rag_query_hint="requisitos exoneración impuesto renta asociaciones sin fines de lucro SUNAT",
-        source_fields=["identity.seeks_profits", "identity.org_type", "formalization.special_registries"],
-    ) if "Exonerada de Impuesto a la renta" not in p.formalization.special_registries else None,
+        source_fields=["identity.identity_v2"],
+    ),
 )
 
 
@@ -216,29 +342,26 @@ RULE_LABOR_CONTRACTS = LegalRule(
         "DS 003-97-TR"
     ],
     required_documents=["Contratos de trabajo", "Boletas de pago"],
-    trigger=lambda p: (
-        "Planilla" in p.human_resources.hiring_modalities
-        or "Locación de servicios" in p.human_resources.hiring_modalities
-    ),
+    trigger=lambda p: _uses_planilla(p) or _uses_locacion(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.human_resources.contracts_valid == "Sí"
-        else RequirementStatus.NOT_FULFILLED if p.human_resources.contracts_valid == "No"
-        else RequirementStatus.UNKNOWN
+        # V2 doesn't have a "contracts_valid" field,
+        # so flag as UNKNOWN to generate advisory gap
+        RequirementStatus.UNKNOWN
     ),
-    default_gap_severity=GapSeverity.HIGH,
+    default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
         id=f"gap_labor_{org_id}",
         requirement_id="labor_contracts_valid",
         organization_id=org_id,
         organization_name=org_name,
-        severity=GapSeverity.HIGH,
+        severity=GapSeverity.MEDIUM,
         intention=LegalIntention.HIRING,
-        description="La organización contrata personal sin contratos válidos",
+        description="Verificar que los contratos laborales de la organización sean válidos y estén actualizados",
         impact="Riesgo de demandas laborales. Multas de SUNAFIL. Responsabilidad por beneficios sociales no pagados.",
-        recommendation="Regularizar situación contractual de todo el personal. Revisar si locadores cumplen criterios de independencia.",
+        recommendation="Revisar y regularizar situación contractual de todo el personal según modalidad de contratación.",
         rag_query_hint="requisitos contratos laborales asociaciones sin fines de lucro SUNAFIL",
-        source_fields=["human_resources.hiring_modalities", "human_resources.contracts_valid"],
-    ) if p.human_resources.contracts_valid == "No" else None,
+        source_fields=["human_resources.hiring_v2"],
+    ),
 )
 
 RULE_LOCACION_RISK = LegalRule(
@@ -251,7 +374,7 @@ RULE_LOCACION_RISK = LegalRule(
         "Principio de primacía de la realidad",
         "Jurisprudencia del TC"
     ],
-    trigger=lambda p: "Locación de servicios" in p.human_resources.hiring_modalities,
+    trigger=lambda p: _uses_locacion(p),
     check=lambda p: RequirementStatus.UNKNOWN,  # Requiere análisis caso por caso
     default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -265,7 +388,7 @@ RULE_LOCACION_RISK = LegalRule(
         impact="Si existe subordinación, horario fijo y herramientas del empleador, el contrato puede desnaturalizarse. Responsabilidad por beneficios laborales retroactivos.",
         recommendation="Auditar contratos de locación: verificar autonomía real, ausencia de subordinación, prestación sin exclusividad.",
         rag_query_hint="desnaturalización locación servicios relación laboral subordinación Perú",
-        source_fields=["human_resources.hiring_modalities"],
+        source_fields=["human_resources.hiring_v2"],
     ),
 )
 
@@ -285,26 +408,25 @@ RULE_ACCOUNTING_RECORDS = LegalRule(
         "Resoluciones SUNAT sobre libros contables"
     ],
     required_documents=["Libros contables", "Estados financieros"],
-    trigger=lambda p: p.income.handles_money is True,
+    trigger=lambda p: _handles_money(p) and _has_legal_status(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.accounting.has_accounting_records == "Sí, completos"
-        else RequirementStatus.PARTIALLY_FULFILLED if p.accounting.has_accounting_records in ["Sí, parciales", "En proceso"]
-        else RequirementStatus.NOT_FULFILLED
+        # V2 doesn't have accounting fields; flag advisory
+        RequirementStatus.UNKNOWN
     ),
-    default_gap_severity=GapSeverity.HIGH,
+    default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
         id=f"gap_accounting_{org_id}",
         requirement_id="accounting_records",
         organization_id=org_id,
         organization_name=org_name,
-        severity=GapSeverity.HIGH,
+        severity=GapSeverity.MEDIUM,
         intention=LegalIntention.ACCOUNTING,
-        description="La organización maneja dinero sin registros contables completos",
+        description="Verificar que la organización mantenga registros contables adecuados",
         impact="Incumplimiento de obligaciones tributarias. Imposibilidad de rendir cuentas a donantes. Riesgo en fiscalizaciones.",
         recommendation="Implementar sistema de contabilidad. Considerar contador externo si no hay capacidad interna.",
         rag_query_hint="obligaciones contables asociaciones sin fines de lucro libros contables SUNAT",
-        source_fields=["income.handles_money", "accounting.has_accounting_records"],
-    ) if p.accounting.has_accounting_records in ["No", None] else None,
+        source_fields=["identity.identity_v2", "sunat.sunat_v2"],
+    ),
 )
 
 
@@ -322,10 +444,10 @@ RULE_GOVERNANCE_BODIES = LegalRule(
         "Estatutos de la organización"
     ],
     required_documents=["Estatuto", "Libros de actas"],
-    trigger=lambda p: p.identity.org_type in ["Asociación", "Fundación", "ONG"],
+    trigger=lambda p: _is_nonprofit(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.governance.has_governance_bodies is True
-        else RequirementStatus.NOT_FULFILLED
+        # V2 doesn't have governance fields; flag advisory
+        RequirementStatus.UNKNOWN
     ),
     default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -335,12 +457,12 @@ RULE_GOVERNANCE_BODIES = LegalRule(
         organization_name=org_name,
         severity=GapSeverity.MEDIUM,
         intention=LegalIntention.GOVERNANCE,
-        description="La organización no tiene órganos de gobierno constituidos",
+        description="Verificar que la organización tenga órganos de gobierno constituidos según sus estatutos",
         impact="Posible irregularidad estatutaria. Dificultades para tomar decisiones válidas. Riesgo en representación legal.",
         recommendation="Constituir asamblea general y consejo directivo según estatutos. Documentar en libro de actas.",
         rag_query_hint="órganos gobierno asociación asamblea consejo directivo Código Civil",
-        source_fields=["identity.org_type", "governance.has_governance_bodies"],
-    ) if p.governance.has_governance_bodies is not True else None,
+        source_fields=["identity.identity_v2"],
+    ),
 )
 
 RULE_LEGAL_REPRESENTATIVE = LegalRule(
@@ -350,26 +472,25 @@ RULE_LEGAL_REPRESENTATIVE = LegalRule(
     description="Organizaciones formalizadas deben tener representante legal inscrito",
     related_laws=["Código Civil", "Reglamento de Registros Públicos"],
     required_registrations=["Poder inscrito en Registros Públicos"],
-    trigger=lambda p: p.formalization.has_legal_status == "Sí",
+    trigger=lambda p: _has_legal_status(p),
     check=lambda p: (
-        RequirementStatus.FULFILLED if p.governance.has_legal_representative == "Sí"
-        else RequirementStatus.PARTIALLY_FULFILLED if p.governance.has_legal_representative == "En trámite"
-        else RequirementStatus.NOT_FULFILLED
+        # V2 doesn't have governance.has_legal_representative
+        RequirementStatus.UNKNOWN
     ),
-    default_gap_severity=GapSeverity.HIGH,
+    default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
         id=f"gap_legal_rep_{org_id}",
         requirement_id="governance_legal_rep",
         organization_id=org_id,
         organization_name=org_name,
-        severity=GapSeverity.HIGH,
+        severity=GapSeverity.MEDIUM,
         intention=LegalIntention.GOVERNANCE,
-        description="La organización no tiene representante legal inscrito",
+        description="Verificar que la organización tenga un representante legal debidamente inscrito",
         impact="Imposibilidad de realizar actos jurídicos válidos. No puede firmar contratos, abrir cuentas bancarias, etc.",
         recommendation="Elegir representante legal según estatutos e inscribir poder en Registros Públicos.",
         rag_query_hint="inscripción representante legal asociación Registros Públicos SUNARP",
-        source_fields=["formalization.has_legal_status", "governance.has_legal_representative"],
-    ) if p.governance.has_legal_representative not in ["Sí", "En trámite"] else None,
+        source_fields=["identity.identity_v2"],
+    ),
 )
 
 
@@ -389,7 +510,7 @@ RULE_DATA_PROTECTION = LegalRule(
     ],
     required_documents=["Política de privacidad", "Consentimiento informado"],
     required_registrations=["Registro de banco de datos en ANPD (si aplica)"],
-    trigger=lambda p: "Bases de datos de usuarios" in p.intangibles.intangible_assets,
+    trigger=lambda p: _has_databases(p),
     check=lambda p: RequirementStatus.UNKNOWN,  # Requiere análisis detallado
     default_gap_severity=GapSeverity.MEDIUM,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -403,7 +524,7 @@ RULE_DATA_PROTECTION = LegalRule(
         impact="Posibles sanciones de la Autoridad de Protección de Datos. Riesgo reputacional. Responsabilidad civil por mal uso de datos.",
         recommendation="Implementar política de privacidad. Obtener consentimiento. Evaluar si requiere registro en ANPD.",
         rag_query_hint="Ley Protección Datos Personales 29733 obligaciones tratamiento datos Perú",
-        source_fields=["intangibles.intangible_assets"],
+        source_fields=["intangibles.intangibles_v2"],
     ),
 )
 
@@ -423,10 +544,7 @@ RULE_INTELLECTUAL_PROPERTY = LegalRule(
         "Decisión 486 CAN"
     ],
     required_registrations=["Registro de marca en INDECOPI", "Registro de software/obra"],
-    trigger=lambda p: any(
-        asset in p.intangibles.intangible_assets
-        for asset in ["Software propio", "Marca o símbolos distintivos", "Contenido con derechos de autor"]
-    ),
+    trigger=lambda p: _has_ip_assets(p),
     check=lambda p: RequirementStatus.UNKNOWN,  # Requiere análisis detallado
     default_gap_severity=GapSeverity.LOW,
     gap_generator=lambda p, org_id, org_name: LegalGap(
@@ -440,7 +558,7 @@ RULE_INTELLECTUAL_PROPERTY = LegalRule(
         impact="Riesgo de uso no autorizado por terceros. Pérdida de exclusividad. Dificultad para defender derechos.",
         recommendation="Evaluar registro de marca en INDECOPI. Documentar autoría de software y contenidos.",
         rag_query_hint="registro marca INDECOPI derechos autor software asociación sin fines lucro",
-        source_fields=["intangibles.intangible_assets"],
+        source_fields=["intangibles.intangibles_v2"],
     ),
 )
 

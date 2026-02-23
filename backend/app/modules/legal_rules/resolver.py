@@ -168,13 +168,14 @@ class LegalRequirementsResolver:
     ) -> list[LegalGap]:
         """
         Detecta brechas compartidas entre organizaciones.
+        Uses V2 schema fields.
         """
         shared_gaps = []
 
         # Verificar si múltiples orgs manejan datos de usuarios
         orgs_with_data = [
             org for org in organizations
-            if "Bases de datos de usuarios" in org.legal_profile.intangibles.intangible_assets
+            if any("Bases de datos" in i for i in org.legal_profile.intangibles.intangibles_v2)
         ]
         if len(orgs_with_data) > 1:
             shared_gaps.append(LegalGap(
@@ -186,7 +187,7 @@ class LegalRequirementsResolver:
                 impact="Si hay transferencia de datos entre organizaciones, requiere consentimiento específico y medidas de seguridad.",
                 recommendation="Verificar si hay flujo de datos entre organizaciones. Documentar bases legales para transferencia. Implementar acuerdos de confidencialidad.",
                 rag_query_hint="transferencia datos personales entre organizaciones LPDP consentimiento",
-                source_fields=["intangibles.intangible_assets"],
+                source_fields=["intangibles.intangibles_v2"],
             ))
 
         # Verificar si hay relación empleador-financiador
@@ -195,7 +196,7 @@ class LegalRequirementsResolver:
             for org in organizations
         )
         has_employees = any(
-            "Planilla" in org.legal_profile.human_resources.hiring_modalities
+            any("Planilla" in h for h in org.legal_profile.human_resources.hiring_v2)
             for org in organizations
         )
         if has_funder and has_employees:
@@ -208,19 +209,20 @@ class LegalRequirementsResolver:
                 impact="Si el financiador supervisa o dirige el trabajo, podría configurarse responsabilidad solidaria laboral.",
                 recommendation="Documentar claramente que el financiador no tiene control sobre el personal del ejecutor.",
                 rag_query_hint="responsabilidad solidaria laboral financiador proyecto ONG",
-                source_fields=["human_resources.hiring_modalities"],
+                source_fields=["human_resources.hiring_v2"],
             ))
 
         # Verificar si múltiples orgs reciben cooperación internacional
         orgs_with_coop = [
             org for org in organizations
-            if org.legal_profile.international_cooperation.receives_international_cooperation
+            if (org.legal_profile.funds.funds_v2 or "").startswith("Sí")
         ]
         if len(orgs_with_coop) > 1:
             # Verificar si todas están registradas en APCI
             orgs_without_apci = [
                 org for org in orgs_with_coop
-                if org.legal_profile.international_cooperation.apci_status != "Registrado"
+                if "no tenemos registro" in (org.legal_profile.funds.funds_v2 or "")
+                or "vencido" in (org.legal_profile.funds.funds_v2 or "")
             ]
             if orgs_without_apci:
                 shared_gaps.append(LegalGap(
@@ -232,7 +234,7 @@ class LegalRequirementsResolver:
                     impact="Todas las organizaciones que reciben fondos internacionales deben estar registradas individualmente.",
                     recommendation="Cada organización receptora debe completar su registro en APCI de forma independiente.",
                     rag_query_hint="múltiples ENIEX proyecto conjunto APCI requisitos",
-                    source_fields=["international_cooperation.apci_status"],
+                    source_fields=["funds.funds_v2"],
                 ))
 
         return shared_gaps

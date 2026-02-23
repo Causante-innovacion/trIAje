@@ -1,5 +1,5 @@
 """
-Legal Adviser Feature - Pipeline
+Legal Adviser Feature - Pipeline (V2 Schema)
 Genera paquete de asesor legal desde NormalizedProjectIntake.
 
 Flujo:
@@ -12,7 +12,7 @@ Flujo:
     LegalAdviserResponse (tópicos críticos, preguntas, documentos, decisiones)
 """
 
-from app.modules.intake.schemas import NormalizedProjectIntake, OrganizationProfile
+from app.modules.intake.schemas import NormalizedProjectIntake, OrganizationProfile, LegalProfile
 from app.modules.legal_rules import (
     LegalRequirementsResolver,
     LegalRequirementsResult,
@@ -31,6 +31,56 @@ from .schemas import (
     InternalDecisionResponse,
     InternalDecisionOptionResponse,
 )
+
+
+# =============================================================================
+# V2 HELPER FUNCTIONS (mirror the ones in rules.py)
+# =============================================================================
+
+def _is_formal_org(p: LegalProfile) -> bool:
+    return (p.identity.identity_v2 or "").startswith("Organización formal")
+
+
+def _is_empresa(p: LegalProfile) -> bool:
+    return (p.identity.identity_v2 or "").startswith("Empresa")
+
+
+def _is_colectivo(p: LegalProfile) -> bool:
+    return (p.identity.identity_v2 or "").startswith("Colectivo")
+
+
+def _has_legal_status(p: LegalProfile) -> bool:
+    return _is_formal_org(p) or _is_empresa(p)
+
+
+def _has_ruc(p: LegalProfile) -> bool:
+    return "Tengo RUC y está al día" in (p.sunat.sunat_v2 or "")
+
+
+def _ruc_has_problems(p: LegalProfile) -> bool:
+    return "pausado o con problemas" in (p.sunat.sunat_v2 or "")
+
+
+def _receives_foreign_funds(p: LegalProfile) -> bool:
+    return (p.funds.funds_v2 or "").startswith("Sí")
+
+
+def _has_apci(p: LegalProfile) -> bool:
+    v = p.funds.funds_v2 or ""
+    return "registrados ante APCI" in v and "Vigente" in v
+
+
+def _seeks_profits(p: LegalProfile) -> bool:
+    return _is_empresa(p)
+
+
+def _org_type_label(p: LegalProfile) -> str:
+    """Returns a short org type label for display."""
+    if _is_formal_org(p):
+        return "Asociación / Fundación"
+    if _is_empresa(p):
+        return "Empresa"
+    return "Colectivo"
 
 
 class LegalAdviserPipeline:
@@ -120,18 +170,12 @@ class LegalAdviserPipeline:
 
     # Documentos base por tipo de organización
     DOCUMENTS_BY_ORG_TYPE: dict[str, list[tuple[str, str]]] = {
-        "Asociación": [
+        "Asociación / Fundación": [
             ("estatuto", "Estatuto vigente (con todas las modificaciones)"),
             ("acta_constitucion", "Acta de constitución"),
             ("partida_registral", "Partida registral actualizada (SUNARP)"),
             ("ruc", "Ficha RUC actualizada (SUNAT)"),
             ("libro_actas", "Libro de actas de asamblea y directorio"),
-        ],
-        "Fundación": [
-            ("escritura", "Escritura pública de constitución"),
-            ("estatuto", "Estatuto vigente"),
-            ("partida_registral", "Partida registral actualizada (SUNARP)"),
-            ("ruc", "Ficha RUC actualizada (SUNAT)"),
         ],
         "Empresa": [
             ("minuta", "Minuta de constitución"),
@@ -139,7 +183,7 @@ class LegalAdviserPipeline:
             ("partida_registral", "Partida registral actualizada (SUNARP)"),
             ("ruc", "Ficha RUC actualizada (SUNAT)"),
         ],
-        "Colectivo / iniciativa no formalizada": [
+        "Colectivo": [
             ("acta_informal", "Acta o acuerdo de fundación del colectivo (si existe)"),
             ("lista_miembros", "Lista actualizada de miembros"),
         ],
@@ -158,7 +202,7 @@ class LegalAdviserPipeline:
         requirements_result = self.resolver.resolve(intake)
         primary_org = intake.organizations[0]
 
-        entity_name = primary_org.name or primary_org.legal_profile.identity.org_type or "Organización"
+        entity_name = primary_org.name or _org_type_label(primary_org.legal_profile)
 
         return LegalAdviserResponse(
             page_title="Paquete de Asesor Legal",
@@ -179,71 +223,64 @@ class LegalAdviserPipeline:
     # -------------------------------------------------------------------------
 
     def _build_org_profile(self, org: OrganizationProfile) -> OrganizationProfileResponse:
-        formalization = org.legal_profile.formalization
-        income = org.legal_profile.income
+        profile = org.legal_profile
 
-        if formalization.has_legal_status == "Sí":
+        if _has_legal_status(profile):
             legal_status = "green"
-        elif formalization.has_legal_status == "En trámite":
-            legal_status = "yellow"
-        else:
+        elif _is_colectivo(profile):
             legal_status = "red"
+        else:
+            legal_status = "yellow"
 
         # Stage: piloto if formally registered + RUC, prototipo otherwise
-        if formalization.has_legal_status == "Sí" and formalization.ruc_status == "Lo tengo":
+        if _has_legal_status(profile) and _has_ruc(profile):
             stage = "piloto"
         else:
             stage = "prototipo"
 
         funding_types: list[str] = []
-        if income.receives_foreign_funds:
+        if _receives_foreign_funds(profile):
             funding_types.append("extranjero")
-        if income.income_sources and any(
-            s in income.income_sources
-            for s in ["Donaciones", "Fondos privados", "Fondos públicos", "Venta de servicios o productos"]
-        ):
+        # All formal orgs are assumed to have some national funding
+        if _has_legal_status(profile):
             funding_types.append("nacional")
         if not funding_types:
             funding_types = ["nacional"]
 
         return OrganizationProfileResponse(
-            entity_name=org.name or org.legal_profile.identity.org_type or "Organización",
+            entity_name=org.name or _org_type_label(profile),
             legal_status=legal_status,
             stage=stage,
             funding_types=funding_types,
         )
 
     def _build_legal_status_cards(self, org: OrganizationProfile) -> list[LegalStatusCardResponse]:
-        formalization = org.legal_profile.formalization
-        income = org.legal_profile.income
-        intl = org.legal_profile.international_cooperation
+        profile = org.legal_profile
 
         cards: list[LegalStatusCardResponse] = []
 
         # Personería jurídica (SUNARP)
-        if formalization.has_legal_status == "Sí":
+        if _has_legal_status(profile):
             sunarp_status = "green"
-        elif formalization.has_legal_status == "En trámite":
-            sunarp_status = "yellow"
-        else:
+        elif _is_colectivo(profile):
             sunarp_status = "red"
+        else:
+            sunarp_status = "yellow"
         cards.append(LegalStatusCardResponse(id="sunarp", label="Personería Jurídica", status=sunarp_status))
 
         # RUC / SUNAT
-        if formalization.ruc_status == "Lo tengo":
+        if _has_ruc(profile):
             ruc_status = "green"
-        elif formalization.ruc_status == "En trámite":
+        elif _ruc_has_problems(profile):
             ruc_status = "yellow"
         else:
             ruc_status = "red"
         cards.append(LegalStatusCardResponse(id="ruc", label="RUC / SUNAT", status=ruc_status))
 
         # APCI — only if org receives foreign funds
-        if income.receives_foreign_funds:
-            if intl.apci_status == "Registrado":
+        if _receives_foreign_funds(profile):
+            if _has_apci(profile):
                 apci_status = "green"
-            elif intl.apci_status == "No aplica":
-                apci_status = "yellow"
             else:
                 apci_status = "red"
             cards.append(LegalStatusCardResponse(id="apci", label="APCI", status=apci_status))
@@ -255,11 +292,11 @@ class LegalAdviserPipeline:
         org: OrganizationProfile,
         result: LegalRequirementsResult,
     ) -> FundingRangeResponse:
-        income = org.legal_profile.income
+        profile = org.legal_profile
         critical = result.critical_gaps
         total = result.total_gaps
 
-        if income.receives_foreign_funds and critical > 0:
+        if _receives_foreign_funds(profile) and critical > 0:
             return FundingRangeResponse(
                 min="$5K",
                 max="$30K",
@@ -284,26 +321,24 @@ class LegalAdviserPipeline:
         )
 
     def _build_funding_description(self, org: OrganizationProfile) -> str:
-        income = org.legal_profile.income
+        profile = org.legal_profile
         parts: list[str] = []
 
-        if income.receives_foreign_funds:
+        if _receives_foreign_funds(profile):
             parts.append("USD Internacional")
-        if income.income_sources:
-            if "Donaciones" in income.income_sources:
-                parts.append("Grants & Donaciones")
-            if "Fondos privados" in income.income_sources:
-                parts.append("Fondos Privados")
-            if "Venta de servicios o productos" in income.income_sources:
-                parts.append("Ingresos Propios")
-            if "Fondos públicos" in income.income_sources:
-                parts.append("Fondos Públicos")
+        if _has_legal_status(profile):
+            parts.append("Fondos Nacionales")
 
         return " | ".join(parts) if parts else "Fuentes por definir"
 
     def _get_income_sources(self, org: OrganizationProfile) -> list[str]:
-        sources = org.legal_profile.income.income_sources or []
-        return [s for s in sources if s != "Aún no recibe ingresos"]
+        profile = org.legal_profile
+        sources: list[str] = []
+        if _receives_foreign_funds(profile):
+            sources.append("Cooperación internacional")
+        if _has_legal_status(profile):
+            sources.append("Ingresos formales")
+        return sources if sources else ["Por definir"]
 
     def _build_critical_topics(self, result: LegalRequirementsResult) -> list[CriticalTopicResponse]:
         topics: list[CriticalTopicResponse] = []
@@ -369,12 +404,11 @@ class LegalAdviserPipeline:
         docs: list[RequiredDocumentResponse] = []
         seen_ids: set[str] = set()
         profile = org.legal_profile
-        org_type = profile.identity.org_type or ""
-        available_docs = profile.accounting.available_documents
+        org_type = _org_type_label(profile)
 
         type_docs = self.DOCUMENTS_BY_ORG_TYPE.get(
             org_type,
-            self.DOCUMENTS_BY_ORG_TYPE["Asociación"],
+            self.DOCUMENTS_BY_ORG_TYPE["Asociación / Fundación"],
         )
 
         for doc_id, doc_title in type_docs:
@@ -383,14 +417,9 @@ class LegalAdviserPipeline:
             seen_ids.add(doc_id)
 
             completed = False
-            if doc_id == "partida_registral" and profile.formalization.has_legal_status == "Sí":
+            if doc_id == "partida_registral" and _has_legal_status(profile):
                 completed = True
-            elif doc_id == "ruc" and profile.formalization.ruc_status == "Lo tengo":
-                completed = True
-            elif doc_id in ("estatuto", "acta_constitucion", "escritura") and \
-                    "Estatuto o acta de constitución" in available_docs:
-                completed = True
-            elif doc_id == "libro_actas" and "Libros de actas" in available_docs:
+            elif doc_id == "ruc" and _has_ruc(profile):
                 completed = True
 
             docs.append(RequiredDocumentResponse(id=doc_id, title=doc_title, completed=completed))
@@ -400,8 +429,7 @@ class LegalAdviserPipeline:
                 seen_ids.add(doc_id)
                 docs.append(RequiredDocumentResponse(id=doc_id, title=doc_title, completed=False))
 
-        if profile.income.receives_foreign_funds and \
-                profile.international_cooperation.apci_status != "Registrado":
+        if _receives_foreign_funds(profile) and not _has_apci(profile):
             docs.append(RequiredDocumentResponse(
                 id="apci_cert",
                 title="Certificado de inscripción en APCI (o constancia de trámite)",
@@ -413,18 +441,14 @@ class LegalAdviserPipeline:
     def _build_internal_decisions(self, org: OrganizationProfile) -> list[InternalDecisionResponse]:
         decisions: list[InternalDecisionResponse] = []
         profile = org.legal_profile
-        formalization = profile.formalization
-        income = profile.income
-        hr = profile.human_resources
-        identity = profile.identity
 
         # A: Legal figure (if not formalized)
-        if formalization.has_legal_status != "Sí":
+        if not _has_legal_status(profile):
             options_a = [
                 InternalDecisionOptionResponse(id="a1", label="Opción A: Asociación Civil (sin fines de lucro)"),
                 InternalDecisionOptionResponse(id="a2", label="Opción B: Fundación (patrimonio afectado a fin altruista)"),
             ]
-            if identity.seeks_profits:
+            if _seeks_profits(profile):
                 options_a.append(InternalDecisionOptionResponse(id="a3", label="Opción C: Empresa (SAC o SRL)"))
             else:
                 options_a.append(InternalDecisionOptionResponse(id="a3", label="Opción C: Continuar como colectivo informal"))
@@ -435,8 +459,9 @@ class LegalAdviserPipeline:
             ))
 
         # B: Hiring modality
-        has_hiring_needs = bool(hr.hiring_modalities) and "Ninguno" not in hr.hiring_modalities
-        if has_hiring_needs or not hr.hiring_modalities:
+        hiring = profile.human_resources.hiring_v2
+        has_hiring_needs = bool(hiring) and not any("Solo gestión" in h for h in hiring)
+        if has_hiring_needs or not hiring:
             decisions.append(InternalDecisionResponse(
                 id="decision_b",
                 scenario="Escenario B: ¿Cómo contratar al equipo?",
@@ -448,7 +473,7 @@ class LegalAdviserPipeline:
             ))
 
         # C: Foreign funding management
-        if income.receives_foreign_funds:
+        if _receives_foreign_funds(profile):
             decisions.append(InternalDecisionResponse(
                 id="decision_c",
                 scenario="Escenario C: ¿Cómo gestionar los fondos internacionales?",
