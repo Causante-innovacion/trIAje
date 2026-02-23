@@ -11,7 +11,8 @@
             "alianzas"
         ],
         "tipo": "obligatorio",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H682684"
     },
     "Ley_General_Sociedades_Ley26887.pdf": {
         "intenciones": [
@@ -20,21 +21,24 @@
             "alianzas"
         ],
         "tipo": "obligatorio",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H777285"
     },
     "Reglamento_Inscripcion_PPJJ_RS038-2013.pdf": {
         "intenciones": [
             "formalizacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1073502"
     },
     "Ley_Creacion_SNSRP_Ley26366.pdf": {
         "intenciones": [
             "formalizacion"
         ],
         "tipo": "complementario",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H764902"
     },
     "DL_1049_Notariado.pdf": {
         "intenciones": [
@@ -42,161 +46,184 @@
             "preparacion_asesoria"
         ],
         "tipo": "complementario",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H967542"
     },
     "codigo_ninos_adolescentes_ley27337.pdf": {
         "intenciones": [
             "permisos"
         ],
         "tipo": "obligatorio",
-        "categoria": "civil"
+        "categoria": "civil",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H682689"
     },
     "Codigo_Tributario_TUO_DS133-2013.pdf": {
         "intenciones": [
             "identidad_ruc"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H682696"
     },
     "Ley_RUC_DL943.pdf": {
         "intenciones": [
             "identidad_ruc"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H856230"
     },
     "Reglamento_Ley_RUC_RS210-2004.pdf": {
         "intenciones": [
             "identidad_ruc"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H874487"
     },
     "Ley_Impuesto_Renta_TUO_DS179-2004.pdf": {
         "intenciones": [
             "tributacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H880428"
     },
     "DL_1549_prorroga_exoneracion_impuesto_renta.pdf": {
         "intenciones": [
             "tributacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1347541"
     },
     "DS_055-99-EF_TUO_IGV_ISC.pdf": {
         "intenciones": [
             "tributacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H784217"
     },
     "formulario_2119_SUNAT_inscripcion_entidades_exoneradas.pdf": {
         "intenciones": [
             "tributacion"
         ],
         "tipo": "complementario",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://www.sunat.gob.pe/orientacion/formularios/ruc/f-2119.pdf"
     },
     "guia_inscripcion_sunat__ruc_persona_juridica.pdf": {
         "intenciones": [
             "identidad_ruc"
         ],
         "tipo": "complementario",
-        "categoria": "tributario"
+        "categoria": "tributario",
+        "url": "https://www.gob.pe/276-inscripcion-al-ruc-para-persona-juridica"
     },
     "Ley_32301_modifica_ley27692_creacion_apci.pdf": {
         "intenciones": [
             "donaciones"
         ],
         "tipo": "obligatorio",
-        "categoria": "cooperacion"
+        "categoria": "cooperacion",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1402022"
     },
     "Ley_Creacion_APCI_Ley27692.pdf": {
         "intenciones": [
             "donaciones"
         ],
         "tipo": "obligatorio",
-        "categoria": "cooperacion"
+        "categoria": "cooperacion",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H824111"
     },
     "Ley_28905_facilitacion_despacho_mercancias_donadas.pdf": {
         "intenciones": [
             "donaciones"
         ],
         "tipo": "obligatorio",
-        "categoria": "cooperacion"
+        "categoria": "cooperacion",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H932479"
     },
     "Ley_General_Voluntariado_Ley28238.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H867145"
     },
     "Ley_modificatoria_ley_voluntariado_29094.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H950909"
     },
     "DS_003-2015-MIMP_reglamento_ley_voluntariado.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1131514"
     },
     "Ley_Modalidades_Formativas_Ley28518.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H892854"
     },
     "Ley_Productividad_Competitividad_Laboral_TUO_DS003-97.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "complementario",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H774215"
     },
     "Ley_Fomento_Empleo_DL_728.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "complementario",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H752471"
     },
     "Ley_Formacion_Laboral.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "complementario",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H774214"
     },
     "Ley_Seguridad_Salud_Trabajo_ley29783.pdf": {
         "intenciones": [
             "contratacion"
         ],
         "tipo": "complementario",
-        "categoria": "laboral"
+        "categoria": "laboral",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1038071"
     },
     "Ley_Derechos_Autor_DL822.pdf": {
         "intenciones": [
             "propiedad_intelectual"
         ],
         "tipo": "obligatorio",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H770838"
     },
     "DL_1075_regimen_comun_propiedad_industrial.pdf": {
         "intenciones": [
             "propiedad_intelectual"
         ],
         "tipo": "obligatorio",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H967717"
     },
     "Decision_486_regimen_comun_propiedad_industrial.pdf": {
         "intenciones": [
@@ -204,28 +231,32 @@
             "marca_identidad"
         ],
         "tipo": "obligatorio",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://www.gob.pe/institucion/indecopi/normas-legales/1683529-486-can"
     },
     "Decision_351_derecho_autor.pdf": {
         "intenciones": [
             "propiedad_intelectual"
         ],
         "tipo": "complementario",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H762461"
     },
     "guia_indecopi_registro_marcas.pdf": {
         "intenciones": [
             "marca_identidad"
         ],
         "tipo": "complementario",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://www.gob.pe/333-registrar-la-marca-de-producto-o-servicio-de-tu-negocio-en-indecopi"
     },
     "tupa_indecopi_vigente.pdf": {
         "intenciones": [
             "marca_identidad"
         ],
         "tipo": "obligatorio",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://cdn.www.gob.pe/uploads/document/file/8348088/6950486-tupa-indecopi-consolidado%282%29.pdf?v=1770300214"
     },
     "Ley_31814_uso_intleigencia_artificial.pdf": {
         "intenciones": [
@@ -233,7 +264,8 @@
             "seguridad_informacion"
         ],
         "tipo": "complementario",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1353263"
     },
     "DS_115-2025-PCM_Ley31814.pdf": {
         "intenciones": [
@@ -241,7 +273,8 @@
             "seguridad_informacion"
         ],
         "tipo": "complementario",
-        "categoria": "propiedad_intelectual"
+        "categoria": "propiedad_intelectual",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1415608"
     },
     "Ley_Proteccion_Datos_Personales_Ley29733.pdf": {
         "intenciones": [
@@ -249,35 +282,40 @@
             "seguridad_informacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "datos_personales"
+        "categoria": "datos_personales",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1034642"
     },
     "DS_016-2024-JUS_nuevo_reglamento_ley29733.pdf": {
         "intenciones": [
             "datos_personales"
         ],
         "tipo": "obligatorio",
-        "categoria": "datos_personales"
+        "categoria": "datos_personales",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1390746"
     },
     "Ley_delitos_informaticos_ley_30096.pdf": {
         "intenciones": [
             "seguridad_informacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "datos_personales"
+        "categoria": "datos_personales",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1088463"
     },
     "Ley_modificatoria_ley30171.pdf": {
         "intenciones": [
             "seguridad_informacion"
         ],
         "tipo": "obligatorio",
-        "categoria": "datos_personales"
+        "categoria": "datos_personales",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H1097704"
     },
     "Ley_29571_proteccion_defensa_consumidor.pdf": {
         "intenciones": [
             "datos_personales"
         ],
         "tipo": "complementario",
-        "categoria": "datos_personales"
+        "categoria": "datos_personales",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H682697"
     },
     "Ley_Proc_Admin_Gral_LPAG_DS004-2019.pdf": {
         "intenciones": [
@@ -285,6 +323,7 @@
             "permisos"
         ],
         "tipo": "obligatorio",
-        "categoria": "administrativo"
+        "categoria": "administrativo",
+        "url": "https://spij.minjus.gob.pe/spij-ext-web/#/detallenorma/H805476"
     }
 }
