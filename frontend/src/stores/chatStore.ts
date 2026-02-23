@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { Message, ToolType, UploadedFile, TOOLS, ChatClassification, LegalSource, SuggestedAction } from '../types/chat'
 import type { PlanExtractionResponse } from '../types/extraction.types'
+import type { ProjectEvaluation } from '../types/evaluation.types'
+import type { LegalAdviserPackage } from '../types/adviser.types'
 
 interface ChatStore {
   // State
@@ -27,6 +29,10 @@ interface ChatStore {
   // Amber context: last user message + pending AMARILLO intention for follow-up
   lastUserMessage: string | null
   pendingAmberContext: { intention: string; originalMessage: string } | null
+
+  // Generated report cache (survives navigation back to chat)
+  lastEvaluationData: ProjectEvaluation | null
+  lastAdviserData: LegalAdviserPackage | null
 
   // Actions
   startTool: (tool: ToolType) => void
@@ -58,6 +64,8 @@ interface ChatStore {
   setSessionId: (id: string) => void
   setConversationId: (id: string) => void
   setExtractedPlan: (data: PlanExtractionResponse | null) => void
+  setLastEvaluationData: (data: ProjectEvaluation | null) => void
+  setLastAdviserData: (data: LegalAdviserPackage | null) => void
   setError: (error: string | null) => void
   clearError: () => void
   consumePendingMessage: () => string | null
@@ -90,6 +98,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   lastActions: [],
   error: null,
   pendingInitialMessage: null,
+  lastEvaluationData: null,
+  lastAdviserData: null,
 
   // Actions
   startTool: (tool) => {
@@ -341,6 +351,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setConversationId: (id) => set({ conversationId: id }),
 
   setExtractedPlan: (data) => set({ extractedPlan: data }),
+
+  setLastEvaluationData: (data) => set({ lastEvaluationData: data }),
+  setLastAdviserData: (data) => set({ lastAdviserData: data }),
 
   setError: (error) => set({ error }),
 

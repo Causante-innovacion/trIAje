@@ -77,6 +77,7 @@ export function ActionCard({ action, onFileUploadRequest }: ActionCardProps) {
                         conversation,
                         conversationId ?? undefined
                     )
+                    useChatStore.getState().setLastAdviserData(response.data)
                     navigate('/legal-adviser', { state: { adviserData: response.data } })
                 } catch {
                     // Si el API falla, navegar igual (usará mockData como fallback)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Download, FileText, Calendar, ArrowLeft } from 'lucide-react'
 import { ProjectEvaluation } from '../../types/evaluation.types'
+import { useChatStore } from '../../stores/chatStore'
 import { LoadingScreen } from './LoadingScreen'
 import { TrafficLightCard } from './TrafficLightCard'
 import { ProjectContextCard } from './ProjectContextCard'
@@ -47,6 +48,14 @@ export function ProjectEvaluationPage() {
                 setIsLoading(false)
             }, 2000)
             return () => clearTimeout(timer)
+        }
+
+        // Fallback to cached data from chat store (user navigated back from chat)
+        const cached = useChatStore.getState().lastEvaluationData
+        if (cached) {
+            setEvaluationData(cached)
+            setIsLoading(false)
+            return
         }
 
         setIsLoading(false)
@@ -95,13 +104,23 @@ export function ProjectEvaluationPage() {
                     : 'bg-white border-b border-transparent'
             )}>
                 <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
-                        <div>
-                            <h1 className="font-bold text-lg text-gray-900">{evaluationData.projectTitle}</h1>
-                            <p className="text-xs text-gray-500">
-                                ID: {evaluationData.projectId} | Lider: {evaluationData.projectLeader}
-                            </p>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/chat')}
+                            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+                        >
+                            <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                            <span className="hidden sm:inline">Chat</span>
+                        </button>
+                        <div className="w-px h-5 bg-gray-200" />
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
+                            <div>
+                                <h1 className="font-bold text-lg text-gray-900">{evaluationData.projectTitle}</h1>
+                                <p className="text-xs text-gray-500">
+                                    ID: {evaluationData.projectId} | Lider: {evaluationData.projectLeader}
+                                </p>
+                            </div>
                         </div>
                     </div>
 

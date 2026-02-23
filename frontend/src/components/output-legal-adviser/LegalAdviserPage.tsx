@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, FileText } from 'lucide-react'
 import { LegalAdviserPackage } from '../../types/adviser.types'
+import { useChatStore } from '../../stores/chatStore'
 import { LoadingScreen } from '../output-evaluation/LoadingScreen'
 import { OrganizationProfileCard } from './OrganizationProfileCard'
 import { CriticalTopicsSection } from './CriticalTopicsSection'
@@ -27,7 +28,15 @@ export function LegalAdviserPage() {
             return () => clearTimeout(timer)
         }
 
-        // No data passed - use mock data for development
+        // Fallback to cached data from chat store (user navigated back from chat)
+        const cached = useChatStore.getState().lastAdviserData
+        if (cached) {
+            setAdviserData(cached)
+            setIsLoading(false)
+            return
+        }
+
+        // Development fallback: mock data
         const timer = setTimeout(() => {
             setAdviserData(mockAdviserData)
             setIsLoading(false)
@@ -65,6 +74,17 @@ export function LegalAdviserPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+                {/* Back to chat */}
+                <div className="flex items-center">
+                    <button
+                        onClick={() => navigate('/chat')}
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+                    >
+                        <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                        Volver al chat
+                    </button>
+                </div>
+
                 {/* Title */}
                 <div className="text-center animate-slide-up">
                     <div className="flex items-center justify-center gap-3 mb-3">

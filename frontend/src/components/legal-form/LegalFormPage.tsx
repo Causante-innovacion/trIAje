@@ -6,7 +6,7 @@ import { useChatStore } from '../../stores/chatStore'
 import {
   Check, ChevronLeft, ChevronRight, Fingerprint, Gavel, Banknote, Users,
   Lightbulb, Building2, LucideIcon,
-  ClipboardList,
+  ClipboardList, ArrowLeft,
 } from 'lucide-react'
 import { OrganizationCard } from './OrganizationCard'
 import { ProgressTracker } from './ProgressTracker'
@@ -80,6 +80,30 @@ const initialFormState: FormState = {
 
 const getStorageKey = (orgId: string) => `gpt_legal_form_progress_${orgId}`
 
+const TTL_MS = 24 * 60 * 60 * 1000 // 24 horas
+
+function loadFromStorage(orgId: string): FormState {
+  try {
+    const raw = localStorage.getItem(getStorageKey(orgId))
+    if (!raw) return initialFormState
+    const parsed = JSON.parse(raw)
+    // Support both old format (raw FormState) and new format ({ data, timestamp })
+    const timestamp: number = parsed.timestamp ?? 0
+    const data: FormState = parsed.data ?? parsed
+    if (timestamp && Date.now() - timestamp > TTL_MS) {
+      localStorage.removeItem(getStorageKey(orgId))
+      return initialFormState
+    }
+    return data
+  } catch { return initialFormState }
+}
+
+function saveToStorage(orgId: string, form: FormState): void {
+  try {
+    localStorage.setItem(getStorageKey(orgId), JSON.stringify({ data: form, timestamp: Date.now() }))
+  } catch { /* ignore */ }
+}
+
 // ─── Progress Calculation ────────────────────────────────────────────────────
 
 const calculateProgress = (form: FormState) => {
@@ -140,26 +164,20 @@ export function LegalFormPage() {
 
   // ── Storage ──
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(getStorageKey(selectedOrg))
-      setForm(saved ? JSON.parse(saved) : initialFormState)
-    } catch { setForm(initialFormState) }
+    setForm(loadFromStorage(selectedOrg))
   }, [selectedOrg])
 
   useEffect(() => {
     const updatedOrgs = baseOrganizations.map(org => {
       if (org.id === selectedOrg) return { ...org, progress: calculateProgress(form) }
-      try {
-        const saved = localStorage.getItem(getStorageKey(org.id))
-        if (saved) return { ...org, progress: calculateProgress(JSON.parse(saved)) }
-      } catch { /* ignore */ }
-      return { ...org, progress: 0 }
+      const saved = loadFromStorage(org.id)
+      return { ...org, progress: calculateProgress(saved) }
     })
     setOrganizations(updatedOrgs)
   }, [form, selectedOrg, baseOrganizations])
 
   useEffect(() => {
-    try { localStorage.setItem(getStorageKey(selectedOrg), JSON.stringify(form)) } catch { /* ignore */ }
+    saveToStorage(selectedOrg, form)
   }, [form, selectedOrg])
 
   const completedQuestions = [
@@ -221,7 +239,7 @@ export function LegalFormPage() {
     if (completedQuestions !== totalQuestions || !form.hasConfirmed) return
     const completedForm = { ...form, isCompleted: true }
     setForm(completedForm)
-    localStorage.setItem(getStorageKey(selectedOrg), JSON.stringify(completedForm))
+    saveToStorage(selectedOrg, completedForm)
   }
 
   // Calls the evaluation API and navigates to the diagnostic page
@@ -231,12 +249,8 @@ export function LegalFormPage() {
     setSubmitError(null)
     try {
       const allOrgsCompleted = organizations.every(org => {
-        if (org.id === selectedOrg) return true
-        try {
-          const saved = localStorage.getItem(getStorageKey(org.id))
-          if (saved) return JSON.parse(saved).isCompleted === true
-        } catch { /* ignore */ }
-        return org.progress === 100
+        if (org.id === selectedOrg) return form.isCompleted
+        return loadFromStorage(org.id).isCompleted === true
       })
 
       if (!allOrgsCompleted) {
@@ -247,8 +261,7 @@ export function LegalFormPage() {
       }
 
       const orgProfiles = organizations.map(org => {
-        const savedJson = org.id === selectedOrg ? JSON.stringify(form) : localStorage.getItem(getStorageKey(org.id))
-        const orgForm: FormState = savedJson ? JSON.parse(savedJson) : form
+        const orgForm: FormState = org.id === selectedOrg ? form : loadFromStorage(org.id)
         return { id: org.id, name: org.name, role: org.role, legal_profile: buildLegalProfile(orgForm) }
       })
       const projectIntake = {
@@ -261,6 +274,7 @@ export function LegalFormPage() {
       const backendData: BackendEvaluationResponse = evaluationResponse.data
       const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
       const evaluationData = mapBackendToProjectEvaluation(backendData, orgNames)
+      useChatStore.getState().setLastEvaluationData(evaluationData)
       navigate('/evaluation', { state: { evaluationData } })
     } catch (error) {
       console.error('Error generating diagnostic:', error)
@@ -523,7 +537,14 @@ export function LegalFormPage() {
     <div className="min-h-screen bg-causante-crema">
       <div className="max-w-5xl mx-auto px-6 py-8 lg:py-12">
         {/* Header */}
-        <div className="mb-10 text-center">
+        <div className="mb-10 relative text-center">
+          <button
+            onClick={() => navigate('/chat')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <span className="hidden sm:inline">Volver al chat</span>
+          </button>
           <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">Ficha Legal</h1>
           <p className="text-gray-400 text-xs sm:text-base max-w-2xl mx-auto leading-relaxed">
             Diagnóstico inteligente basado en la naturaleza de tu impacto.

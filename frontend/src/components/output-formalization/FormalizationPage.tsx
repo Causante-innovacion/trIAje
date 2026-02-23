@@ -44,11 +44,11 @@ export function FormalizationPage() {
                 {/* Top bar */}
                 <div className="flex items-center justify-between mb-10">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate('/chat')}
                         className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-800 transition-colors group"
                     >
                         <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                        Volver
+                        Volver al chat
                     </button>
 
                     <button
