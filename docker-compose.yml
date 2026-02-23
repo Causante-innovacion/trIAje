@@ -42,8 +42,7 @@ services:
   maple-proxy:
     image: ghcr.io/opensecretcloud/maple-proxy:latest
     container_name: gpt_legal_maple_proxy
-    ports:
-      - "127.0.0.1:8080:8080"    # Solo acceso local (el backend se conecta internamente)
+    # Sin ports — el backend lo alcanza por red interna Docker (http://maple-proxy:8080/v1)
     environment:
       - MAPLE_BACKEND_URL=https://enclave.trymaple.ai
       - MAPLE_ENABLE_CORS=true
