@@ -9,7 +9,6 @@ import { Avatar } from '../ui/Avatar'
 import { ProjectInfoCard, ProjectInfo } from './ProjectInfoCard'
 import { OrganizationsDetected } from './OrganizationsDetected'
 import { FileUpload } from './FileUpload'
-import { FileText } from 'lucide-react'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
 
 // Builds ProjectInfoCard data from extracted plan
@@ -64,7 +63,6 @@ export function ChatContainer() {
     extractedPlan,
     setExtractedPlan,
     consumePendingMessage,
-    lastEvaluationData,
   } = useChatStore()
 
   const { sendMessage, stopProcessing } = useChat()
@@ -346,21 +344,7 @@ export function ChatContainer() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Results banner — shown when an evaluation report was generated */}
-      {lastEvaluationData && (
-        <div className="flex-shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3">
-          <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Reporte disponible:</span>
-          <button
-            onClick={() => navigate('/evaluation')}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-full px-3 py-1 transition-colors"
-          >
-            <FileText className="w-3 h-3" />
-            Ver diagnóstico legal
-          </button>
-        </div>
-      )}
-
-      {/* Messages area - scrollable */}
+      {/* Messages area - scrollable */
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-6"

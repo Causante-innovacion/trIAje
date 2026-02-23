@@ -114,7 +114,6 @@ export function ProjectEvaluationPage() {
                         </button>
                         <div className="w-px h-5 bg-gray-200" />
                         <div className="flex items-center gap-3">
-                            <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
                             <div>
                                 <h1 className="font-bold text-lg text-gray-900">{evaluationData.projectTitle}</h1>
                                 <p className="text-xs text-gray-500">
@@ -224,9 +223,12 @@ export function ProjectEvaluationPage() {
                         <FileText className="w-5 h-5" />
                         Ver ruta completa
                     </button>
-                    <button className="btn-action-dark">
+                    <button
+                        className="btn-action-dark"
+                        onClick={() => navigate('/legal-adviser')}
+                    >
                         <Calendar className="w-5 h-5" />
-                        Reunion con asesor
+                        Reunión con asesor
                     </button>
                 </section>
             </main>

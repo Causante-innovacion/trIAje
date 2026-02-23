@@ -200,13 +200,32 @@ export function mapBackendToProjectEvaluation(
     response: BackendEvaluationResponse,
     orgNames: Array<{ id: string; name: string; role: string }>,
 ): ProjectEvaluation {
-    // Organizations semaphore - per org
-    const organizations: OrganizationStatus[] = response.organizations.map(org => ({
-        id: org.organization_id,
-        name: org.organization_name,
-        status: response.traffic_light,
-        message: response.viability_explanation,
-    }))
+    // Status label from per-org risk_level
+    const riskToStatus: Record<string, TrafficLightStatus> = {
+        critical: 'red', high: 'yellow', medium: 'green', low: 'green',
+    }
+
+    // Organizations semaphore - per org using their own risk_level
+    const organizations: OrganizationStatus[] = response.organizations.map(org => {
+        const status: TrafficLightStatus = riskToStatus[org.risk_level] ?? 'yellow'
+        const criticalCount = org.gaps.filter(g => g.severity === 'critical').length
+        const highCount = org.gaps.filter(g => g.severity === 'high').length
+        let message: string
+        if (status === 'red') {
+            message = criticalCount > 0
+                ? `${criticalCount} brecha${criticalCount > 1 ? 's' : ''} crítica${criticalCount > 1 ? 's' : ''} detectada${criticalCount > 1 ? 's' : ''} que requieren atención inmediata.`
+                : response.viability_explanation
+        } else if (status === 'yellow') {
+            message = highCount > 0
+                ? `${highCount} brecha${highCount > 1 ? 's' : ''} con impacto alto identificada${highCount > 1 ? 's' : ''}. Se requieren ajustes.`
+                : response.viability_explanation
+        } else {
+            message = org.gaps.length === 0
+                ? 'Cumplimiento satisfactorio en las áreas evaluadas.'
+                : response.viability_explanation
+        }
+        return { id: org.organization_id, name: org.organization_name, status, message }
+    })
 
     // Legal entities: derive from all gaps + fulfilled intentions
     const legalEntities: LegalEntity[] = []
@@ -292,12 +311,41 @@ export function mapBackendToProjectEvaluation(
         description: alt.includes(':') ? alt.split(':').slice(1).join(':').trim() : alt,
     }))
 
+    // Project context items derived from response
+    const projectContext: ProjectContextItem[] = [
+        {
+            icon: 'users',
+            label: 'Organizaciones',
+            value: `${response.organizations.length} evaluada${response.organizations.length > 1 ? 's' : ''}`,
+        },
+        {
+            icon: 'alert',
+            label: 'Brechas totales',
+            value: response.total_gaps > 0 ? `${response.total_gaps} identificada${response.total_gaps > 1 ? 's' : ''}` : 'Sin brechas',
+        },
+        {
+            icon: 'target',
+            label: 'Nivel de riesgo',
+            value: ({
+                critical: 'Crítico',
+                high: 'Alto',
+                medium: 'Medio',
+                low: 'Bajo',
+            })[response.risk_summary.overall_level] ?? response.risk_summary.overall_level,
+        },
+        ...response.project_intentions.slice(0, 3).map(intention => ({
+            icon: INTENTION_ICONS[intention] ?? 'file',
+            label: 'Área legal',
+            value: INTENTION_LABELS[intention] ?? intention,
+        })),
+    ]
+
     return {
         projectId: orgNames[0]?.name || 'proyecto',
         projectTitle: 'Ruta de evaluación de proyecto',
         projectLeader: orgNames[0]?.name || '',
         organizations,
-        projectContext: [],
+        projectContext,
         legalEntities,
         actionSteps,
         viabilityConditions,
