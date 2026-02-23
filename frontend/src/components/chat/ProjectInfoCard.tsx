@@ -13,7 +13,6 @@ export interface ProjectInfo {
     permanent: number
     external: number
   }
-  interventionTypes: string[]
 }
 
 interface ProjectInfoCardProps {
@@ -176,17 +175,6 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
               </div>
             </div>
 
-            {/* Intervention types */}
-            <div>
-              <label className="block text-xs font-bold text-gold uppercase tracking-wide mb-2">Tipo de Intervención (separados por coma)</label>
-              <input
-                type="text"
-                value={formData.interventionTypes.join(', ')}
-                onChange={(e) => handleChange('interventionTypes', e.target.value.split(',').map(s => s.trim()))}
-                className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-gold focus:ring focus:ring-gold/50"
-                placeholder="Ej: Social, Educativo, Tecnológico"
-              />
-            </div>
           </div>
         </div>
 
@@ -250,14 +238,16 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-xs font-bold text-gold uppercase tracking-wide mb-3">Financiamiento Proyectado</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-xs text-gray-500">Capital Semilla</span>
-                  <span className="text-sm font-semibold">{data.financing.seed.amount} ({data.financing.seed.source})</span>
+              <div className="space-y-3">
+                <div className="py-2 border-b border-gray-100">
+                  <span className="text-xs text-gray-500 block mb-1">Capital Semilla</span>
+                  <span className="text-sm font-semibold text-gray-900">{data.financing.seed.amount}</span>
+                  <span className="text-xs text-gray-400 ml-1">({data.financing.seed.source})</span>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-xs text-gray-500">Escalamiento</span>
-                  <span className="text-sm font-semibold">{data.financing.scaling.amount} ({data.financing.scaling.source})</span>
+                <div className="py-2">
+                  <span className="text-xs text-gray-500 block mb-1">Escalamiento</span>
+                  <span className="text-sm font-semibold text-gray-900">{data.financing.scaling.amount}</span>
+                  <span className="text-xs text-gray-400 ml-1">({data.financing.scaling.source})</span>
                 </div>
               </div>
             </div>
@@ -276,20 +266,7 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
             </div>
           </div>
 
-          {/* Intervention types */}
-          <div>
-            <p className="text-xs font-bold text-gold uppercase tracking-wide mb-2">Tipo de Intervención</p>
-            <div className="flex flex-wrap gap-2">
-              {data.interventionTypes.map((type, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full"
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
 

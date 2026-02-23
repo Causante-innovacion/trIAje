@@ -49,15 +49,15 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                     ),
                     // Unordered lists
                     ul: ({ children }) => (
-                        <ul className="list-disc list-inside space-y-1 mb-2 ml-1">{children}</ul>
+                        <ul className="list-disc list-outside space-y-1.5 mb-2 pl-5">{children}</ul>
                     ),
                     // Ordered lists
                     ol: ({ children }) => (
-                        <ol className="list-decimal list-inside space-y-1 mb-2 ml-1">{children}</ol>
+                        <ol className="list-decimal list-outside space-y-1.5 mb-2 pl-5">{children}</ol>
                     ),
                     // List items
                     li: ({ children }) => (
-                        <li className="text-gray-700 leading-relaxed">{children}</li>
+                        <li className="text-gray-700 leading-relaxed pl-1 [&>p]:inline [&>p]:mb-0">{children}</li>
                     ),
                     // Inline code
                     code: ({ children, className: codeClassName }) => {

@@ -38,7 +38,6 @@ function buildProjectInfo(plan: PlanExtractionResponse) {
       permanent: orgs.length,
       external: meta.external_dependency ?? 0,
     },
-    interventionTypes: [] as string[],
   }
 }
 
@@ -280,7 +279,6 @@ export function ChatContainer() {
           scaling: { amount: '', source: '' },
         },
         team: { permanent: 0, external: 0 },
-        interventionTypes: [],
       }
 
       return (

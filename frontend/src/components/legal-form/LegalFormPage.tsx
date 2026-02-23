@@ -136,6 +136,7 @@ export function LegalFormPage() {
   const [form, setForm] = useState<FormState>(initialFormState)
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // ── Storage ──
   useEffect(() => {
@@ -215,37 +216,55 @@ export function LegalFormPage() {
     urgency: { urgency_v2: f.urgencyV2 },
   })
 
-  const handleSubmit = async () => {
+  // Marks the form as completed (does NOT generate the diagnostic yet)
+  const handleSubmit = () => {
     if (completedQuestions !== totalQuestions || !form.hasConfirmed) return
-    setIsSubmitting(true)
     const completedForm = { ...form, isCompleted: true }
     setForm(completedForm)
+    localStorage.setItem(getStorageKey(selectedOrg), JSON.stringify(completedForm))
+  }
+
+  // Calls the evaluation API and navigates to the diagnostic page
+  const handleGenerateDiagnostic = async () => {
+    if (!form.isCompleted) return
+    setIsSubmitting(true)
+    setSubmitError(null)
     try {
-      localStorage.setItem(getStorageKey(selectedOrg), JSON.stringify(completedForm))
-      const allOrgsCompleted = organizations.every(org => org.id === selectedOrg ? true : org.progress === 100)
-      if (form.tool === 'evaluation' && allOrgsCompleted) {
-        const orgProfiles = organizations.map(org => {
-          const savedJson = org.id === selectedOrg ? JSON.stringify(completedForm) : localStorage.getItem(getStorageKey(org.id))
-          const orgForm: FormState = savedJson ? JSON.parse(savedJson) : completedForm
-          return { id: org.id, name: org.name, role: org.role, legal_profile: buildLegalProfile(orgForm) }
-        })
-        const projectIntake = {
-          tool: form.tool, organizations: orgProfiles, tool_specific: { evaluation: { evaluation_goals: ["Evaluación general"], urgency: form.urgencyV2 } },
-          risk_assessment: { overall_risk_level: 'LOW', derivation_color: 'green', derivation_required: false, organization_risks: [], shared_signals: [], shared_reasons: [], detected_intentions: [] },
-          total_organizations: organizations.length,
-        }
-        const evaluationResponse = await evaluationApi.evaluateIntake(projectIntake)
-        const backendData: BackendEvaluationResponse = evaluationResponse.data
-        const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
-        const evaluationData = mapBackendToProjectEvaluation(backendData, orgNames)
-        navigate('/evaluation', { state: { evaluationData } })
-      } else if (!allOrgsCompleted) {
+      const allOrgsCompleted = organizations.every(org => {
+        if (org.id === selectedOrg) return true
+        try {
+          const saved = localStorage.getItem(getStorageKey(org.id))
+          if (saved) return JSON.parse(saved).isCompleted === true
+        } catch { /* ignore */ }
+        return org.progress === 100
+      })
+
+      if (!allOrgsCompleted) {
+        setSubmitError('Debes completar la ficha de todas las organizaciones antes de generar el diagnóstico.')
+        setIsSubmitting(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-      } else {
-        navigate('/chat')
+        return
       }
+
+      const orgProfiles = organizations.map(org => {
+        const savedJson = org.id === selectedOrg ? JSON.stringify(form) : localStorage.getItem(getStorageKey(org.id))
+        const orgForm: FormState = savedJson ? JSON.parse(savedJson) : form
+        return { id: org.id, name: org.name, role: org.role, legal_profile: buildLegalProfile(orgForm) }
+      })
+      const projectIntake = {
+        tool: form.tool, organizations: orgProfiles,
+        tool_specific: { evaluation: { evaluation_goals: ["Evaluación general"], urgency: form.urgencyV2 } },
+        risk_assessment: { overall_risk_level: 'LOW', derivation_color: 'green', derivation_required: false, organization_risks: [], shared_signals: [], shared_reasons: [], detected_intentions: [] },
+        total_organizations: organizations.length,
+      }
+      const evaluationResponse = await evaluationApi.evaluateIntake(projectIntake)
+      const backendData: BackendEvaluationResponse = evaluationResponse.data
+      const orgNames = organizations.map(o => ({ id: o.id, name: o.name, role: o.role }))
+      const evaluationData = mapBackendToProjectEvaluation(backendData, orgNames)
+      navigate('/evaluation', { state: { evaluationData } })
     } catch (error) {
-      console.error('Error submitting intake:', error)
+      console.error('Error generating diagnostic:', error)
+      setSubmitError('Ocurrió un error al generar el diagnóstico. Por favor intenta nuevamente.')
     } finally {
       setIsSubmitting(false)
     }
@@ -470,13 +489,25 @@ export function LegalFormPage() {
           <div className="pt-10 border-t border-gray-50 flex flex-col items-center">
             <div className="bg-green-50 text-green-700 px-8 py-5 rounded-3xl flex items-center gap-4 mb-8 shadow-sm">
               <Check className="w-6 h-6 stroke-[3]" />
-              <span className="text-sm font-black uppercase tracking-widest">Ficha enviada correctamente</span>
+              <span className="text-sm font-black uppercase tracking-widest">Ficha completada correctamente</span>
             </div>
+            {submitError && (
+              <div className="bg-red-50 text-red-600 px-6 py-3 rounded-2xl text-sm font-medium mb-4">
+                {submitError}
+              </div>
+            )}
             <button
-              onClick={() => navigate('/evaluation')}
-              className="bg-white px-8 py-4 rounded-2xl border-2 border-causante-ocre text-causante-ocre font-black text-xs tracking-widest hover:bg-causante-crema/10 transition-all uppercase"
+              onClick={handleGenerateDiagnostic}
+              disabled={isSubmitting}
+              className={clsx(
+                'px-8 py-4 rounded-2xl font-black text-xs tracking-widest transition-all uppercase flex items-center gap-2 shadow-lg',
+                isSubmitting
+                  ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
+                  : 'bg-causante-ocre text-white hover:bg-opacity-90 active:scale-[0.98] shadow-causante-ocre/20'
+              )}
             >
-              Ver diagnóstico legal →
+              {isSubmitting ? 'GENERANDO...' : 'GENERAR DIAGNÓSTICO'}
+              {!isSubmitting && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
         )}
@@ -493,7 +524,7 @@ export function LegalFormPage() {
       <div className="max-w-5xl mx-auto px-6 py-8 lg:py-12">
         {/* Header */}
         <div className="mb-10 text-center">
-          <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">Ficha Legal V2</h1>
+          <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">Ficha Legal</h1>
           <p className="text-gray-400 text-xs sm:text-base max-w-2xl mx-auto leading-relaxed">
             Diagnóstico inteligente basado en la naturaleza de tu impacto.
           </p>
@@ -558,19 +589,23 @@ export function LegalFormPage() {
                 </div>
 
                 {isLastStep ? (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || completedQuestions < totalQuestions || !form.hasConfirmed}
-                    className={clsx(
-                      'px-8 py-4 rounded-2xl font-black text-[10px] tracking-widest transition-all shadow-lg flex items-center gap-2 uppercase',
-                      (isSubmitting || completedQuestions < totalQuestions || !form.hasConfirmed)
-                        ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
-                        : 'bg-causante-ocre text-white hover:bg-opacity-90 active:scale-[0.98] shadow-causante-ocre/20'
-                    )}
-                  >
-                    {isSubmitting ? 'PROCESANDO...' : 'GENERAR DIAGNÓSTICO'}
-                    {!isSubmitting && <ChevronRight className="w-4 h-4" />}
-                  </button>
+                  !form.isCompleted ? (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || completedQuestions < totalQuestions || !form.hasConfirmed}
+                      className={clsx(
+                        'px-8 py-4 rounded-2xl font-black text-[10px] tracking-widest transition-all shadow-lg flex items-center gap-2 uppercase',
+                        (isSubmitting || completedQuestions < totalQuestions || !form.hasConfirmed)
+                          ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
+                          : 'bg-causante-ocre text-white hover:bg-opacity-90 active:scale-[0.98] shadow-causante-ocre/20'
+                      )}
+                    >
+                      {isSubmitting ? 'PROCESANDO...' : 'COMPLETAR FICHA'}
+                      {!isSubmitting && <ChevronRight className="w-4 h-4" />}
+                    </button>
+                  ) : (
+                    <div /> /* Espacio vacío: el botón de generar diagnóstico está arriba */
+                  )
                 ) : (
                   <button
                     onClick={goNext}
