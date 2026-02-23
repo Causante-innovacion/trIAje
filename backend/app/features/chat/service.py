@@ -10,6 +10,7 @@ Flujo:
 3. Detectar análisis de proyecto → sugerir subida de archivo
 """
 
+import asyncio
 import uuid
 import json
 import logging
@@ -272,6 +273,13 @@ class ChatService:
                     if rag_result and rag_result.chunks:
                         rag_context = self._build_rag_context_from_chunks(rag_result)
                         sources = self._extract_sources_from_chunks(rag_result)
+                        seen_docs_amber: set = set()
+                        for chunk in rag_result.chunks:
+                            title = chunk.metadata.title
+                            if title and title not in seen_docs_amber:
+                                seen_docs_amber.add(title)
+                                yield sse({"type": "doc_scanning", "title": title})
+                                await asyncio.sleep(0.06)
             except Exception:
                 pass
 
@@ -345,6 +353,14 @@ class ChatService:
                 if rag_result and rag_result.chunks:
                     rag_context = self._build_rag_context_from_chunks(rag_result)
                     sources = self._extract_sources_from_chunks(rag_result)
+                    # Emitir progreso doc a doc para feedback visual en el frontend
+                    seen_docs: set = set()
+                    for chunk in rag_result.chunks:
+                        title = chunk.metadata.title
+                        if title and title not in seen_docs:
+                            seen_docs.add(title)
+                            yield sse({"type": "doc_scanning", "title": title})
+                            await asyncio.sleep(0.06)
         except Exception:
             pass
 

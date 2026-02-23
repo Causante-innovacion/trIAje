@@ -187,7 +187,11 @@ class IntentionClassifier:
 
             return intention, confidence
 
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                "[IntentionClassifier] LLM call failed: %s: %s", type(e).__name__, e
+            )
             return Intention.FUERA_DE_ALCANCE, 0.0
 
     @staticmethod

@@ -99,6 +99,8 @@ export interface Message {
     actions?: SuggestedAction[]
     disclaimers?: string[]
     errorType?: 'network' | 'server' | 'validation' | 'timeout'
+    /** Documentos que se van encontrando durante el RAG (se acumula en streaming) */
+    scanningDocs?: string[]
   }
 }
 

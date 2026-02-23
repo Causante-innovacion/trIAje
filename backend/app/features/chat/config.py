@@ -82,6 +82,8 @@ INTENTIONS: Dict[Intention, IntentionConfig] = {
             "asociación civil", "fundación", "comité", "constituir", "inscripción",
             "SUNARP", "personería jurídica", "estatuto", "escritura pública",
             "registros públicos", "reserva de nombre", "formalizar", "constitución",
+            "formalizacion", "formalización", "formalizar empresa", "constituir empresa",
+            "crear empresa", "crear asociacion", "registrar empresa", "registrar asociacion",
         ],
         example_questions=[
             "¿Cómo constituyo una asociación civil?",

@@ -50,6 +50,7 @@ interface ChatStore {
   setStreamingClassification: (id: string, classification: ChatClassification) => void
   setStreamingSources: (id: string, sources: LegalSource[]) => void
   appendToStreamingMessage: (id: string, text: string) => void
+  appendScanningDoc: (id: string, title: string) => void
   finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string; content?: string }) => void
   setUploadProgress: (progress: number) => void
   setPendingFile: (file: UploadedFile | null) => void
@@ -246,6 +247,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       messages: state.messages.map((m) =>
         m.id === id
           ? { ...m, metadata: { ...m.metadata, sources } }
+          : m
+      ),
+    }))
+  },
+
+  appendScanningDoc: (id, title) => {
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              metadata: {
+                ...m.metadata,
+                scanningDocs: [...(m.metadata?.scanningDocs ?? []), title],
+              },
+            }
           : m
       ),
     }))

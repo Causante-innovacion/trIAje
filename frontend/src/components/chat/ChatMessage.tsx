@@ -8,6 +8,7 @@ import { ActionCard } from './ActionCard'
 import { MarkdownRenderer } from '../ui/MarkdownRenderer'
 import { AlertCircle, WifiOff, ServerCrash, Clock, Paperclip } from 'lucide-react'
 import { useTypewriter } from '../../hooks/useTypewriter'
+import { ThinkingBlock, parseThinkContent } from './ThinkingBlock'
 
 /** Detect file-attachment messages and extract just the filename */
 function parseFileAttachment(content: string): string | null {
@@ -74,26 +75,55 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
     switch (message.contentType) {
 
       // ── Intelligent chat response ──
-      case 'semaphore_response':
+      case 'semaphore_response': {
+        const { thinkContent, answer, isThinking } = parseThinkContent(message.content ?? '')
+        const scanningDocs = message.metadata?.scanningDocs ?? []
+        const isScanning = message.isStreaming && !message.content && scanningDocs.length > 0
+
         return (
           <div className="space-y-3">
             {/* Streaming status pill — shown while tokens haven't started yet */}
-            {message.isStreaming && message.streamingStatus && !message.content && (
+            {message.isStreaming && message.streamingStatus && !message.content && !isScanning && (
               <StreamingStatusPill status={message.streamingStatus} />
             )}
 
+            {/* Lista de documentos encontrando durante RAG */}
+            {isScanning && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2 space-y-1">
+                <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="flex gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce [animation-delay:300ms]" />
+                  </span>
+                  Revisando normativa
+                </p>
+                <ul className="space-y-0.5">
+                  {scanningDocs.map((doc, i) => (
+                    <li key={i} className="text-[11px] text-blue-700 flex items-center gap-1.5 animate-fade-in">
+                      <span className="text-blue-400">‣</span>
+                      <span className="truncate">{doc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
+            {/* Bloque de razonamiento <think> (colapsable) */}
+            {(thinkContent || isThinking) && (
+              <ThinkingBlock content={thinkContent} isThinking={isThinking} />
+            )}
 
             {/* Main message text — typewriter for completed, raw for streaming */}
             {message.isStreaming ? (
               <div className="leading-relaxed">
-                <MarkdownRenderer content={message.content} />
-                {message.content && (
+                <MarkdownRenderer content={answer} />
+                {answer && (
                   <span className="inline-block w-1.5 h-4 bg-gold/60 ml-0.5 animate-pulse rounded-sm" />
                 )}
               </div>
             ) : (
-              <AnimatedText text={message.content} animate={animate} />
+              <AnimatedText text={answer || message.content} animate={animate} />
             )}
 
             {/* Sources */}
@@ -122,6 +152,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             )}
           </div>
         )
+      }
 
       // ── Error message ──
       case 'error':

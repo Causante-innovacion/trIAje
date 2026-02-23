@@ -26,6 +26,7 @@ export function useChat() {
     setStreamingClassification,
     setStreamingSources,
     appendToStreamingMessage,
+    appendScanningDoc,
     finalizeStreamingMessage,
     consumePendingAmberContext,
   } = useChatStore()
@@ -122,6 +123,9 @@ export function useChat() {
               case 'sources':
                 setStreamingSources(streamId, event.data)
                 break
+              case 'doc_scanning':
+                appendScanningDoc(streamId, event.title)
+                break
               case 'token':
                 appendToStreamingMessage(streamId, event.text)
                 break
@@ -180,6 +184,7 @@ export function useChat() {
     setStreamingClassification,
     setStreamingSources,
     appendToStreamingMessage,
+    appendScanningDoc,
     finalizeStreamingMessage,
     consumePendingAmberContext,
   ])
