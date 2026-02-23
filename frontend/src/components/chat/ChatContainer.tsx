@@ -344,7 +344,7 @@ export function ChatContainer() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages area - scrollable */
+      {/* Messages area - scrollable */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-6"
