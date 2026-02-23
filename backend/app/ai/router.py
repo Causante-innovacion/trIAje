@@ -1,17 +1,18 @@
 """
 AI Router — Capa de IA provider-agnóstica basada en LangChain.
 
-El provider concreto se selecciona automáticamente según:
-  1. El nombre del modelo (claude-* → Anthropic, gpt-* → OpenAI/Maple).
-  2. La variable de entorno AI_PROVIDER_PRIMARY (openai | anthropic | maple).
+Cada módulo puede usar un provider diferente (routing por módulo):
+  1. PROVIDER_INTAKE / PROVIDER_REASONING / PROVIDER_CREATIVITY  → override por módulo.
+  2. AI_PROVIDER_PRIMARY → fallback si no hay override.
+  3. El nombre del modelo (claude-* → Anthropic auto-detect).
 
 Agregar un nuevo provider = añadir un elif en `_build_llm()` y configurar
 la API key / URL en config.py. El resto del código no cambia.
 
 Módulos:
-  INTAKE     → MODEL_INTAKE     (gpt-4o-mini por defecto, temp 0.3)
-  REASONING  → MODEL_REASONING  (gpt-4o por defecto, temp 0.5)
-  CREATIVITY → MODEL_CREATIVITY (claude-sonnet por defecto, temp 0.7)
+  INTAKE     → MODEL_INTAKE     (gpt-4o-mini por defecto, temp 0.3)  → OpenAI
+  REASONING  → MODEL_REASONING  (deepseek-r1 vía Maple, temp 0.5)    → Maple
+  CREATIVITY → MODEL_CREATIVITY (configurable, temp 0.7)
 """
 
 import json
@@ -25,17 +26,39 @@ from .providers.base import AIResponse
 
 
 # =============================================================================
+# Helpers — resolución de provider por módulo
+# =============================================================================
+
+def _resolve_provider(module_override: str | None) -> str:
+    """
+    Resuelve qué provider usar para un módulo dado.
+
+    Prioridad:
+      1. Override explícito por módulo (PROVIDER_INTAKE, etc.)
+      2. AI_PROVIDER_PRIMARY (fallback global)
+    """
+    if module_override:
+        return module_override.lower()
+    return settings.AI_PROVIDER_PRIMARY.lower()
+
+
+# =============================================================================
 # Factory — construye el LLM de LangChain correcto según provider y modelo
 # =============================================================================
 
-def _build_llm(model: str, temperature: float) -> BaseChatModel:
+def _build_llm(model: str, temperature: float, provider: str = "openai") -> BaseChatModel:
     """
     Devuelve una instancia de BaseChatModel para el modelo dado.
 
-    Reglas de selección de provider:
-      • Modelos cuyo nombre contiene "claude" Y hay ANTHROPIC_API_KEY → Anthropic.
-      • AI_PROVIDER_PRIMARY == "maple" Y hay MAPLE_API_KEY            → Maple (OpenAI-compat).
-      • Todo lo demás (o fallback cuando falta la key)                → OpenAI.
+    Args:
+        model: Nombre del modelo (e.g. gpt-4o-mini, deepseek-r1)
+        temperature: Temperatura de generación
+        provider: Provider explícito ("openai", "maple", "anthropic")
+
+    Reglas de selección:
+      • provider == "anthropic" (o modelo claude-*) Y hay ANTHROPIC_API_KEY → Anthropic.
+      • provider == "maple" Y hay MAPLE_API_KEY → Maple (OpenAI-compat).
+      • Todo lo demás (o fallback cuando falta la key) → OpenAI.
 
     Para añadir un nuevo provider (ej. Google Gemini):
         elif provider == "google" and settings.GOOGLE_API_KEY:
@@ -45,8 +68,10 @@ def _build_llm(model: str, temperature: float) -> BaseChatModel:
     """
     from langchain_openai import ChatOpenAI
 
-    # Anthropic (solo si hay key Y el modelo es claude-*)
-    if "claude" in model.lower() and settings.ANTHROPIC_API_KEY:
+    provider = provider.lower()
+
+    # Anthropic — por provider explícito o auto-detect por nombre de modelo
+    if (provider == "anthropic" or "claude" in model.lower()) and settings.ANTHROPIC_API_KEY:
         from langchain_anthropic import ChatAnthropic
         return ChatAnthropic(
             model=model,
@@ -54,13 +79,16 @@ def _build_llm(model: str, temperature: float) -> BaseChatModel:
             api_key=settings.ANTHROPIC_API_KEY,  # type: ignore[arg-type]
         )
 
-    # Maple (OpenAI-compatible) si es el provider primario y hay key
-    if settings.AI_PROVIDER_PRIMARY.lower() == "maple" and settings.MAPLE_API_KEY:
+    # Maple (OpenAI-compatible) — endpoint propio, ideal para datos sensibles
+    # IMPORTANTE: Maple Proxy solo soporta streaming, streaming=True es obligatorio.
+    # Con streaming=True, ainvoke() sigue funcionando (acumula el stream internamente).
+    if provider == "maple" and settings.MAPLE_API_KEY:
         return ChatOpenAI(
             model=model,
             temperature=temperature,
             api_key=settings.MAPLE_API_KEY,       # type: ignore[arg-type]
             base_url=settings.MAPLE_API_URL,
+            streaming=True,
         )
 
     # Defecto: OpenAI.
@@ -128,16 +156,33 @@ def _parse_json(content: str) -> Dict[str, Any]:
 
 class AIRouter:
     """
-    Router de IA basado en LangChain. Provider-agnóstico.
+    Router de IA basado en LangChain. Provider-agnóstico con routing por módulo.
 
     Cada método corresponde a un módulo funcional (INTAKE, REASONING, CREATIVITY).
+    Cada módulo puede usar un provider diferente vía PROVIDER_INTAKE, etc.
     Los LLMs se construyen una sola vez al iniciar y se reutilizan.
     """
 
     def __init__(self):
-        self._intake_llm: BaseChatModel = _build_llm(settings.MODEL_INTAKE, temperature=0.3)
-        self._reason_llm: BaseChatModel = _build_llm(settings.MODEL_REASONING, temperature=0.5)
-        self._create_llm: BaseChatModel = _build_llm(settings.MODEL_CREATIVITY, temperature=0.7)
+        # Resolver provider por módulo (con fallback a AI_PROVIDER_PRIMARY)
+        intake_provider = _resolve_provider(settings.PROVIDER_INTAKE)
+        reason_provider = _resolve_provider(settings.PROVIDER_REASONING)
+        create_provider = _resolve_provider(settings.PROVIDER_CREATIVITY)
+
+        self._intake_llm: BaseChatModel = _build_llm(
+            settings.MODEL_INTAKE, temperature=0.3, provider=intake_provider,
+        )
+        self._reason_llm: BaseChatModel = _build_llm(
+            settings.MODEL_REASONING, temperature=0.5, provider=reason_provider,
+        )
+        self._create_llm: BaseChatModel = _build_llm(
+            settings.MODEL_CREATIVITY, temperature=0.7, provider=create_provider,
+        )
+
+        # Guardar providers resueltos para metadata en responses
+        self._intake_provider = intake_provider
+        self._reason_provider = reason_provider
+        self._create_provider = create_provider
 
     # ------------------------------------------------------------------
     # INTAKE — modelo ligero para clasificación y extracción
@@ -154,7 +199,7 @@ class AIRouter:
         return AIResponse(
             content=str(result.content),
             model=settings.MODEL_INTAKE,
-            provider=settings.AI_PROVIDER_PRIMARY,
+            provider=self._intake_provider,
         )
 
     # ------------------------------------------------------------------
@@ -173,7 +218,7 @@ class AIRouter:
         return AIResponse(
             content=str(result.content),
             model=settings.MODEL_REASONING,
-            provider=settings.AI_PROVIDER_PRIMARY,
+            provider=self._reason_provider,
         )
 
     async def reason_stream(
@@ -211,7 +256,7 @@ class AIRouter:
         return AIResponse(
             content=str(result.content),
             model=settings.MODEL_CREATIVITY,
-            provider=settings.AI_PROVIDER_PRIMARY,
+            provider=self._create_provider,
         )
 
     # ------------------------------------------------------------------

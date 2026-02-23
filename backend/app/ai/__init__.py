@@ -1,11 +1,14 @@
 # AI Layer
 """
 Sistema de IA con Strategy Pattern para providers.
+Routing por módulo — cada módulo puede usar un provider diferente.
 
 Módulos:
-- INTAKE: Tareas simples (gpt-4o-mini)
-- REASONING: Análisis lógico (gpt-4o)
-- CREATIVITY: Contenido original (claude-sonnet)
+- INTAKE:     Tareas simples      (gpt-4o-mini vía OpenAI)
+- REASONING:  Análisis legal      (deepseek-r1 vía Maple AI)
+- CREATIVITY: Contenido original  (configurable)
+
+Providers disponibles: openai, maple, anthropic
 
 Embeddings:
 - OpenAI: text-embedding-3-small

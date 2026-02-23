@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     AI_PROVIDER_PRIMARY: str = Field(default="openai")
     AI_PROVIDER_FALLBACK: str = Field(default="openai")
 
+    # Per-module provider override (si vacío, usa AI_PROVIDER_PRIMARY)
+    PROVIDER_INTAKE: str | None = None       # Provider para tareas simples
+    PROVIDER_REASONING: str | None = None    # Provider para análisis legal
+    PROVIDER_CREATIVITY: str | None = None   # Provider para redacción
+
     # AI Models (configurables)
     MODEL_INTAKE: str = "gpt-4o-mini"      # Tareas simples, clasificación
     MODEL_REASONING: str = "gpt-4o"         # Análisis legal
