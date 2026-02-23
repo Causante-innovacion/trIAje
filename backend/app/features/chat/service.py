@@ -330,9 +330,21 @@ class ChatService:
                 yield sse({"type": "token", "text": fallback})
 
             yield sse({"type": "token", "text": amber_suffix})
+
+            # Si el usuario pidió explícitamente preparar preguntas para un asesor,
+            # añadir la acción aunque el semáforo sea AMARILLO.
+            amber_actions = [{"type": "provide_context", "label": "Añadir más contexto",
+                              "description": "Responde las preguntas para recibir orientación más específica."}]
+            if self._is_advisor_request(message):
+                amber_actions.append({
+                    "type": "derive_to_advisor",
+                    "label": "Preparar preguntas para el asesor",
+                    "description": "Te ayudaré a organizar las preguntas clave para tu reunión con el especialista.",
+                    "endpoint": "/api/v1/advisor-prep",
+                })
+
             yield sse({"type": "done",
-                       "actions": [{"type": "provide_context", "label": "Añadir más contexto",
-                                    "description": "Responde las preguntas para recibir orientación más específica."}],
+                       "actions": amber_actions,
                        "disclaimers": STANDARD_DISCLAIMERS,
                        "conversation_id": conversation_id})
             return
@@ -429,7 +441,18 @@ class ChatService:
             )
             yield sse({"type": "token", "text": fallback})
 
-        yield sse({"type": "done", "actions": [],
+        # Si el usuario pidió explícitamente preparar preguntas para un asesor,
+        # añadir la acción aunque el semáforo sea VERDE.
+        verde_actions = []
+        if self._is_advisor_request(message):
+            verde_actions.append({
+                "type": "derive_to_advisor",
+                "label": "Preparar preguntas para el asesor",
+                "description": "Te ayudaré a organizar las preguntas clave para tu reunión con el especialista.",
+                "endpoint": "/api/v1/advisor-prep",
+            })
+
+        yield sse({"type": "done", "actions": verde_actions,
                    "disclaimers": STANDARD_DISCLAIMERS,
                    "conversation_id": conversation_id})
 
@@ -644,6 +667,34 @@ class ChatService:
                 if i + 1 < len(history) and history[i + 1].get("role") == "user":
                     return history[i + 1]["content"]
         return None
+
+    @staticmethod
+    def _is_advisor_request(message: str) -> bool:
+        """Detecta si el usuario pide explícitamente preparar preguntas para un asesor/especialista."""
+        import unicodedata
+        msg = message.lower().strip()
+        nfkd = unicodedata.normalize("NFKD", msg)
+        msg_norm = "".join(c for c in nfkd if not unicodedata.combining(c))
+
+        ADVISOR_PATTERNS = [
+            "preguntas para asesor", "preguntas para el asesor",
+            "preguntas para especialista", "preguntas para el especialista",
+            "preguntas para abogado", "preguntas para el abogado",
+            "preguntas para notario", "preguntas para el notario",
+            "consulta para asesor", "generar consulta para asesor",
+            "preparar para asesor", "preparar consulta", "preparar reunion",
+            "preparar la reunion", "preparar la consulta",
+            "como me preparo para hablar", "como preparo la visita",
+            "que le pregunto al abogado", "que pregunto al abogado",
+            "que le pregunto al asesor", "que pregunto al asesor",
+            "que le pregunto al especialista",
+            "consultar a un especialista", "consultar a un asesor",
+            "quiero ver al abogado", "quiero ir al abogado",
+            "debo ir al abogado", "necesito ir al abogado",
+            "paquete para asesor", "documentacion para asesor",
+            "documentos para asesor", "documentos para el abogado",
+        ]
+        return any(p in msg_norm for p in ADVISOR_PATTERNS)
 
     @staticmethod
     def _is_greeting(message: str) -> bool:
