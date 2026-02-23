@@ -12,7 +12,10 @@ Flujo:
 
 import uuid
 import json
+import logging
 from typing import List, Dict, Optional, AsyncGenerator
+
+logger = logging.getLogger(__name__)
 
 from app.ai.router import AIRouter
 from app.modules.rag import get_rag_module
@@ -403,7 +406,8 @@ class ChatService:
                 prompt=prompt, system_prompt=system_prompt, history=history
             ):
                 yield sse({"type": "token", "text": token})
-        except Exception:
+        except Exception as e:
+            logger.error("[REASONING] reason_stream falló: %s: %s", type(e).__name__, e, exc_info=True)
             fallback = await self._generate_basic_response(
                 eff_message, classification, history=history, amber_followup=bool(_amber_intention)
             )
@@ -970,7 +974,8 @@ class ChatService:
                 history=history,
             )
             return response.content
-        except Exception:
+        except Exception as e:
+            logger.error("[REASONING] reason() falló: %s: %s", type(e).__name__, e, exc_info=True)
             return (
                 f"Tu consulta está relacionada con **{intention_config.name}**. "
                 f"En este momento no puedo procesar la solicitud completamente. "

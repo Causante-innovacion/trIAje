@@ -82,23 +82,34 @@ def _build_llm(model: str, temperature: float, provider: str = "openai") -> Base
     # Maple (OpenAI-compatible) — endpoint propio, ideal para datos sensibles
     # IMPORTANTE: Maple Proxy solo soporta streaming, streaming=True es obligatorio.
     # Con streaming=True, ainvoke() sigue funcionando (acumula el stream internamente).
-    if provider == "maple" and settings.MAPLE_API_KEY:
-        return ChatOpenAI(
-            model=model,
-            temperature=temperature,
-            api_key=settings.MAPLE_API_KEY,       # type: ignore[arg-type]
-            base_url=settings.MAPLE_API_URL,
-            streaming=True,
-        )
+    if provider == "maple":
+        if not settings.MAPLE_API_KEY:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                "[AIRouter] MAPLE_API_KEY no configurada — cayendo a OpenAI para REASONING. "
+                "El modelo '%s' puede no existir en OpenAI.", model
+            )
+        else:
+            return ChatOpenAI(
+                model=model,
+                temperature=temperature,
+                api_key=settings.MAPLE_API_KEY,       # type: ignore[arg-type]
+                base_url=settings.MAPLE_API_URL,
+                streaming=True,
+            )
 
     # Defecto: OpenAI.
-    # Si el modelo era claude-* pero no hay Anthropic key, sustituimos por el
-    # modelo de reasoning de OpenAI para no romper el arranque.
-    effective_model = (
-        settings.MODEL_REASONING
-        if "claude" in model.lower()
-        else model
-    )
+    # Casos de sustitución:
+    #   1. Modelo claude-* sin Anthropic key → usar MODEL_REASONING de OpenAI.
+    #   2. Modelo de Maple (deepseek-*) sin MAPLE_API_KEY → usar gpt-4o como fallback.
+    #   3. Resto → usar el modelo tal cual (debe ser válido en OpenAI).
+    if "claude" in model.lower():
+        effective_model = settings.MODEL_REASONING
+    elif provider == "maple":
+        # Fallback: Maple no disponible, usar gpt-4o (modelo OpenAI válido)
+        effective_model = "gpt-4o"
+    else:
+        effective_model = model
     return ChatOpenAI(
         model=effective_model,
         temperature=temperature,
