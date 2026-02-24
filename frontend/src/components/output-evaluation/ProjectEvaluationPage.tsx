@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Download, FileText, Calendar, ArrowLeft } from 'lucide-react'
+import { Download, FileText, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
 import { ProjectEvaluation } from '../../types/evaluation.types'
 import { useChatStore } from '../../stores/chatStore'
+import { advisorPrepApi } from '../../shared/services/api'
 import { LoadingScreen } from './LoadingScreen'
 import { TrafficLightCard } from './TrafficLightCard'
 import { ProjectContextCard } from './ProjectContextCard'
@@ -27,6 +28,32 @@ export function ProjectEvaluationPage() {
     const [evaluationData, setEvaluationData] = useState<ProjectEvaluation | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
+    const [isGeneratingAdviser, setIsGeneratingAdviser] = useState(false)
+    const [adviserError, setAdviserError] = useState<string | null>(null)
+
+    const handleGoToAdviser = async () => {
+        setIsGeneratingAdviser(true)
+        setAdviserError(null)
+        try {
+            const { messages, conversationId } = useChatStore.getState()
+            const conversation = messages
+                .filter(m =>
+                    (m.sender === 'user' && m.contentType === 'text' && m.content?.trim()) ||
+                    (m.sender === 'justo' &&
+                        (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
+                        m.content?.trim() && !m.isStreaming)
+                )
+                .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content }))
+            const response = await advisorPrepApi.prepareFromChat(conversation, conversationId ?? undefined)
+            useChatStore.getState().setLastAdviserData(response.data)
+            navigate('/legal-adviser', { state: { adviserData: response.data, skipAnimation: true } })
+        } catch (err) {
+            console.error('[ProjectEvaluation] adviser error:', err)
+            setAdviserError('No se pudo generar el paquete. Intenta de nuevo.')
+        } finally {
+            setIsGeneratingAdviser(false)
+        }
+    }
 
     const handleExport = async () => {
         if (!evaluationData || isExporting) return
@@ -244,13 +271,18 @@ export function ProjectEvaluationPage() {
                                 Recomendado cuando hay condiciones críticas o brechas legales sin resolver.
                             </p>
                             <button
-                                onClick={() => navigate('/legal-adviser')}
-                                className="btn-action-primary whitespace-nowrap flex-shrink-0"
+                                onClick={handleGoToAdviser}
+                                disabled={isGeneratingAdviser}
+                                className="btn-action-primary whitespace-nowrap flex-shrink-0 disabled:opacity-70 disabled:cursor-wait"
                             >
-                                <Calendar className="w-4 h-4" />
-                                Ir al paquete
+                                {isGeneratingAdviser
+                                    ? <><Loader2 className="w-4 h-4 animate-spin" />Preparando...</>
+                                    : <><Calendar className="w-4 h-4" />Ir al paquete</>}
                             </button>
                         </div>
+                        {adviserError && (
+                            <p className="text-xs text-red-600 font-medium px-6 pb-4">{adviserError}</p>
+                        )}
                     </div>
                 </section>
             </main>

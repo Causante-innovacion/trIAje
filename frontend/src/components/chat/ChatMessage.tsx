@@ -10,6 +10,7 @@ import { AlertCircle, WifiOff, ServerCrash, Clock, Paperclip, ExternalLink } fro
 import { useTypewriter } from '../../hooks/useTypewriter'
 import { ThinkingBlock, parseThinkContent } from './ThinkingBlock'
 import { useNavigate } from 'react-router-dom'
+import { useChatStore } from '../../stores/chatStore'
 
 /** Detect file-attachment messages and extract just the filename */
 function parseFileAttachment(content: string): string | null {
@@ -146,7 +147,10 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             {/* Inline report link — shown after adviser prep completes */}
             {message.metadata?.generatedReport === 'adviser' && (
               <button
-                onClick={() => navigate('/legal-adviser', { state: { skipAnimation: true } })}
+                onClick={() => {
+                  const adviserData = useChatStore.getState().lastAdviserData
+                  navigate('/legal-adviser', { state: { adviserData: adviserData ?? undefined, skipAnimation: true } })
+                }}
                 className="mt-3 flex items-center gap-2 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 hover:bg-red-100 hover:border-red-300 transition-all w-full"
               >
                 <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />

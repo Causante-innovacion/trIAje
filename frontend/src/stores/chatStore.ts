@@ -140,6 +140,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       lastSources: [],
       lastActions: [],
       pendingInitialMessage: initialMessage || null,
+      lastAdviserData: null,
+      lastEvaluationData: null,
     })
 
     const toolConfig = TOOLS.find(t => t.id === 'chat')
@@ -397,6 +399,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     lastActions: [],
     lastUserMessage: null,
     pendingAmberContext: null,
+    lastAdviserData: null,
+    lastEvaluationData: null,
   }),
 
   resetToHome: () => set({
@@ -417,5 +421,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     pendingInitialMessage: null,
     lastUserMessage: null,
     pendingAmberContext: null,
+    lastAdviserData: null,
+    lastEvaluationData: null,
   }),
 }))

@@ -10,7 +10,6 @@ import { LawyerQuestionsSection } from './LawyerQuestionsSection'
 import { RequiredDocumentsChecklist } from './RequiredDocumentsChecklist'
 import { InternalDecisionsChecklist } from './InternalDecisionsChecklist'
 import { exportAdviserToDocx } from './adviserExport'
-import { mockAdviserData } from './mockAdviserData'
 import clsx from 'clsx'
 
 export function LegalAdviserPage() {
@@ -65,12 +64,8 @@ export function LegalAdviserPage() {
             return
         }
 
-        // Development fallback: mock data
-        const timer = setTimeout(() => {
-            setAdviserData(mockAdviserData)
-            setIsLoading(false)
-        }, 2000)
-        return () => clearTimeout(timer)
+        // No data available — show empty state
+        setIsLoading(false)
     }, [location.state])
 
     if (isLoading) {
