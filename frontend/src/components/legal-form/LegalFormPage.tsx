@@ -561,28 +561,89 @@ export function LegalFormPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left: Organizations & Steps Navigation */}
-          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-50">
-              <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] mb-6">Organizaciones</h2>
-              <div className="space-y-4">
-                {organizations.map(org => (
+          <div className="lg:col-span-4 flex flex-col gap-6 lg:h-[620px] lg:sticky lg:top-8">
+            <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-gray-50 flex-shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">Organización</h2>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      const idx = organizations.findIndex(o => o.id === selectedOrg)
+                      if (idx > 0) setSelectedOrg(organizations[idx - 1].id)
+                    }}
+                    disabled={organizations.findIndex(o => o.id === selectedOrg) === 0}
+                    className="p-1 rounded-md hover:bg-gray-50 disabled:opacity-30 text-gray-400 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[10px] font-black text-gray-400">
+                    {organizations.findIndex(o => o.id === selectedOrg) + 1} / {organizations.length}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const idx = organizations.findIndex(o => o.id === selectedOrg)
+                      if (idx < organizations.length - 1) setSelectedOrg(organizations[idx + 1].id)
+                    }}
+                    disabled={organizations.findIndex(o => o.id === selectedOrg) === organizations.length - 1}
+                    className="p-1 rounded-md hover:bg-gray-50 disabled:opacity-30 text-gray-400 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden group">
+                <div className="transition-all duration-300 transform">
                   <OrganizationCard
-                    key={org.id}
-                    organization={org}
-                    isSelected={selectedOrg === org.id}
-                    onClick={() => setSelectedOrg(org.id)}
+                    organization={organizations.find(o => o.id === selectedOrg)!}
+                    isSelected={true}
+                    onClick={() => { }}
                   />
-                ))}
+                </div>
+              </div>
+
+              {/* Summary Indicator */}
+              <div className="mt-5 pt-5 border-t border-gray-50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Estado Global</span>
+                  <span className={clsx(
+                    "text-[10px] font-black px-2 py-0.5 rounded-full",
+                    organizations.every(o => o.progress === 100) ? "bg-green-100 text-green-700" : "bg-causante-crema text-causante-ocre"
+                  )}>
+                    {organizations.filter(o => o.progress === 100).length} de {organizations.length} LISTAS
+                  </span>
+                </div>
+
+                {organizations.some(o => o.progress < 100) ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-400 font-medium">Pendientes:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {organizations.filter(o => o.progress < 100).map(org => (
+                        <div key={org.id} className="px-2 py-1 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                          <span className="text-[9px] font-bold text-gray-500 whitespace-nowrap">{org.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-green-50/50 p-3 rounded-xl border border-green-100">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <p className="text-[10px] font-bold text-green-700">Todas las organizaciones completadas</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <ProgressTracker
-              steps={STEPS}
-              currentStep={currentStep}
-              completedQuestions={completedQuestions}
-              totalQuestions={totalQuestions}
-              isFinished={form.isCompleted}
-            />
+            <div className="flex-1 min-h-0">
+              <ProgressTracker
+                steps={STEPS}
+                currentStep={currentStep}
+                completedQuestions={completedQuestions}
+                totalQuestions={totalQuestions}
+                isFinished={form.isCompleted}
+              />
+            </div>
           </div>
 
           <div className="lg:col-span-8">
