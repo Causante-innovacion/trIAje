@@ -84,7 +84,7 @@ export function ActionCard({ action, messageId, onFileUploadRequest }: ActionCar
                     if (messageId) {
                         useChatStore.getState().markMessageWithReport(messageId, 'adviser')
                     }
-                    navigate('/legal-adviser', { state: { adviserData: response.data } })
+                    navigate('/legal-adviser', { state: { adviserData: response.data, skipAnimation: true } })
                 } catch (err) {
                     console.error('[ActionCard] derive_to_advisor error:', err)
                     setError('No se pudo preparar el paquete. Intenta de nuevo.')

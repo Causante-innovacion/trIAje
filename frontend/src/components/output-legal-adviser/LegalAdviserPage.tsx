@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, FileText } from 'lucide-react'
+import { ArrowLeft, Download, FileText } from 'lucide-react'
 import { LegalAdviserPackage } from '../../types/adviser.types'
 import { useChatStore } from '../../stores/chatStore'
 import { LoadingScreen } from '../output-evaluation/LoadingScreen'
@@ -9,18 +9,49 @@ import { CriticalTopicsSection } from './CriticalTopicsSection'
 import { LawyerQuestionsSection } from './LawyerQuestionsSection'
 import { RequiredDocumentsChecklist } from './RequiredDocumentsChecklist'
 import { InternalDecisionsChecklist } from './InternalDecisionsChecklist'
+import { exportAdviserToDocx } from './adviserExport'
 import { mockAdviserData } from './mockAdviserData'
+import clsx from 'clsx'
 
 export function LegalAdviserPage() {
     const navigate = useNavigate()
     const location = useLocation()
-    const [isLoading, setIsLoading] = useState(true)
+    const locationState = location.state as { adviserData?: LegalAdviserPackage; skipAnimation?: boolean } | null
+
+    const [isLoading, setIsLoading] = useState(
+        () => !!(locationState?.adviserData && !locationState?.skipAnimation)
+    )
     const [adviserData, setAdviserData] = useState<LegalAdviserPackage | null>(null)
+    const [isScrolled, setIsScrolled] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
+
+    const handleExport = async () => {
+        if (!adviserData || isExporting) return
+        setIsExporting(true)
+        try {
+            await exportAdviserToDocx(adviserData)
+        } catch (err) {
+            console.error('Error al exportar paquete asesor:', err)
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     useEffect(() => {
-        const stateData = (location.state as { adviserData?: LegalAdviserPackage })?.adviserData
+        const handleScroll = () => setIsScrolled(window.scrollY > 20)
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
+
+    useEffect(() => {
+        const stateData = locationState?.adviserData
 
         if (stateData) {
+            if (locationState?.skipAnimation) {
+                setAdviserData(stateData)
+                setIsLoading(false)
+                return
+            }
             const timer = setTimeout(() => {
                 setAdviserData(stateData)
                 setIsLoading(false)
@@ -28,7 +59,7 @@ export function LegalAdviserPage() {
             return () => clearTimeout(timer)
         }
 
-        // Fallback to cached data from chat store (user navigated back from chat)
+        // Fallback to cached data from chat store
         const cached = useChatStore.getState().lastAdviserData
         if (cached) {
             setAdviserData(cached)
@@ -73,18 +104,40 @@ export function LegalAdviserPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
-                {/* Back to chat */}
-                <div className="flex items-center">
+            {/* Sticky header */}
+            <header className={clsx(
+                'sticky top-0 z-50 transition-all duration-300',
+                isScrolled
+                    ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm'
+                    : 'bg-white border-b border-transparent'
+            )}>
+                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/chat')}
+                            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+                        >
+                            <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                            <span className="hidden sm:inline">Chat</span>
+                        </button>
+                        <div className="w-px h-5 bg-gray-200" />
+                        <h1 className="font-bold text-base text-gray-900">
+                            {adviserData.organizationProfile.entityName}
+                        </h1>
+                    </div>
+
                     <button
-                        onClick={() => navigate('/chat')}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="btn-action-primary text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                        Volver al chat
+                        <Download className="w-4 h-4" />
+                        {isExporting ? 'Generando...' : 'Descargar paquete'}
                     </button>
                 </div>
+            </header>
 
+            <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
                 {/* Title */}
                 <div className="text-center animate-slide-up">
                     <div className="flex items-center justify-center gap-3 mb-3">

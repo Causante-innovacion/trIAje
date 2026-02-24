@@ -163,9 +163,11 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Consultores externos</label>
+                    <label className="text-xs text-gray-500 block mb-1">Dependencia externa (%)</label>
                     <input
                       type="number"
+                      min="0"
+                      max="100"
                       value={formData.team.external}
                       onChange={(e) => handleTeamChange('external', e.target.value)}
                       className="w-full text-sm border-gray-300 rounded-md shadow-sm"
@@ -260,7 +262,9 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
                 </li>
                 <li className="flex items-center gap-2 text-sm">
                   <span className="w-2 h-2 bg-gold rounded-full" />
-                  {data.team.external} Consultores externos (campaña)
+                  {data.team.external != null && data.team.external > 0
+                    ? `${data.team.external}% dependencia externa`
+                    : 'Sin dependencia externa registrada'}
                 </li>
               </ul>
             </div>

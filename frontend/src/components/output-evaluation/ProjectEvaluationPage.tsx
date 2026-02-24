@@ -16,7 +16,14 @@ import clsx from 'clsx'
 export function ProjectEvaluationPage() {
     const navigate = useNavigate()
     const location = useLocation()
-    const [isLoading, setIsLoading] = useState(true)
+    const locationState = location.state as { evaluationData?: ProjectEvaluation; skipAnimation?: boolean } | null
+
+    // Only show the loading animation when fresh evaluation data is arriving
+    // without the skipAnimation flag. All other paths (back-navigation, inline
+    // link from chat, cached store) skip the overlay entirely.
+    const [isLoading, setIsLoading] = useState(
+        () => !!(locationState?.evaluationData && !locationState?.skipAnimation)
+    )
     const [evaluationData, setEvaluationData] = useState<ProjectEvaluation | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
@@ -220,15 +227,31 @@ export function ProjectEvaluationPage() {
                     </section>
                 )}
 
-                {/* Action Buttons */}
-                <section className="flex justify-center pb-10 animate-fade-in">
-                    <button
-                        className="btn-action-primary"
-                        onClick={() => navigate('/legal-adviser')}
-                    >
-                        <Calendar className="w-5 h-5" />
-                        Reunión con asesor
-                    </button>
+                {/* Adviser CTA */}
+                <section className="animate-fade-in pb-10">
+                    <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+                        <div className="bg-gray-900 px-6 py-5 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-gold/20 flex items-center justify-center flex-shrink-0">
+                                <Calendar className="w-5 h-5 text-gold" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-white text-base leading-snug">Preparar reunión con asesor legal</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Preguntas clave, documentos requeridos y decisiones previas</p>
+                            </div>
+                        </div>
+                        <div className="bg-white px-6 py-4 flex items-center justify-between gap-4">
+                            <p className="text-sm text-gray-500 leading-relaxed">
+                                Recomendado cuando hay condiciones críticas o brechas legales sin resolver.
+                            </p>
+                            <button
+                                onClick={() => navigate('/legal-adviser')}
+                                className="btn-action-primary whitespace-nowrap flex-shrink-0"
+                            >
+                                <Calendar className="w-4 h-4" />
+                                Ir al paquete
+                            </button>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
