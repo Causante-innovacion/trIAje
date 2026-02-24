@@ -76,6 +76,7 @@ export function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasSentPending = useRef(false)
+  const userHasScrolledUp = useRef(false)
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -83,9 +84,29 @@ export function ChatContainer() {
     }
   }
 
+  // Detect if the user manually scrolled up
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    userHasScrolledUp.current = distanceFromBottom > 120
+  }, [])
+
   useEffect(() => {
-    scrollToBottom()
+    // Auto-scroll only if user hasn't scrolled up
+    if (!userHasScrolledUp.current) {
+      scrollToBottom()
+    }
   }, [messages, isTyping])
+
+  // When the user sends a new message, force-scroll back to bottom
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.sender === 'user') {
+      userHasScrolledUp.current = false
+      scrollToBottom()
+    }
+  }, [messages])
 
   // If extractedPlan already in store (e.g. navigating back), rebuild local state
   useEffect(() => {
@@ -364,6 +385,7 @@ export function ChatContainer() {
       {/* Messages area - scrollable */}
       <div
         ref={scrollContainerRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 py-6"
       >
         <div className="max-w-3xl mx-auto">

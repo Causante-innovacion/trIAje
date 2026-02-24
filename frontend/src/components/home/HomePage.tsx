@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, X } from 'lucide-react'
 import { ActionMenu } from '../chat/ActionMenu'
 import { MAX_MESSAGE_LENGTH } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
@@ -12,6 +12,7 @@ export function HomePage() {
   const [inputValue, setInputValue] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [showTerms, setShowTerms] = useState(false)
 
   const isOverLimit = inputValue.length > MAX_MESSAGE_LENGTH
 
@@ -157,7 +158,70 @@ export function HomePage() {
             Presiona <strong className="text-gray-500">Enter</strong> para enviar
           </p>
         </form>
+
+        {/* T&C notice */}
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Al usar esta herramienta aceptas nuestros{' '}
+          <button
+            type="button"
+            onClick={() => setShowTerms(true)}
+            className="underline underline-offset-2 text-causante-ocre hover:opacity-70 transition-opacity"
+          >
+            Términos y Condiciones
+          </button>
+        </p>
       </main>
+
+      {/* T&C Modal */}
+      {showTerms && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowTerms(false)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-base font-black text-gray-900 tracking-tight">Términos y Condiciones</h2>
+              <button
+                onClick={() => setShowTerms(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-6 py-5 text-sm text-gray-600 leading-relaxed space-y-4">
+              <p>
+                <strong className="text-gray-900">1. Naturaleza del servicio.</strong>{' '}
+                JUSTO es una herramienta de orientación legal de carácter informativo. Las respuestas generadas no constituyen asesoría legal formal ni reemplazan la consulta con un abogado habilitado.
+              </p>
+              <p>
+                <strong className="text-gray-900">2. Limitación de responsabilidad.</strong>{' '}
+                El uso de esta plataforma es bajo tu propia responsabilidad. Causante no garantiza la exactitud, completitud o actualización de la información proporcionada.
+              </p>
+              <p>
+                <strong className="text-gray-900">3. Datos personales.</strong>{' '}
+                La información que ingreses en la plataforma será utilizada únicamente para generar las respuestas de orientación legal. No será compartida con terceros sin tu consentimiento.
+              </p>
+              <p>
+                <strong className="text-gray-900">4. Confidencialidad.</strong>{' '}
+                Aunque tratamos los datos con la debida diligencia, no se garantiza confidencialidad absoluta en entornos digitales. Evita ingresar información altamente sensible.
+              </p>
+              <p>
+                <strong className="text-gray-900">5. Modificaciones.</strong>{' '}
+                Causante se reserva el derecho de modificar estos términos en cualquier momento. El uso continuado de la plataforma implica la aceptación de los términos vigentes.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowTerms(false)}
+                className="w-full py-3 rounded-2xl bg-causante-ocre text-white text-xs font-black tracking-widest uppercase hover:bg-opacity-90 transition-all"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -60,6 +60,8 @@ export function ActionCard({ action, messageId, onFileUploadRequest, alreadyGene
     if (action.type === 'none') return null
     // Once the adviser package for this message is generated, hide the derive button
     if (action.type === 'derive_to_advisor' && alreadyGenerated) return null
+    // "provide_context" is informational only — user continues the conversation naturally
+    if (action.type === 'provide_context') return null
 
     const generatePackage = async (extraContext?: { orgName: string; situation: string; need: string }) => {
         setIsLoading(true)

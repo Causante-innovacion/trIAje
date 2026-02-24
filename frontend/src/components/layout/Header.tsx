@@ -1,19 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { useChatStore } from '../../stores/chatStore'
 import { useHeaderStore } from '../../stores/headerStore'
 import clsx from 'clsx'
 
 export function Header() {
-  const { resetToHome, currentTool } = useChatStore()
   const { rightContent } = useHeaderStore()
   const [isScrolled, setIsScrolled] = useState(false)
-
-  const handleLogoClick = () => {
-    if (currentTool) {
-      resetToHome()
-    }
-  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,9 +27,8 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
         {/* Logo + Título "Aplicaciones" */}
         <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            onClick={handleLogoClick}
+          <a
+            href="https://apps.causante.org/"
             className="flex items-center gap-3 hover:opacity-75 transition-opacity cursor-pointer"
           >
             <img
@@ -46,7 +36,7 @@ export function Header() {
               alt="CAUSANTE"
               className="h-8 w-auto"
             />
-          </Link>
+          </a>
 
           {/* Separador y Texto "APLICACIONES" */}
           <div className="hidden md:flex items-center gap-2">

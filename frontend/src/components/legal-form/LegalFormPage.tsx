@@ -161,10 +161,13 @@ export function LegalFormPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [pendingNextOrg, setPendingNextOrg] = useState<{ id: string; name: string } | null>(null)
 
   // ── Storage ──
   useEffect(() => {
     setForm(loadFromStorage(selectedOrg))
+    // Always start from step 1 when switching organization
+    setCurrentStep(0)
   }, [selectedOrg])
 
   useEffect(() => {
@@ -262,7 +265,16 @@ export function LegalFormPage() {
       })
 
       if (!allOrgsCompleted) {
-        setSubmitError('Debes completar la ficha de todas las organizaciones antes de generar el diagnóstico.')
+        const nextOrg = organizations.find(org => {
+          if (org.id === selectedOrg) return false
+          return loadFromStorage(org.id).isCompleted !== true
+        })
+        setPendingNextOrg(nextOrg ? { id: nextOrg.id, name: nextOrg.name } : null)
+        setSubmitError(
+          nextOrg
+            ? `Falta completar la ficha de "${nextOrg.name}". Complétala para poder generar el diagnóstico.`
+            : 'Debes completar la ficha de todas las organizaciones antes de generar el diagnóstico.'
+        )
         setIsSubmitting(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
         return
@@ -484,7 +496,7 @@ export function LegalFormPage() {
             ]}
             value={form.urgencyV2}
             onChange={(v) => updateForm('urgencyV2', v)}
-            columns={3}
+            columns={1}
             disabled={form.isCompleted}
           />
         </div>
@@ -514,8 +526,23 @@ export function LegalFormPage() {
               <span className="text-sm font-black uppercase tracking-widest">Ficha completada correctamente</span>
             </div>
             {submitError && (
-              <div className="bg-red-50 text-red-600 px-6 py-3 rounded-2xl text-sm font-medium mb-4">
-                {submitError}
+              <div className="w-full mb-4 space-y-3">
+                <div className="bg-amber-50 text-amber-700 border border-amber-200 px-6 py-3 rounded-2xl text-sm font-medium text-center">
+                  {submitError}
+                </div>
+                {pendingNextOrg && (
+                  <button
+                    onClick={() => {
+                      setSubmitError(null)
+                      setPendingNextOrg(null)
+                      setSelectedOrg(pendingNextOrg.id)
+                    }}
+                    className="w-full px-6 py-3 rounded-2xl font-bold text-[10px] tracking-widest text-white bg-causante-ocre hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 uppercase shadow-lg shadow-causante-ocre/20"
+                  >
+                    Completar ficha de {pendingNextOrg.name}
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
             <button

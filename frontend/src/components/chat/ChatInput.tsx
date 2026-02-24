@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Send, Square, Loader2 } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { ActionMenu } from './ActionMenu'
@@ -13,8 +13,16 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
   const [value, setValue] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const { isProcessing, isTyping } = useChatStore()
+
+  // Auto-resize textarea height to fit content (max ~6 lines)
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 168) + 'px'
+  }, [value])
 
   const isDisabled = isProcessing || isTyping || isUploading
 
@@ -72,11 +80,16 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
     if (!value.trim() || isDisabled) return
     onSend(value.trim())
     setValue('')
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      handleSubmit(e)
+      e.preventDefault()
+      handleSubmit(e as unknown as React.FormEvent)
     }
   }
 
@@ -92,9 +105,9 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
         <div className="chat-input-container">
           <ActionMenu onFileSelect={handleFileSelect} />
 
-          <input
+          <textarea
             ref={inputRef}
-            type="text"
+            rows={1}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -103,9 +116,9 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
                 ? 'Subiendo archivo...'
                 : isDisabled
                   ? 'Espere a que termine el procesamiento...'
-                  : 'Escribe tu respuesta aquí...'
+                  : 'Escribe tu respuesta aquí... (Shift+Enter para nueva línea)'
             }
-            className="chat-input"
+            className="chat-input resize-none overflow-hidden"
             disabled={isDisabled}
           />
 
