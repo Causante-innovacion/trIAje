@@ -76,3 +76,5 @@ class LegalAdviserResponse(BaseModel):
     lawyer_questions: list[LawyerQuestionResponse] = Field(default_factory=list)
     required_documents: list[RequiredDocumentResponse] = Field(default_factory=list)
     internal_decisions: list[InternalDecisionResponse] = Field(default_factory=list)
+    # Evidencia normativa (RAG)
+    evidence_sources: list[dict] = Field(default_factory=list)

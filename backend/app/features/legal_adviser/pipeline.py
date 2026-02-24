@@ -198,7 +198,7 @@ class LegalAdviserPipeline:
         self.resolver = LegalRequirementsResolver()
 
     def generate(self, intake: NormalizedProjectIntake) -> LegalAdviserResponse:
-        """Genera el paquete completo de asesor legal."""
+        """Genera el paquete completo de asesor legal (síncrono, sin evidencia RAG)."""
         requirements_result = self.resolver.resolve(intake)
         primary_org = intake.organizations[0]
 
@@ -217,6 +217,60 @@ class LegalAdviserPipeline:
             required_documents=self._build_required_documents(primary_org, requirements_result),
             internal_decisions=self._build_internal_decisions(primary_org),
         )
+
+    async def generate_async(self, intake: NormalizedProjectIntake) -> LegalAdviserResponse:
+        """Genera el paquete completo con evidencia normativa (RAG)."""
+        result = self.generate(intake)
+        result.evidence_sources = await self._fetch_rag_evidence(intake, result)
+        return result
+
+    async def _fetch_rag_evidence(
+        self,
+        intake: NormalizedProjectIntake,
+        result: LegalAdviserResponse,
+    ) -> list[dict]:
+        """Busca evidencia normativa en RAG para los tópicos críticos del paquete."""
+        try:
+            from app.modules.rag import get_rag_module
+            rag = get_rag_module()
+            if not rag:
+                return []
+
+            org_ids = [org.id for org in intake.organizations]
+            queries = [
+                f"{topic.title} {topic.description}"
+                for topic in result.critical_topics[:3]
+            ]
+            if not queries:
+                # Fallback: use lawyer questions as queries
+                queries = [q.question for q in result.lawyer_questions[:2]]
+
+            evidence: list[dict] = []
+            seen_titles: set[str] = set()
+
+            for query in queries:
+                try:
+                    rag_result = await rag.retrieve_for_project(
+                        query=query,
+                        organization_ids=org_ids,
+                        top_k_initial=3,
+                    )
+                    for chunk in rag_result.chunks[:2]:
+                        title = chunk.metadata.title
+                        if title and title not in seen_titles:
+                            seen_titles.add(title)
+                            evidence.append({
+                                "title": title,
+                                "url": chunk.metadata.url,
+                                "authority_level": chunk.metadata.authority_level,
+                                "anchor": chunk.metadata.anchor,
+                            })
+                except Exception:
+                    continue
+
+            return evidence[:6]
+        except Exception:
+            return []
 
     # -------------------------------------------------------------------------
     # Private builders

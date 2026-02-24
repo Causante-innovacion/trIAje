@@ -19,15 +19,15 @@ class LegalAdviserService:
 
     async def generate_from_intake(self, intake: NormalizedProjectIntake) -> LegalAdviserResponse:
         """
-        Genera el paquete de asesor legal a partir del intake normalizado.
+        Genera el paquete de asesor legal con evidencia normativa (RAG).
 
         Args:
             intake: NormalizedProjectIntake con 1-3 organizaciones
 
         Returns:
-            LegalAdviserResponse con perfil, tópicos, preguntas, documentos y decisiones
+            LegalAdviserResponse con perfil, tópicos, preguntas, documentos, decisiones y evidencia
         """
-        return self.pipeline.generate(intake)
+        return await self.pipeline.generate_async(intake)
 
 
 # Singleton

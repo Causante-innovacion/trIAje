@@ -26,61 +26,89 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     } = await import('docx')
     const { saveAs } = await import('file-saver')
 
+    // ─── Brand colours ─────────────────────────────────────────────────────────
+    const GOLD = 'B3994C'       // causante-ocre
+    const BLACK = '111111'
+    const MID_GRAY = '888888'
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     const headerCell = (text: string) =>
         new TableCell({
             children: [
                 new Paragraph({
-                    children: [new TextRun({ text, bold: true, color: 'FFFFFF', size: 20 })],
+                    children: [new TextRun({ text, bold: true, color: 'FFFFFF', size: 20, font: 'Calibri' })],
                 }),
             ],
-            shading: { fill: '1A1A1A' },
+            shading: { fill: BLACK },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
         })
 
     const cell = (text: string, color?: string) =>
         new TableCell({
             children: [
                 new Paragraph({
-                    children: [new TextRun({ text, size: 20, color: color ?? '333333' })],
+                    children: [new TextRun({ text, size: 20, color: color ?? '333333', font: 'Calibri' })],
                 }),
             ],
+            margins: { top: 60, bottom: 60, left: 120, right: 120 },
         })
 
     const spacer = () => new Paragraph({ text: '' })
 
+    const sectionHeading = (text: string, level = HeadingLevel.HEADING_2) =>
+        new Paragraph({
+            children: [
+                new TextRun({ text, bold: true, size: 28, color: GOLD, font: 'Calibri' }),
+            ],
+            heading: level,
+            spacing: { before: 300, after: 120 },
+            border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD } },
+        })
+
     // ─── 1. ENCABEZADO ────────────────────────────────────────────────────────
 
     const headerSection = [
+        // Gold bar
+        new Paragraph({
+            children: [
+                new TextRun({ text: '\u00A0', size: 8 }),
+            ],
+            shading: { fill: GOLD },
+            spacing: { after: 0 },
+        }),
+        spacer(),
         new Paragraph({
             children: [
                 new TextRun({
                     text: 'EVALUACIÓN LEGAL DE PROYECTO',
                     bold: true,
-                    size: 40,
-                    color: 'B45309', // gold
+                    size: 44,
+                    color: BLACK,
+                    font: 'Calibri',
                 }),
             ],
-            alignment: AlignmentType.CENTER,
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 120 },
+            alignment: AlignmentType.LEFT,
+            spacing: { after: 80 },
         }),
         new Paragraph({
             children: [
                 new TextRun({
                     text: data.projectTitle,
                     bold: true,
-                    size: 32,
+                    size: 34,
+                    color: GOLD,
+                    font: 'Calibri',
                 }),
             ],
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.LEFT,
             spacing: { after: 80 },
         }),
         new Paragraph({
             children: [
-                new TextRun({ text: `ID: ${data.projectId}  |  Líder: ${data.projectLeader}`, size: 20, color: '666666' }),
+                new TextRun({ text: `ID: ${data.projectId}  ·  Líder: ${data.projectLeader}`, size: 20, color: MID_GRAY, font: 'Calibri' }),
             ],
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.LEFT,
             spacing: { after: 400 },
         }),
     ]
@@ -108,11 +136,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     ]
 
     const orgSection = [
-        new Paragraph({
-            text: '1. Diagnóstico por Organización',
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 240, after: 120 },
-        }),
+        sectionHeading('1. Diagnóstico por Organización'),
         new Table({
             rows: orgRows,
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -157,11 +181,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     ]
 
     const legalSection = [
-        new Paragraph({
-            text: '2. Estado Legal Actual',
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 240, after: 120 },
-        }),
+        sectionHeading('2. Estado Legal Actual'),
         new Table({
             rows: legalRows,
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -180,11 +200,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     const actionSection =
         data.actionSteps && data.actionSteps.length > 0
             ? [
-                  new Paragraph({
-                      text: '3. Pasos a Seguir',
-                      heading: HeadingLevel.HEADING_2,
-                      spacing: { before: 240, after: 120 },
-                  }),
+                  sectionHeading('3. Pasos a Seguir'),
                   ...data.actionSteps.map(
                       (step, i) =>
                           new Paragraph({
@@ -208,11 +224,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     const viabilitySection =
         criticalConditions.length > 0
             ? [
-                  new Paragraph({
-                      text: '4. Condiciones de Viabilidad (Plan de Acción)',
-                      heading: HeadingLevel.HEADING_2,
-                      spacing: { before: 240, after: 120 },
-                  }),
+                  sectionHeading('4. Condiciones de Viabilidad (Plan de Acción)'),
                   ...criticalConditions.flatMap(condition => [
                       new Paragraph({
                           children: [
@@ -253,11 +265,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     }
 
     const implementationSection = [
-        new Paragraph({
-            text: '5. Ruta de Implementación',
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 240, after: 120 },
-        }),
+        sectionHeading('5. Ruta de Implementación'),
         // Phases row
         new Paragraph({
             children: data.implementationPhases.map(
@@ -290,11 +298,7 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     const alternativesSection =
         data.alternatives.length > 0
             ? [
-                  new Paragraph({
-                      text: '6. Alternativas',
-                      heading: HeadingLevel.HEADING_2,
-                      spacing: { before: 240, after: 120 },
-                  }),
+                  sectionHeading('6. Alternativas'),
                   ...data.alternatives.flatMap(alt => [
                       new Paragraph({
                           children: [new TextRun({ text: alt.title, bold: true, size: 22 })],
@@ -312,18 +316,15 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
     // ─── 8. AVISO LEGAL ───────────────────────────────────────────────────────
 
     const disclaimerSection = [
-        new Paragraph({
-            text: 'Aviso Legal',
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 240, after: 120 },
-        }),
+        sectionHeading('Aviso Legal'),
         new Paragraph({
             children: [
                 new TextRun({
                     text: data.disclaimer,
                     italics: true,
                     size: 18,
-                    color: '666666',
+                    color: MID_GRAY,
+                    font: 'Calibri',
                 }),
             ],
         }),
@@ -335,15 +336,15 @@ export async function exportEvaluationToDocx(data: ProjectEvaluation): Promise<v
         styles: {
             default: {
                 heading1: {
-                    run: { font: 'Arial', size: 40, bold: true, color: 'B45309' },
+                    run: { font: 'Calibri', size: 44, bold: true, color: BLACK },
                     paragraph: { spacing: { after: 200 } },
                 },
                 heading2: {
-                    run: { font: 'Arial', size: 28, bold: true, color: '111111' },
-                    paragraph: { spacing: { before: 240, after: 120 } },
+                    run: { font: 'Calibri', size: 28, bold: true, color: GOLD },
+                    paragraph: { spacing: { before: 300, after: 120 } },
                 },
                 document: {
-                    run: { font: 'Arial', size: 22 },
+                    run: { font: 'Calibri', size: 22, color: '222222' },
                 },
             },
         },

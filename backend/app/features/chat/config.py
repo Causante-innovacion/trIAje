@@ -649,9 +649,16 @@ RED_DERIVATION_TEMPLATE = (
     "{reason}\n\n"
     "Este sistema no puede brindar asesoría sobre este caso específico porque "
     "involucra riesgos legales que requieren la intervención de un abogado especializado.\n\n"
+    "**Para preparar tu reunión con el asesor, ten listos:**\n"
+    "• Documentos constitutivos de la organización (estatutos, partida registral)\n"
+    "• Descripción escrita del proyecto o situación a tratar\n"
+    "• Contratos, acuerdos o comunicaciones relevantes al caso\n"
+    "• Estado actual de inscripciones ante SUNARP, SUNAT, APCI (si aplica)\n"
+    "• Cualquier notificación o requerimiento oficial recibido\n\n"
     "**¿Qué puedo hacer por ti?**\n"
-    "Puedo ayudarte a preparar la documentación necesaria para tu reunión con el asesor legal. "
-    "¿Deseas que te ayude a organizar tu caso?"
+    "Puedo ayudarte a preparar un paquete completo para el asesor: preguntas clave, "
+    "lista de documentos y decisiones previas que debes tomar antes de la reunión. "
+    "¿Deseas que lo prepare?"
 )
 
 
@@ -662,9 +669,10 @@ RED_DERIVATION_TEMPLATE = (
 AMBER_CONTEXT_TEMPLATE = (
     "{partial_answer}\n\n"
     "---\n\n"
-    "🟡 **Para darte una orientación más precisa sobre tu caso específico, necesito algunos datos adicionales:**\n\n"
+    "**Para darte una orientación más precisa sobre tu caso específico, necesito algunos datos adicionales:**\n\n"
     "{questions}\n\n"
-    "Con esta información podré ajustar la orientación a tu situación concreta."
+    "*Sin confirmar estos datos, la orientación anterior es preliminar y está basada en supuestos generales. "
+    "Con tu respuesta podré ajustarla a tu situación concreta.*"
 )
 
 
@@ -718,6 +726,6 @@ PROJECT_ANALYSIS_TRIGGERS: List[str] = [
 
 STANDARD_DISCLAIMERS: List[str] = [
     "Esta respuesta no constituye asesoría legal vinculante.",
-    "Verifica la información con la normativa vigente.",
-    "Para casos específicos, consulta con un abogado especializado.",
+    "La orientación se basa en supuestos generales; puede variar según los detalles específicos de tu caso.",
+    "Verifica la información con la normativa vigente o un abogado especializado.",
 ]

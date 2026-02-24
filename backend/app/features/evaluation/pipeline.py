@@ -194,6 +194,22 @@ class EvaluationPipeline:
                 "atención de un profesional legal calificado."
             )
 
+        # Determinar si se recomienda preparar paquete para asesor
+        suggest_adviser_package = (
+            requirements_result.requires_professional_advice
+            or risk_summary.overall_level == RiskLevel.HIGH
+            or (risk_summary.overall_level == RiskLevel.MEDIUM and confidence_level != "HIGH")
+            or (confidence_level == "LOW" and requirements_result.total_gaps > 0)
+        )
+        adviser_package_reason: str | None = None
+        if requirements_result.requires_professional_advice and requirements_result.professional_advice_reason:
+            adviser_package_reason = requirements_result.professional_advice_reason
+        elif suggest_adviser_package:
+            adviser_package_reason = (
+                "El nivel de riesgo y/o ambigüedad del caso justifica preparar preguntas "
+                "específicas para un asesor legal antes de tomar decisiones."
+            )
+
         return EvaluationResponse(
             viability=viability,
             viability_explanation=viability_explanation,
@@ -212,6 +228,8 @@ class EvaluationPipeline:
             confidence_level=self._calculate_confidence(requirements_result, evidence_sources),
             assumptions=self._get_assumptions(),
             limitations=self._get_limitations(evidence_sources),
+            suggest_adviser_package=suggest_adviser_package,
+            adviser_package_reason=adviser_package_reason,
             disclaimers=disclaimers,
         )
 

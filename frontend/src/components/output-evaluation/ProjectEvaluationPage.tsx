@@ -40,9 +40,15 @@ export function ProjectEvaluationPage() {
     }, [])
 
     useEffect(() => {
-        const stateData = (location.state as { evaluationData?: ProjectEvaluation } | null)?.evaluationData
+        const state = location.state as { evaluationData?: ProjectEvaluation; skipAnimation?: boolean } | null
+        const stateData = state?.evaluationData
 
         if (stateData) {
+            if (state?.skipAnimation) {
+                setEvaluationData(stateData)
+                setIsLoading(false)
+                return
+            }
             const timer = setTimeout(() => {
                 setEvaluationData(stateData)
                 setIsLoading(false)
@@ -215,16 +221,9 @@ export function ProjectEvaluationPage() {
                 )}
 
                 {/* Action Buttons */}
-                <section className="flex flex-col sm:flex-row gap-4 justify-center pb-10 animate-fade-in">
+                <section className="flex justify-center pb-10 animate-fade-in">
                     <button
-                        className="btn-action-secondary"
-                        onClick={() => navigate('/formalization')}
-                    >
-                        <FileText className="w-5 h-5" />
-                        Ver ruta completa
-                    </button>
-                    <button
-                        className="btn-action-dark"
+                        className="btn-action-primary"
                         onClick={() => navigate('/legal-adviser')}
                     >
                         <Calendar className="w-5 h-5" />

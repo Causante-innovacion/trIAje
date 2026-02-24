@@ -210,19 +210,33 @@ export function mapBackendToProjectEvaluation(
         const status: TrafficLightStatus = riskToStatus[org.risk_level] ?? 'yellow'
         const criticalCount = org.gaps.filter(g => g.severity === 'critical').length
         const highCount = org.gaps.filter(g => g.severity === 'high').length
+        const mediumCount = org.gaps.filter(g => g.severity === 'medium').length
+        const lowCount = org.gaps.filter(g => g.severity === 'low').length
         let message: string
         if (status === 'red') {
-            message = criticalCount > 0
-                ? `${criticalCount} brecha${criticalCount > 1 ? 's' : ''} crítica${criticalCount > 1 ? 's' : ''} detectada${criticalCount > 1 ? 's' : ''} que requieren atención inmediata.`
-                : response.viability_explanation
+            if (criticalCount > 0) {
+                message = `${criticalCount} brecha${criticalCount > 1 ? 's' : ''} crítica${criticalCount > 1 ? 's' : ''} detectada${criticalCount > 1 ? 's' : ''} que requieren atención inmediata.`
+            } else if (highCount > 0) {
+                message = `${highCount} brecha${highCount > 1 ? 's' : ''} de alto impacto que requieren atención urgente.`
+            } else {
+                message = 'Situación crítica que requiere revisión profesional inmediata.'
+            }
         } else if (status === 'yellow') {
-            message = highCount > 0
-                ? `${highCount} brecha${highCount > 1 ? 's' : ''} con impacto alto identificada${highCount > 1 ? 's' : ''}. Se requieren ajustes.`
-                : response.viability_explanation
+            if (highCount > 0) {
+                message = `${highCount} brecha${highCount > 1 ? 's' : ''} con impacto alto identificada${highCount > 1 ? 's' : ''}. Se requieren ajustes.`
+            } else if (mediumCount > 0) {
+                message = `${mediumCount} aspecto${mediumCount > 1 ? 's' : ''} de impacto medio detectado${mediumCount > 1 ? 's' : ''}. Se recomienda revisión profesional.`
+            } else {
+                message = 'Existen aspectos que requieren ajustes antes de continuar.'
+            }
         } else {
-            message = org.gaps.length === 0
-                ? 'Cumplimiento satisfactorio en las áreas evaluadas.'
-                : response.viability_explanation
+            if (org.gaps.length === 0) {
+                message = 'Cumplimiento satisfactorio en las áreas evaluadas.'
+            } else if (lowCount > 0) {
+                message = `${lowCount} observación${lowCount > 1 ? 'es' : ''} menor${lowCount > 1 ? 'es' : ''} sin impacto crítico en la viabilidad.`
+            } else {
+                message = 'Estado legal en orden. Sin brechas significativas detectadas.'
+            }
         }
         return { id: org.organization_id, name: org.organization_name, status, message }
     })

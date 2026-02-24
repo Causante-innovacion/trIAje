@@ -338,7 +338,7 @@ export function ChatContainer() {
                 onStartForms={handleStartLegalForms}
                 allOrgsCompleted={allOrgsCompleted}
                 hasEvaluation={!!lastEvaluationData}
-                onViewEvaluation={() => navigate('/evaluation', { state: { evaluationData: lastEvaluationData } })}
+                onViewEvaluation={() => navigate('/evaluation', { state: { evaluationData: lastEvaluationData, skipAnimation: true } })}
               />
             </div>
           </div>

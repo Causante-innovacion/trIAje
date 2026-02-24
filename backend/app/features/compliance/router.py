@@ -4,15 +4,15 @@ Compliance Feature - Router
 
 from fastapi import APIRouter, HTTPException
 from .schemas import ComplianceRequest, ComplianceResponse, ComplianceQuestions
-from .service import ComplianceService
+from .service import get_compliance_service
 
 router = APIRouter()
-service = ComplianceService()
 
 
 @router.get("/questions", response_model=ComplianceQuestions)
 async def get_compliance_questions():
     """Obtiene preguntas del formulario"""
+    service = get_compliance_service()
     return await service.get_questions()
 
 
@@ -28,6 +28,7 @@ async def generate_compliance_route(request: ComplianceRequest):
     - Estimaciones de tiempo y costo
     """
     try:
+        service = get_compliance_service()
         return await service.generate_route(request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

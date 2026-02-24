@@ -190,6 +190,10 @@ class EvaluationResponse(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
 
+    # Sugerencia de paquete para asesor (cuando riesgo medio/alto o ambigüedad)
+    suggest_adviser_package: bool = False
+    adviser_package_reason: str | None = None
+
     # Disclaimers obligatorios
     disclaimers: list[str] = Field(default_factory=list)
 

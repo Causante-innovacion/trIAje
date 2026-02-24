@@ -292,9 +292,11 @@ class ChatService:
             # Stream la respuesta parcial
             system_prompt = (
                 "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario tiene una situación específica. Proporciona una orientación general sobre el "
-                "marco normativo aplicable. Sé claro y útil, pero señala qué aspectos dependen del "
-                "contexto concreto que aún no conoces. No des recomendaciones definitivas. "
+                "El usuario tiene una situación específica pero faltan datos clave para precisar la orientación. "
+                "Proporciona orientación general sobre el marco normativo aplicable usando lenguaje condicional. "
+                "IMPORTANTE: Al final de tu respuesta incluye una sección '📋 **Supuestos que estoy aplicando:**' "
+                "donde listes explícitamente los supuestos que estás asumiendo sobre el caso del usuario. "
+                "No des recomendaciones definitivas hasta que el usuario confirme esos supuestos. "
                 "Responde en español, con estructura clara y concisa."
             )
             intention_config = INTENTIONS.get(classification.intention)
@@ -332,10 +334,10 @@ class ChatService:
             yield sse({"type": "token", "text": amber_suffix})
 
             # Si el usuario pidió explícitamente preparar preguntas para un asesor,
-            # añadir la acción aunque el semáforo sea AMARILLO.
+            # o si el caso tiene alta complejidad (muchos datos faltantes), añadir la acción.
             amber_actions = [{"type": "provide_context", "label": "Añadir más contexto",
                               "description": "Responde las preguntas para recibir orientación más específica."}]
-            if self._is_advisor_request(message):
+            if self._is_advisor_request(message) or len(context_needed) >= 3:
                 amber_actions.append({
                     "type": "derive_to_advisor",
                     "label": "Preparar preguntas para el asesor",
@@ -407,6 +409,9 @@ class ChatService:
                 "Cita los artículos específicos. "
                 "Si la información no está en el contexto, indícalo claramente. "
                 "No inventes normas ni artículos. "
+                "Usa siempre lenguaje condicional: 'en principio', 'típicamente', 'se recomienda verificar'. "
+                "Si detectas ambigüedad o riesgo medio-alto en el caso, menciona que se recomienda asesoría profesional. "
+                "Si te falta información del usuario para ser más preciso, indícalo al final de la respuesta. "
                 "Responde en español, de forma clara y con estructura."
             )
             prompt = (
@@ -419,9 +424,12 @@ class ChatService:
             intention_config = INTENTIONS.get(intention)
             system_prompt = (
                 "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde de forma general y orientativa. "
-                "SIEMPRE indica que el usuario debe verificar con la normativa vigente. "
-                "Responde en español."
+                "Responde de forma orientativa, ya que no se dispone de normativa específica en este momento. "
+                "SIEMPRE usa lenguaje condicional: 'en principio', 'según el marco general', 'se recomienda verificar'. "
+                "Nunca afirmes con certeza sin respaldo normativo. "
+                "Al final de tu respuesta indica qué información adicional del usuario cambiaría esta orientación. "
+                "Si el caso parece de riesgo medio o alto, recomienda explícitamente asesoría profesional. "
+                "Responde en español, de forma estructurada."
             )
             prompt = (
                 f"El usuario consulta sobre: {intention_config.name if intention_config else ''}\n"
@@ -575,10 +583,11 @@ class ChatService:
 
         system_prompt = (
             "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-            "El usuario tiene una situación específica. Proporciona una orientación general sobre el "
-            "marco normativo aplicable, explicando qué establece la ley peruana sobre este tema. "
-            "Sé claro y útil, pero indica qué aspectos dependen del contexto concreto que aún no conoces. "
-            "No des recomendaciones definitivas sin tener todos los datos. "
+            "El usuario tiene una situación específica pero faltan datos clave para precisar la orientación. "
+            "Proporciona orientación general sobre el marco normativo aplicable usando lenguaje condicional. "
+            "IMPORTANTE: Al final de tu respuesta incluye una sección '📋 **Supuestos que estoy aplicando:**' "
+            "donde listes explícitamente los supuestos que estás asumiendo sobre el caso del usuario. "
+            "No des recomendaciones definitivas hasta que el usuario confirme esos supuestos. "
             "Responde en español, con estructura clara y concisa."
         )
 
@@ -973,6 +982,9 @@ class ChatService:
                 "Cita los artículos específicos. "
                 "Si la información no está en el contexto, indícalo claramente. "
                 "No inventes normas ni artículos. "
+                "Usa siempre lenguaje condicional: 'en principio', 'típicamente', 'se recomienda verificar'. "
+                "Si detectas ambigüedad o riesgo medio-alto en el caso, menciona que se recomienda asesoría profesional. "
+                "Si te falta información del usuario para ser más preciso, indícalo al final. "
                 "Responde en español, de forma clara y con estructura."
             )
             prompt = (
@@ -1022,16 +1034,19 @@ class ChatService:
         else:
             system_prompt = (
                 "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde de forma general y orientativa. "
-                "SIEMPRE indica que el usuario debe verificar con la normativa vigente. "
+                "Responde de forma orientativa, ya que no se dispone de normativa específica en este momento. "
+                "SIEMPRE usa lenguaje condicional: 'en principio', 'según el marco general', 'se recomienda verificar'. "
+                "Nunca afirmes con certeza sin respaldo normativo. "
                 "NO des respuestas categóricas ni afirmes con certeza. "
-                "Responde en español."
+                "Al final indica qué información adicional del usuario cambiaría esta orientación. "
+                "Si el caso parece de riesgo medio o alto, recomienda explícitamente asesoría profesional. "
+                "Responde en español, de forma estructurada."
             )
             prompt = (
                 f"El usuario consulta sobre: {intention_config.name}\n"
                 f"Descripción del área: {intention_config.description}\n"
                 f"Pregunta: {message}\n\n"
-                f"Da una respuesta orientativa general indicando que debe consultar la normativa específica."
+                f"Da una respuesta orientativa general indicando qué información adicional precisaría la respuesta."
             )
 
         try:
