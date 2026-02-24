@@ -141,6 +141,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
                 action={action}
                 messageId={message.id}
                 onFileUploadRequest={onFileUploadRequest}
+                alreadyGenerated={message.metadata?.generatedReport === 'adviser'}
               />
             ))}
 
