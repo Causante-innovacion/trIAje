@@ -1456,3 +1456,10 @@ STANDARD_DISCLAIMERS: List[str] = [
     "La orientación se basa en supuestos generales; puede variar según los detalles específicos de tu caso.",
     "Verifica la información con la normativa vigente o un abogado especializado.",
 ]
+
+
+# =============================================================================
+# RUTAS DE API (editable — deben coincidir con los prefijos definidos en main.py)
+# =============================================================================
+
+ADVISOR_PREP_ENDPOINT: str = "/api/v1/advisor-prep"

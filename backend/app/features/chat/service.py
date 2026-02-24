@@ -32,6 +32,7 @@ from .config import (
     STANDARD_DISCLAIMERS,
     GREETING_PATTERNS,
     GREETING_MESSAGE,
+    ADVISOR_PREP_ENDPOINT,
 )
 from .schemas import (
     ChatRequest,
@@ -342,7 +343,7 @@ class ChatService:
                     "type": "derive_to_advisor",
                     "label": "Preparar preguntas para el asesor",
                     "description": "Te ayudaré a organizar las preguntas clave para tu reunión con el especialista.",
-                    "endpoint": "/api/v1/advisor-prep",
+                    "endpoint": ADVISOR_PREP_ENDPOINT,
                 })
 
             yield sse({"type": "done",
@@ -457,7 +458,7 @@ class ChatService:
                 "type": "derive_to_advisor",
                 "label": "Preparar preguntas para el asesor",
                 "description": "Te ayudaré a organizar las preguntas clave para tu reunión con el especialista.",
-                "endpoint": "/api/v1/advisor-prep",
+                "endpoint": ADVISOR_PREP_ENDPOINT,
             })
 
         yield sse({"type": "done", "actions": verde_actions,
@@ -648,7 +649,7 @@ class ChatService:
                     type=ActionType.DERIVE_TO_ADVISOR,
                     label="Preparar documentación para asesor",
                     description="Te ayudaré a organizar toda la información necesaria para tu reunión con el abogado.",
-                    endpoint="/api/v1/advisor-prep",
+                    endpoint=ADVISOR_PREP_ENDPOINT,
                 ),
             ],
             disclaimers=[
