@@ -18,9 +18,7 @@ export function LegalAdviserPage() {
     const location = useLocation()
     const locationState = location.state as { adviserData?: LegalAdviserPackage; skipAnimation?: boolean } | null
 
-    const [isLoading, setIsLoading] = useState(
-        () => !!(locationState?.adviserData && !locationState?.skipAnimation)
-    )
+    const [isLoading, setIsLoading] = useState(true)
     const [adviserData, setAdviserData] = useState<LegalAdviserPackage | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
@@ -141,7 +139,6 @@ export function LegalAdviserPage() {
                 {/* Title */}
                 <div className="text-center animate-slide-up">
                     <div className="flex items-center justify-center gap-3 mb-3">
-                        <div className="bg-gold w-6 h-6 transform rotate-45 rounded-sm" />
                         <h2 className="font-heading text-3xl md:text-4xl font-bold text-gray-900">{adviserData.pageTitle}</h2>
                     </div>
                     <p className="text-sm text-gray-500 uppercase tracking-wide font-medium">

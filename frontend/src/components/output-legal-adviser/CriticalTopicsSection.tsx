@@ -16,7 +16,7 @@ interface CriticalTopicsSectionProps {
     incomeSources?: string[]
 }
 
-export function CriticalTopicsSection({ topics, fundingRange, incomeSources }: CriticalTopicsSectionProps) {
+export function CriticalTopicsSection({ topics, incomeSources }: CriticalTopicsSectionProps) {
     return (
         <section className="animate-slide-up">
             <div className="flex items-center gap-2 mb-4">
@@ -26,26 +26,19 @@ export function CriticalTopicsSection({ topics, fundingRange, incomeSources }: C
                 <h3 className="text-xl font-bold text-gray-900">Tópicos Críticos (Alta Prioridad)</h3>
             </div>
 
-            {/* Funding Critical Card */}
-            <div className="bg-orange-50 rounded-2xl border-2 border-orange-300 p-8 mb-6 transition-all duration-300 hover:shadow-card-hover">
-                <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-2">Financiamiento Crítico</p>
-                <p className="text-3xl font-bold text-orange-900 mb-3">
-                    {fundingRange.min} - {fundingRange.max}
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed">{fundingRange.description}</p>
-                {incomeSources && incomeSources.length > 0 && (
-                    <div className="flex gap-2 mt-5 flex-wrap">
-                        {incomeSources.map(source => (
-                            <span
-                                key={source}
-                                className={`px-2.5 py-1 rounded-full text-xs font-semibold ${INCOME_SOURCE_STYLES[source] ?? 'bg-gray-100 text-gray-600'}`}
-                            >
-                                {source}
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </div>
+            {/* Income Sources */}
+            {incomeSources && incomeSources.length > 0 && (
+                <div className="flex gap-2 mb-6 flex-wrap">
+                    {incomeSources.map(source => (
+                        <span
+                            key={source}
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${INCOME_SOURCE_STYLES[source] ?? 'bg-gray-100 text-gray-600'}`}
+                        >
+                            {source}
+                        </span>
+                    ))}
+                </div>
+            )}
 
             {/* Critical Topics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

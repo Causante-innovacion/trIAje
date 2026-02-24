@@ -7,7 +7,7 @@ interface OrganizationProfileCardProps {
     legalStatusCards: LegalStatusCard[]
 }
 
-export function OrganizationProfileCard({ profile, fundingDescription, legalStatusCards }: OrganizationProfileCardProps) {
+export function OrganizationProfileCard({ profile, legalStatusCards }: OrganizationProfileCardProps) {
     const statusConfig = {
         green: { bg: 'bg-green-100', text: 'text-green-800' },
         yellow: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -31,7 +31,6 @@ export function OrganizationProfileCard({ profile, fundingDescription, legalStat
     return (
         <div className="bg-gold/5 rounded-2xl border-2 border-gold/30 p-8 animate-slide-up transition-all duration-300 hover:shadow-card-hover">
             <div className="flex items-center gap-3 mb-6">
-                <div className="bg-gold w-5 h-5 transform rotate-45 rounded-sm" />
                 <h3 className="text-lg font-bold text-gray-900">Perfil de la Organización</h3>
             </div>
 
@@ -60,8 +59,7 @@ export function OrganizationProfileCard({ profile, fundingDescription, legalStat
             </div>
 
             <div className="bg-white rounded-xl p-5 border border-gold/20">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Financiamiento Crítico</p>
-                <p className="text-sm text-gray-700 mb-3 leading-relaxed">{fundingDescription}</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Tipo de Financiamiento</p>
                 <div className="flex items-center gap-2 flex-wrap">
                     {profile.fundingTypes.includes('extranjero') && (
                         <span className="badge-info">USD Internacional</span>
