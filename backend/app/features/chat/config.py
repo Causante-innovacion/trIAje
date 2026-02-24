@@ -146,6 +146,8 @@ INTENTIONS: Dict[Intention, IntentionConfig] = {
             "voluntariado", "voluntario", "contrato", "locación de servicios",
             "modalidad formativa", "practicante", "pasantía", "convenio",
             "beneficios sociales", "planilla", "trabajador", "colaborador",
+            "sunafil", "denuncia laboral", "demanda laboral", "despido",
+            "inspección laboral",
         ],
         example_questions=[
             "¿Qué es el voluntariado?",

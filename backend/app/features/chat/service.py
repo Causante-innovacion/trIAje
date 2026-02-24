@@ -105,8 +105,38 @@ class ChatService:
         # 3. Clasificar intención
         intention, intention_confidence = await IntentionClassifier.classify(message)
 
-        # 4. Si es fuera de alcance, responder inmediatamente
+        # 4. Antes de retornar fuera de alcance, verificar gatillos ROJO.
+        #    Un mensaje como "nos llegó una denuncia en SUNAFIL" puede ser mal
+        #    clasificado como fuera de alcance aunque contenga un trigger claro.
+        #    detect_gatillos ya hace búsqueda cruzada por todas las intenciones.
         if intention == Intention.FUERA_DE_ALCANCE:
+            early_gatillos = SemaphoreClassifier.detect_gatillos(message, intention)
+            if early_gatillos:
+                # Inferir la intención real buscando cuál gatillo disparó
+                inferred_intention = Intention.FUERA_DE_ALCANCE
+                for _intent, _gatillo_list in GATILLOS.items():
+                    for _gtl in _gatillo_list:
+                        if any(g in _gtl.trigger_phrases for g in early_gatillos):
+                            inferred_intention = _intent
+                            break
+                    if inferred_intention != Intention.FUERA_DE_ALCANCE:
+                        break
+                # Si encontramos una intención real, redirigir al flujo ROJO
+                if inferred_intention != Intention.FUERA_DE_ALCANCE:
+                    intention = inferred_intention
+                    intention_confidence = 0.7
+                    semaphore = Semaphore.ROJO
+                    gatillos = early_gatillos
+                    context_needed: List[str] = []
+                    classification = ChatClassification(
+                        intention=intention,
+                        intention_name=INTENTIONS[intention].name,
+                        semaphore=semaphore,
+                        confidence=intention_confidence,
+                        gatillos_detected=gatillos,
+                        requires_context=[],
+                    )
+                    return await self._handle_red(message, classification, conversation_id)
             return self._build_out_of_scope_response(conversation_id)
 
         # 5. Clasificar semáforo
@@ -205,6 +235,38 @@ class ChatService:
             intention, intention_confidence = await IntentionClassifier.classify(message)
 
         if intention == Intention.FUERA_DE_ALCANCE:
+            # Antes de salir, verificar si hay gatillos ROJO en el mensaje.
+            # Un mensaje como "nos llegó una denuncia en SUNAFIL" puede ser mal
+            # clasificado como fuera de alcance aunque contenga un trigger claro.
+            _early_gatillos = SemaphoreClassifier.detect_gatillos(message, intention)
+            if _early_gatillos:
+                _inferred = Intention.FUERA_DE_ALCANCE
+                for _int, _glist in GATILLOS.items():
+                    for _g in _glist:
+                        if any(eg in _g.trigger_phrases for eg in _early_gatillos):
+                            _inferred = _int
+                            break
+                    if _inferred != Intention.FUERA_DE_ALCANCE:
+                        break
+                if _inferred != Intention.FUERA_DE_ALCANCE:
+                    intention = _inferred
+                    intention_confidence = 0.7
+                    _red_cls = ChatClassification(
+                        intention=intention,
+                        intention_name=INTENTIONS[intention].name,
+                        semaphore=Semaphore.ROJO,
+                        confidence=0.7,
+                        gatillos_detected=_early_gatillos,
+                        requires_context=[],
+                    )
+                    yield sse({"type": "classification", "data": _red_cls.model_dump()})
+                    resp = await self._handle_red(message, _red_cls, conversation_id)
+                    yield sse({"type": "done", "message": resp.message,
+                               "classification": _red_cls.model_dump(),
+                               "actions": [a.model_dump() for a in resp.actions],
+                               "disclaimers": resp.disclaimers,
+                               "conversation_id": conversation_id})
+                    return
             classification = ChatClassification(
                 intention=intention, intention_name="Fuera de Alcance",
                 semaphore=Semaphore.VERDE, confidence=1.0,

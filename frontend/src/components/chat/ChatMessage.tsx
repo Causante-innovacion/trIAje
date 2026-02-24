@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Avatar } from '../ui/Avatar'
 import { Message } from '../../types/chat'
 import { OptionButtons } from './OptionButtons'
@@ -38,12 +39,20 @@ function ErrorIcon({ type }: { type?: string }) {
 }
 
 /** Renders text with optional typewriter animation + Markdown */
-function AnimatedText({ text, animate }: { text: string; animate: boolean }) {
+function AnimatedText({ text, animate, messageId }: { text: string; animate: boolean; messageId?: string }) {
   const { visibleText, isAnimating } = useTypewriter(text, {
     enabled: animate,
     wordsPerTick: 3,
     speed: 25,
   })
+
+  // Once the typewriter finishes, mark this message so it never re-animates
+  // when the user navigates away and comes back.
+  useEffect(() => {
+    if (!isAnimating && animate && messageId) {
+      useChatStore.getState().markMessageAnimated(messageId)
+    }
+  }, [isAnimating, animate, messageId])
 
   return (
     <div className="leading-relaxed">
@@ -126,7 +135,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
                 )}
               </div>
             ) : (
-              <AnimatedText text={answer || message.content} animate={animate} />
+              <AnimatedText text={answer || message.content} animate={animate} messageId={message.id} />
             )}
 
             {/* Sources */}
@@ -204,7 +213,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
       case 'options':
         return (
           <>
-            <AnimatedText text={message.content} animate={animate} />
+            <AnimatedText text={message.content} animate={animate} messageId={message.id} />
             {message.options && (
               <OptionButtons
                 options={message.options}
@@ -274,7 +283,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
 
       // ── Default text ──
       default:
-        return <AnimatedText text={message.content} animate={animate} />
+        return <AnimatedText text={message.content} animate={animate} messageId={message.id} />
     }
   }
 

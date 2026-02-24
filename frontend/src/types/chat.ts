@@ -88,6 +88,8 @@ export interface Message {
   isStreaming?: boolean
   /** True si el contenido llegó token a token (ya se vio construirse; no re-animar con typewriter) */
   wasStreamed?: boolean
+  /** True una vez que el efecto typewriter terminó — evita re-animar al volver de otra página */
+  hasBeenAnimated?: boolean
   /** Texto de estado mostrado durante el streaming ("Buscando normativa...") */
   streamingStatus?: string
   metadata?: {
