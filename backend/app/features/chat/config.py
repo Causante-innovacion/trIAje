@@ -429,10 +429,16 @@ GATILLOS: Dict[Intention, List[GatilloConfig]] = {
         GatilloConfig(
             intention=Intention.TRIBUTACION,
             trigger_phrases=[
+                "requerimiento sunat", "fiscalización sunat", "fiscalizacion sunat",
                 "requerimiento sunat exoneración", "fiscalización de exoneración",
                 "carta inductiva sunat", "resolución sunat cuestiona",
                 "sunat cuestiona exoneración", "sunat cuestiona actividad",
-                "notificación sunat tributación",
+                "notificación sunat", "notificacion sunat",
+                "denuncia sunat", "denuncia de sunat", "denuncia ante sunat",
+                "multa sunat", "sanción sunat", "sancion sunat",
+                "sunat nos denunció", "sunat nos denuncio",
+                "auditoría sunat", "auditoria sunat",
+                "deuda tributaria coactiva", "cobranza coactiva sunat",
             ],
             derivation_reason="Derivar con copia del requerimiento; requiere defensa técnica ante SUNAT.",
         ),

@@ -152,9 +152,11 @@ class IntentionClassifier:
         return best, confidence
 
     @staticmethod
-    async def classify_by_llm(message: str) -> Tuple[Intention, float]:
+    async def classify_by_llm(message: str) -> Tuple[Intention, float, Optional["Semaphore"]]:
         """
-        Clasifica usando el LLM (gpt-4o-mini) como fallback.
+        Clasifica usando el LLM.
+        Retorna (intención, confianza, semáforo_opcional).
+        El semáforo ya viene gratis en el mismo JSON — no hace falta una segunda llamada.
         """
         ai_router = AIRouter()
 
@@ -185,35 +187,49 @@ class IntentionClassifier:
                 intention = Intention.FUERA_DE_ALCANCE
                 confidence = 0.3
 
-            return intention, confidence
+            # Capturar el semáforo que el LLM ya determinó en la misma llamada
+            sem_str = result.get("semaphore", "").lower().strip()
+            llm_semaphore: Optional[Semaphore] = None
+            if sem_str == "rojo":
+                llm_semaphore = Semaphore.ROJO
+            elif sem_str == "amarillo":
+                llm_semaphore = Semaphore.AMARILLO
+            elif sem_str == "verde":
+                llm_semaphore = Semaphore.VERDE
+
+            return intention, confidence, llm_semaphore
 
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(
                 "[IntentionClassifier] LLM call failed: %s: %s", type(e).__name__, e
             )
-            return Intention.FUERA_DE_ALCANCE, 0.0
+            return Intention.FUERA_DE_ALCANCE, 0.0, None
 
     @staticmethod
-    async def classify(message: str) -> Tuple[Intention, float]:
+    async def classify(message: str) -> Tuple[Intention, float, Optional["Semaphore"]]:
         """
         Clasificación híbrida: keywords primero, LLM si no hay match claro.
+        Retorna (intención, confianza, semáforo_del_llm_o_None).
+        Cuando el semáforo viene del LLM, service.py puede usarlo directamente
+        y omitir la segunda llamada al LLM para semáforo.
         """
         intention, confidence = IntentionClassifier.classify_by_keywords(message)
 
         if intention and confidence >= 0.35:
-            return intention, confidence
+            # Keywords suficientes para intención; semáforo se calcula por reglas (no LLM)
+            return intention, confidence, None
 
-        llm_intention, llm_confidence = await IntentionClassifier.classify_by_llm(message)
+        intention_llm, llm_confidence, llm_semaphore = await IntentionClassifier.classify_by_llm(message)
 
         if intention and confidence > 0:
-            if llm_intention == intention:
-                return intention, min(confidence + llm_confidence * 0.5, 1.0)
+            if intention_llm == intention:
+                return intention, min(confidence + llm_confidence * 0.5, 1.0), llm_semaphore
             if llm_confidence > confidence:
-                return llm_intention, llm_confidence
-            return intention, confidence
+                return intention_llm, llm_confidence, llm_semaphore
+            return intention, confidence, llm_semaphore
 
-        return llm_intention, llm_confidence
+        return intention_llm, llm_confidence, llm_semaphore
 
 
 class SemaphoreClassifier:
@@ -349,13 +365,61 @@ class SemaphoreClassifier:
         return any(re.search(p, message_lower) for p in informative_patterns)
 
     @staticmethod
+    @staticmethod
+    async def _ask_llm_semaphore(message: str, intention: Intention) -> Semaphore:
+        """
+        Consulta al LLM para determinar el nivel de riesgo cuando las reglas
+        de palabras clave no detectaron un trigger ROJO.
+        El LLM ya recibe el prompt completo de clasificación (CLASSIFICATION_SYSTEM_PROMPT)
+        que incluye la definición de ROJO: casos activos, fiscalizaciones, sanciones.
+        Solo se invoca desde service.py cuando el caso es específico (no pregunta general).
+        """
+        import logging
+        ai_router = AIRouter()
+        schema = {
+            "type": "object",
+            "properties": {
+                "semaphore": {"type": "string", "enum": ["verde", "amarillo", "rojo"]},
+                "reasoning": {"type": "string"},
+            },
+            "required": ["semaphore"],
+        }
+        context = INTENTIONS.get(intention)
+        intention_hint = f" (intención detectada: {context.name})" if context else ""
+        try:
+            result = await ai_router.intake_json(
+                prompt=(
+                    f"Clasifica el nivel de riesgo de esta consulta{intention_hint}:\n\n\"{message}\"\n\n"
+                    "Responde con el campo 'semaphore': verde (consulta general informativa), "
+                    "amarillo (caso concreto que necesita más información), o "
+                    "rojo (situación de riesgo grave activa: denuncia, fiscalización, sanción, "
+                    "procedimiento legal formal en curso, urgencia legal)."
+                ),
+                schema=schema,
+                system_prompt=CLASSIFICATION_SYSTEM_PROMPT,
+            )
+            sem_str = result.get("semaphore", "verde").lower().strip()
+            if sem_str == "rojo":
+                return Semaphore.ROJO
+            if sem_str == "amarillo":
+                return Semaphore.AMARILLO
+            return Semaphore.VERDE
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                "[SemaphoreClassifier] LLM call failed, defaulting to VERDE: %s", e
+            )
+            return Semaphore.VERDE
+
+    @staticmethod
     def classify(
         message: str,
         intention: Intention,
     ) -> Tuple[Semaphore, List[str], List[str]]:
         """
-        Clasifica el semáforo completo.
+        Clasifica el semáforo completo (síncrono, solo reglas).
         Retorna (semáforo, gatillos_detectados, contexto_requerido).
+        Para el fallback LLM de alto riesgo, ver service.py que llama
+        _ask_llm_semaphore cuando el resultado es VERDE y el caso es específico.
         """
         # 1. ROJO: detectar gatillos
         gatillos = SemaphoreClassifier.detect_gatillos(message, intention)
@@ -367,8 +431,6 @@ class SemaphoreClassifier:
             return Semaphore.VERDE, [], []
 
         # 3. Si es una pregunta informativa general Y no es un caso específico → VERDE directo
-        # Si el usuario mezcla una pregunta informativa con un caso concreto (ej: "¿Cómo reactivo
-        # si me dieron de baja?"), se prioriza el contexto AMARILLO.
         if SemaphoreClassifier._is_informative_question(message) and not SemaphoreClassifier._is_specific_case(message):
             return Semaphore.VERDE, [], []
 
@@ -377,7 +439,7 @@ class SemaphoreClassifier:
         if context_needed:
             return Semaphore.AMARILLO, [], context_needed
 
-        # 5. VERDE por defecto
+        # 5. VERDE por defecto (service.py hará el fallback LLM si es caso específico)
         return Semaphore.VERDE, [], []
 
 

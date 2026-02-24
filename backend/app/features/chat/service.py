@@ -102,8 +102,10 @@ class ChatService:
         if not has_file_attached and ProjectAnalysisDetector.is_project_analysis(message):
             return self._build_project_analysis_response(message, conversation_id)
 
-        # 3. Clasificar intención
-        intention, intention_confidence = await IntentionClassifier.classify(message)
+        # 3. Clasificar intención (keywords + LLM fallback).
+        # Cuando el LLM se invoca, su opinión sobre el semáforo viene gratis
+        # en el mismo JSON — la capturamos para evitar una segunda llamada.
+        intention, intention_confidence, _llm_semaphore_hint = await IntentionClassifier.classify(message)
 
         # 4. Antes de retornar fuera de alcance, verificar gatillos ROJO.
         #    Un mensaje como "nos llegó una denuncia en SUNAFIL" puede ser mal
@@ -139,10 +141,29 @@ class ChatService:
                     return await self._handle_red(message, classification, conversation_id)
             return self._build_out_of_scope_response(conversation_id)
 
-        # 5. Clasificar semáforo
+        # 5. Clasificar semáforo (reglas de palabras clave, síncrono)
         semaphore, gatillos, context_needed = SemaphoreClassifier.classify(
             message, intention
         )
+
+        # Fallback LLM: cuando el semáforo es VERDE pero el mensaje describe un caso concreto,
+        # usamos la opinión que el LLM ya emitió durante la clasificación de intención.
+        # Si el LLM no fue invocado (keywords suficientes), solo entonces hacemos una llamada
+        # adicional para el semáforo. Esto evita la segunda llamada en la mayoría de los casos.
+        if semaphore == Semaphore.VERDE and SemaphoreClassifier._is_specific_case(message):
+            if _llm_semaphore_hint is not None:
+                _effective_sem = _llm_semaphore_hint
+            else:
+                _effective_sem = await SemaphoreClassifier._ask_llm_semaphore(message, intention)
+            if _effective_sem == Semaphore.ROJO:
+                semaphore = Semaphore.ROJO
+                gatillos = []
+                context_needed = []
+            elif _effective_sem == Semaphore.AMARILLO:
+                semaphore = Semaphore.AMARILLO
+                context_needed = context_needed or [
+                    "Describe el contexto específico de tu situación para orientarte mejor."
+                ]
 
         # 6. Construir clasificación
         classification = ChatClassification(
@@ -230,9 +251,9 @@ class ChatService:
                    "message": "Clasificando tu consulta..."})
 
         if _amber_intention:
-            intention, intention_confidence = _amber_intention, 0.95
+            intention, intention_confidence, _llm_semaphore_hint = _amber_intention, 0.95, None
         else:
-            intention, intention_confidence = await IntentionClassifier.classify(message)
+            intention, intention_confidence, _llm_semaphore_hint = await IntentionClassifier.classify(message)
 
         if intention == Intention.FUERA_DE_ALCANCE:
             # Antes de salir, verificar si hay gatillos ROJO en el mensaje.
@@ -283,6 +304,22 @@ class ChatService:
             semaphore, gatillos, context_needed = Semaphore.VERDE, [], []
         else:
             semaphore, gatillos, context_needed = SemaphoreClassifier.classify(message, intention)
+            # Fallback LLM: si VERDE + caso concreto, usar el hint del LLM de intención
+            # (ya viene gratis del mismo JSON) o solo entonces hacer una llamada adicional.
+            if semaphore == Semaphore.VERDE and SemaphoreClassifier._is_specific_case(message):
+                if _llm_semaphore_hint is not None:
+                    _effective_sem = _llm_semaphore_hint
+                else:
+                    _effective_sem = await SemaphoreClassifier._ask_llm_semaphore(message, intention)
+                if _effective_sem == Semaphore.ROJO:
+                    semaphore = Semaphore.ROJO
+                    gatillos = []
+                    context_needed = []
+                elif _effective_sem == Semaphore.AMARILLO:
+                    semaphore = Semaphore.AMARILLO
+                    context_needed = context_needed or [
+                        "Describe el contexto específico de tu situación para orientarte mejor."
+                    ]
 
         # ── Promover AMARILLO → VERDE si el historial ya tiene contexto previo ────
         # Si el clasificador dispara AMARILLO pero el usuario ya respondió ese tipo
@@ -748,25 +785,20 @@ class ChatService:
         nfkd = unicodedata.normalize("NFKD", msg)
         msg_norm = "".join(c for c in nfkd if not unicodedata.combining(c))
 
-        ADVISOR_PATTERNS = [
-            "preguntas para asesor", "preguntas para el asesor",
-            "preguntas para especialista", "preguntas para el especialista",
-            "preguntas para abogado", "preguntas para el abogado",
-            "preguntas para notario", "preguntas para el notario",
-            "consulta para asesor", "generar consulta para asesor",
-            "preparar para asesor", "preparar consulta", "preparar reunion",
-            "preparar la reunion", "preparar la consulta",
-            "como me preparo para hablar", "como preparo la visita",
-            "que le pregunto al abogado", "que pregunto al abogado",
-            "que le pregunto al asesor", "que pregunto al asesor",
-            "que le pregunto al especialista",
-            "consultar a un especialista", "consultar a un asesor",
-            "quiero ver al abogado", "quiero ir al abogado",
-            "debo ir al abogado", "necesito ir al abogado",
-            "paquete para asesor", "documentacion para asesor",
-            "documentos para asesor", "documentos para el abogado",
+        # Palabras clave que indican que el usuario quiere prepararse para hablar con un asesor/especialista
+        ADVISOR_WORDS = [
+            "asesor", "abogado", "especialista", "notario", "consultor",
         ]
-        return any(p in msg_norm for p in ADVISOR_PATTERNS)
+        PREP_WORDS = [
+            "preguntas", "consulta", "preparar", "preparo", "prepararme",
+            "preparacion", "reunion", "visita", "entrevista", "cita",
+            "que le digo", "que le pregunto", "que pregunto", "como presento",
+            "set de preguntas", "lista de preguntas", "documentos para",
+            "documentacion para", "paquete para",
+        ]
+        has_advisor = any(w in msg_norm for w in ADVISOR_WORDS)
+        has_prep = any(w in msg_norm for w in PREP_WORDS)
+        return has_advisor and has_prep
 
     @staticmethod
     def _is_greeting(message: str) -> bool:
