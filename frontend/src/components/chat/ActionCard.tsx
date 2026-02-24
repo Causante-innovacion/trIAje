@@ -217,3 +217,22 @@ export function ActionCard({ action, messageId, onFileUploadRequest, alreadyGene
             </div>
         )
     }
+
+    // ── Standard action button ─────────────────────────────────────────────────
+    return (
+        <button
+            onClick={handleClick}
+            disabled={isLoading}
+            className={`mt-3 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${config.bgClass} ${config.borderClass} disabled:opacity-60 disabled:cursor-wait`}
+        >
+            <Icon className={`w-5 h-5 flex-shrink-0 ${config.colorClass} ${isLoading ? 'animate-spin' : ''}`} />
+            <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold ${config.colorClass}`}>{action.label}</p>
+                {action.description && (
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{action.description}</p>
+                )}
+            </div>
+            <ArrowRight className={`w-4 h-4 flex-shrink-0 ${config.colorClass} opacity-60`} />
+        </button>
+    )
+}
