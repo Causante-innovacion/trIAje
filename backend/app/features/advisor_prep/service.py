@@ -73,6 +73,9 @@ Reglas ESTRICTAS:
     "nacional" si solo recibe fondos locales o no se menciona financiamiento internacional.
     "extranjero" si se menciona cooperación internacional, APCI, donaciones del exterior, etc.
     NUNCA dejes este array vacío.
+- internalDecisions: OBLIGATORIO generar al menos 2 decisiones internas que la organización debe votar o acordar antes de la reunión.
+  Ejemplo: {"scenario": "Tipo de contratación del siguiente ciclo", "options": [{"label": "Contrato a plazo fijo"}, {"label": "Contrato por proyecto"}]}.
+  Basa las decisiones en las brechas, el financiamiento y la situación legal identificada.
 - Si el área es tributaria → legalStatusCards incluye SUNAT/RUC.
 - Si es laboral → MTPE, contratos laborales.
 - Si es formalización → SUNARP, estatutos.
@@ -109,12 +112,16 @@ class AdvisorPrepService:
             f"Genera el paquete JSON completo siguiendo EXACTAMENTE esta estructura:\n"
             f"{json.dumps(_PACKAGE_SCHEMA, ensure_ascii=False, indent=2)}\n\n"
             f"Notas:\n"
+            f"- IMPORTANTE: la conversación puede comenzar con un bloque '=== CONTEXTO DEL PROYECTO ===' "
+            f"con datos extraídos del Plan Estratégico (organizaciones, brechas, financiamiento). "
+            f"Úsalo para generar contenido específico y personalizado.\n"
             f"- entityName: nombre de la organización si se menciona, si no: 'Organización consultante'\n"
             f"- legalStatusCards: incluye los registros relevantes (SUNARP, RUC, SUNAT, APCI, MTPE, etc.) "
             f"con el estado que se infiere de la conversación\n"
             f"- fundingCritical.min/max: rangos estimados si se menciona financiamiento, si no: 'No especificado'\n"
-            f"- lawyerQuestions: preguntas concretas y específicas, NO genéricas\n"
-            f"- internalDecisions: escenarios reales de decisión que debe tomar la organización"
+            f"- lawyerQuestions: preguntas CONCRETAS y ESPECÍFICAS basadas en las brechas y situación real, NO genéricas\n"
+            f"- internalDecisions: OBLIGATORIO mínimo 2 — escenarios reales de decisión pre-reunión basados "
+            f"en las brechas del proyecto, tipo de financiamiento y situación legal detectada"
         )
 
         try:
@@ -233,8 +240,14 @@ def _empty_package() -> Dict[str, Any]:
 
 def _fallback_package(conversation: List[Dict[str, str]]) -> Dict[str, Any]:
     """Paquete básico de fallback cuando el LLM falla."""
-    user_messages = [t["content"] for t in conversation if t.get("role") == "user"]
-    main_concern = user_messages[0][:300] if user_messages else "Consulta legal general"
+    FILLER = {'sí, la información es correcta', 'si, la información es correcta',
+              'sí, es correcto', 'correcto', 'ok', 'okay', 'de acuerdo', 'entendido'}
+    user_messages = [
+        t["content"] for t in conversation
+        if t.get("role") == "user" and t.get("content", "").strip().lower() not in FILLER
+    ]
+    # Use last substantive user message (most specific to the problem)
+    main_concern = user_messages[-1][:300] if user_messages else "Consulta legal general"
     return {
         "pageTitle": "Ruta de preparación para reunión con asesor legal",
         "pageSubtitle": "GENERADA EN BASE A TU CONSULTA LEGAL",

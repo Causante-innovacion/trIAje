@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Download, FileText, Calendar, ArrowLeft, Loader2 } from 'lucide-react'
+import { Download, FileText, Calendar, ArrowLeft } from 'lucide-react'
 import { ProjectEvaluation } from '../../types/evaluation.types'
 import { useChatStore } from '../../stores/chatStore'
 import { advisorPrepApi } from '../../shared/services/api'
+import { buildAdviserConversation } from '../../shared/utils/buildAdviserConversation'
 import { LoadingScreen } from './LoadingScreen'
 import { TrafficLightCard } from './TrafficLightCard'
 import { ProjectContextCard } from './ProjectContextCard'
@@ -12,6 +13,7 @@ import { ViabilityConditionCard } from './ViabilityConditionCard'
 import { ImplementationRoute } from './ImplementationRoute'
 import { AlternativesSection } from './AlternativesSection'
 import { exportEvaluationToDocx } from './evaluationExport'
+import { AdvisorLoadingOverlay } from '../output-legal-adviser/AdvisorLoadingOverlay'
 import clsx from 'clsx'
 
 export function ProjectEvaluationPage() {
@@ -35,15 +37,8 @@ export function ProjectEvaluationPage() {
         setIsGeneratingAdviser(true)
         setAdviserError(null)
         try {
-            const { messages, conversationId } = useChatStore.getState()
-            const conversation = messages
-                .filter(m =>
-                    (m.sender === 'user' && m.contentType === 'text' && m.content?.trim()) ||
-                    (m.sender === 'justo' &&
-                        (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
-                        m.content?.trim() && !m.isStreaming)
-                )
-                .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content }))
+            const { messages, conversationId, extractedPlan } = useChatStore.getState()
+            const conversation = buildAdviserConversation(messages, extractedPlan)
             const response = await advisorPrepApi.prepareFromChat(conversation, conversationId ?? undefined)
             useChatStore.getState().setLastAdviserData(response.data)
             navigate('/legal-adviser', { state: { adviserData: response.data, skipAnimation: true } })
@@ -136,6 +131,7 @@ export function ProjectEvaluationPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <AdvisorLoadingOverlay visible={isGeneratingAdviser} />
             {/* Header with scroll detection */}
             <header className={clsx(
                 'sticky top-0 z-50 transition-all duration-300',
@@ -273,9 +269,8 @@ export function ProjectEvaluationPage() {
                                 disabled={isGeneratingAdviser}
                                 className="btn-action-primary whitespace-nowrap flex-shrink-0 self-start sm:self-auto disabled:opacity-70 disabled:cursor-wait"
                             >
-                                {isGeneratingAdviser
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" />Preparando...</>
-                                    : <><Calendar className="w-4 h-4" />Ir al paquete</>}
+                                <Calendar className="w-4 h-4" />
+                                Ir al paquete
                             </button>
                         </div>
                         {adviserError && (

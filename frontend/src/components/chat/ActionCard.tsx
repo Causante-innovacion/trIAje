@@ -4,6 +4,8 @@ import { Upload, UserCheck, HelpCircle, ArrowRight, Loader2, ChevronRight } from
 import type { SuggestedAction, ActionType } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
 import { advisorPrepApi } from '../../shared/services/api'
+import { buildAdviserConversation } from '../../shared/utils/buildAdviserConversation'
+import { AdvisorLoadingOverlay } from '../output-legal-adviser/AdvisorLoadingOverlay'
 
 interface ActionCardProps {
     action: SuggestedAction
@@ -55,7 +57,7 @@ export function ActionCard({ action, messageId, onFileUploadRequest, alreadyGene
     const [form, setForm] = useState({ orgName: '', situation: '', need: '' })
 
     const config = ACTION_CONFIG[action.type] || ACTION_CONFIG.none
-    const Icon = isLoading ? Loader2 : config.icon
+    const Icon = config.icon
 
     if (action.type === 'none') return null
     // Once the adviser package for this message is generated, hide the derive button
@@ -67,20 +69,10 @@ export function ActionCard({ action, messageId, onFileUploadRequest, alreadyGene
         setIsLoading(true)
         setError(null)
         try {
-            const { messages, conversationId } = useChatStore.getState()
-            let conversation = messages
-                .filter(m =>
-                    (m.sender === 'user' && m.contentType === 'text' && m.content?.trim()) ||
-                    (m.sender === 'justo' &&
-                        (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
-                        m.content?.trim() && !m.isStreaming)
-                )
-                .map(m => ({
-                    role: m.sender === 'user' ? 'user' : 'assistant',
-                    content: m.content,
-                }))
+            const { messages, conversationId, extractedPlan } = useChatStore.getState()
+            let conversation = buildAdviserConversation(messages, extractedPlan)
 
-            // Prepend collected context so the LLM has enough info to produce a useful package
+            // Prepend manually collected context (shown when conversation is too thin)
             if (extraContext) {
                 const parts: string[] = []
                 if (extraContext.orgName.trim())
@@ -222,19 +214,22 @@ export function ActionCard({ action, messageId, onFileUploadRequest, alreadyGene
 
     // ── Standard action button ─────────────────────────────────────────────────
     return (
-        <button
-            onClick={handleClick}
-            disabled={isLoading}
-            className={`mt-3 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${config.bgClass} ${config.borderClass} disabled:opacity-60 disabled:cursor-wait`}
-        >
-            <Icon className={`w-5 h-5 flex-shrink-0 ${config.colorClass} ${isLoading ? 'animate-spin' : ''}`} />
-            <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold ${config.colorClass}`}>{action.label}</p>
-                {action.description && (
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{action.description}</p>
-                )}
-            </div>
-            <ArrowRight className={`w-4 h-4 flex-shrink-0 ${config.colorClass} opacity-60`} />
-        </button>
+        <>
+            <AdvisorLoadingOverlay visible={isLoading} />
+            <button
+                onClick={handleClick}
+                disabled={isLoading}
+                className={`mt-3 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${config.bgClass} ${config.borderClass} disabled:opacity-60 disabled:cursor-wait`}
+            >
+                <Icon className={`w-5 h-5 flex-shrink-0 ${config.colorClass}`} />
+                <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold ${config.colorClass}`}>{action.label}</p>
+                    {action.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{action.description}</p>
+                    )}
+                </div>
+                <ArrowRight className={`w-4 h-4 flex-shrink-0 ${config.colorClass} opacity-60`} />
+            </button>
+        </>
     )
 }
