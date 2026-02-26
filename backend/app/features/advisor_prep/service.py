@@ -147,13 +147,27 @@ class AdvisorPrepService:
 
 def _format_conversation(conversation: List[Dict[str, str]]) -> str:
     """Formatea la conversación como texto legible para el prompt."""
+    context_block = ""
     lines = []
     for turn in conversation:
-        role = "Usuario" if turn.get("role") == "user" else "Asistente Legal (JUSTO)"
+        role = turn.get("role", "")
         content = turn.get("content", "").strip()
-        if content:
-            lines.append(f"{role}: {content}")
-    return "\n\n".join(lines)
+        if not content:
+            continue
+        if role == "context":
+            # Project context block — displayed as background section, not as a chat turn
+            context_block = content
+        elif role == "user":
+            lines.append(f"Usuario: {content}")
+        else:
+            lines.append(f"Asistente Legal (JUSTO): {content}")
+
+    parts = []
+    if context_block:
+        parts.append(context_block)
+        parts.append("")  # blank line separator
+    parts.append("\n\n".join(lines))
+    return "\n".join(parts)
 
 
 def _normalize_package(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -244,7 +258,10 @@ def _fallback_package(conversation: List[Dict[str, str]]) -> Dict[str, Any]:
               'sí, es correcto', 'correcto', 'ok', 'okay', 'de acuerdo', 'entendido'}
     user_messages = [
         t["content"] for t in conversation
-        if t.get("role") == "user" and t.get("content", "").strip().lower() not in FILLER
+        if t.get("role") == "user"
+        and t.get("content", "").strip().lower() not in FILLER
+        # Skip the structured context block injected by the frontend
+        and not t.get("content", "").startswith("===")
     ]
     # Use last substantive user message (most specific to the problem)
     main_concern = user_messages[-1][:300] if user_messages else "Consulta legal general"

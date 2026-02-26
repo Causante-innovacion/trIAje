@@ -12,7 +12,7 @@ import type { Message } from '../../types/chat'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
 
 interface ConvTurn {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'context'
   content: string
 }
 
@@ -113,10 +113,10 @@ export function buildAdviserConversation(
       content: m.content!,
     }))
 
-  // Prepend structured project context as a synthetic user message
+  // Prepend structured project context as a background-context block (not a user turn)
   if (extractedPlan) {
     turns.unshift({
-      role: 'user',
+      role: 'context',
       content: buildProjectContextMessage(extractedPlan),
     })
   }
