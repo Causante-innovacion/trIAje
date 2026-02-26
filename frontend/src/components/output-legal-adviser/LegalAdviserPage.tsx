@@ -105,16 +105,16 @@ export function LegalAdviserPage() {
                     : 'bg-white border-b border-transparent'
             )}>
                 <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                         <button
                             onClick={() => navigate('/chat')}
-                            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group"
+                            className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors group flex-shrink-0"
                         >
                             <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
                             <span className="hidden sm:inline">Chat</span>
                         </button>
-                        <div className="w-px h-5 bg-gray-200" />
-                        <h1 className="font-bold text-base text-gray-900">
+                        <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
+                        <h1 className="font-bold text-sm sm:text-base text-gray-900 truncate">
                             {adviserData.organizationProfile.entityName}
                         </h1>
                     </div>
@@ -122,15 +122,15 @@ export function LegalAdviserPage() {
                     <button
                         onClick={handleExport}
                         disabled={isExporting}
-                        className="btn-action-primary text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="btn-action-primary text-sm disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0"
                     >
                         <Download className="w-4 h-4" />
-                        {isExporting ? 'Generando...' : 'Descargar paquete'}
+                        <span className="hidden sm:inline">{isExporting ? 'Generando...' : 'Descargar paquete'}</span>
                     </button>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+            <main className="max-w-6xl mx-auto px-4 py-6 md:py-10 space-y-8 md:space-y-10">
                 {/* Title */}
                 <div className="text-center animate-slide-up">
                     <div className="flex items-center justify-center gap-3 mb-3">

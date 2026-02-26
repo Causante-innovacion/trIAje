@@ -39,7 +39,7 @@ export function ViabilityConditionCard({ condition }: ViabilityConditionCardProp
                             {condition.severity}
                         </span>
                     </div>
-                    <div className="flex gap-4 text-sm text-gray-500">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                             <span className="font-semibold text-gray-700">Tiempo:</span> {condition.time}
                         </div>

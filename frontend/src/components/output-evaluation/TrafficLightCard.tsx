@@ -60,16 +60,18 @@ export function TrafficLightCard({ organization }: TrafficLightCardProps) {
                     <Icon className={clsx('w-7 h-7', config.iconColor)} />
                 </div>
                 <div className="flex-1">
-                    <h3 className="font-bold text-lg text-gray-900 mb-1">
-                        {organization.name}
-                    </h3>
-                    <span className={clsx(
-                        'inline-block px-3 py-1 rounded-full text-xs font-bold mb-3',
-                        config.textColor,
-                        config.bgColor
-                    )}>
-                        {config.label}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <h3 className="font-bold text-lg text-gray-900">
+                            {organization.name}
+                        </h3>
+                        <span className={clsx(
+                            'inline-block px-3 py-1 rounded-full text-xs font-bold',
+                            config.textColor,
+                            config.bgColor
+                        )}>
+                            {config.label}
+                        </span>
+                    </div>
                     <p className="text-sm text-gray-700 leading-relaxed">
                         {organization.message}
                     </p>

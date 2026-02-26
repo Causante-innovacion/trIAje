@@ -10,11 +10,11 @@ interface ImplementationRouteProps {
 
 export function ImplementationRoute({ phases, actions, disclaimer }: ImplementationRouteProps) {
     return (
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-card animate-fade-in">
+        <div className="bg-white rounded-2xl p-5 md:p-8 border border-gray-200 shadow-card animate-fade-in">
             <h3 className="font-bold text-xl text-gray-900 mb-8">Ruta de Implementacion</h3>
 
-            {/* Timeline */}
-            <div className="flex items-start justify-between mb-10 relative px-4">
+            {/* Timeline — horizontal on sm+, vertical list on mobile */}
+            <div className="hidden sm:flex items-start justify-between mb-10 relative px-4">
                 {/* Connection line */}
                 <div className="absolute top-6 left-12 right-12 h-0.5 bg-gray-200" />
                 {/* Animated progress line */}
@@ -48,6 +48,30 @@ export function ImplementationRoute({ phases, actions, disclaimer }: Implementat
                         )}>
                             {phase.name}
                         </p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Vertical timeline — mobile only */}
+            <div className="flex sm:hidden flex-col gap-3 mb-10">
+                {phases.map((phase) => (
+                    <div key={phase.id} className="flex items-center gap-4">
+                        <div className={clsx(
+                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0',
+                            phase.status === 'current'
+                                ? 'bg-gold text-white shadow-glow-gold'
+                                : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                        )}>
+                            {phase.id}
+                        </div>
+                        <div>
+                            <p className={clsx('text-xs font-bold uppercase tracking-wide', phase.status === 'current' ? 'text-gold' : 'text-gray-400')}>
+                                Fase {phase.id}
+                            </p>
+                            <p className={clsx('text-sm font-medium', phase.status === 'current' ? 'text-gray-900' : 'text-gray-500')}>
+                                {phase.name}
+                            </p>
+                        </div>
                     </div>
                 ))}
             </div>

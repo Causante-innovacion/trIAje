@@ -228,8 +228,9 @@ export function ChatContainer() {
       clearInterval(interval)
       useChatStore.getState().updateFileStatus(fileId, 'error', 0)
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error procesando el archivo'
+      const axiosDetail = (error as any)?.response?.data?.detail
+      const errorMessage = axiosDetail
+        || (error instanceof Error ? error.message : 'Error procesando el archivo')
       addJustoMessage(
         `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx o empecemos desde cero.`
       )
@@ -319,6 +320,7 @@ export function ChatContainer() {
                 isEditing={isEditingProjectInfo}
                 onSave={handleProjectInfoSave}
                 onCancel={handleProjectInfoCancel}
+                organizations={organizations}
               />
             </div>
           </div>

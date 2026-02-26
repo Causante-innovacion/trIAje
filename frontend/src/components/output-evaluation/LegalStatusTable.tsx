@@ -45,7 +45,7 @@ export function LegalStatusTable({ entities }: LegalStatusTableProps) {
     return (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-card animate-fade-in">
             <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[520px]">
                     <thead className="bg-cream border-b border-gray-200">
                         <tr>
                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">

@@ -16,7 +16,7 @@ const iconMap: Record<string, any> = {
 
 export function ProjectContextCard({ items }: ProjectContextCardProps) {
     return (
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-card animate-fade-in">
+        <div className="bg-white rounded-2xl p-5 md:p-8 border border-gray-200 shadow-card animate-fade-in">
             <h3 className="font-bold text-xl text-gray-900 mb-6">Contexto del Proyecto</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {items.map((item, index) => {

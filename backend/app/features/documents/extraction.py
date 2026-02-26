@@ -256,9 +256,29 @@ def extract_from_bytes(file_bytes: bytes, filename: str) -> dict:
 
     Returns:
         dict con source_metadata y raw_extractions
+
+    Raises:
+        ValueError: Si el documento no tiene el formato de Plan Estratégico CAUSANTE
     """
     doc_data = _read_docx_bytes(file_bytes)
+
+    # Validar contenido mínimo
+    if not doc_data["full_text"].strip():
+        raise ValueError(
+            "El archivo está vacío o no contiene texto legible. "
+            "Asegúrate de que el documento no esté protegido o corrupto."
+        )
+
     sections = _split_sections(doc_data["full_text"])
+
+    # Validar que el documento tenga estructura CAUSANTE
+    if not sections:
+        raise ValueError(
+            "El archivo no parece ser un Plan Estratégico CAUSANTE. "
+            "El documento debe incluir las secciones: PROPUESTA DE VALOR, "
+            "CONCEPTO ESTRATÉGICO, EQUIPO Y ROLES, ANÁLISIS DE BRECHAS y "
+            "ESTRATEGIA DE FINANCIAMIENTO. Por favor usa la plantilla oficial."
+        )
 
     metadata = _extract_project_metadata(
         sections, doc_data["paragraphs"], doc_data["full_text"]

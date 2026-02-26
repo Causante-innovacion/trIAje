@@ -19,9 +19,11 @@ interface ProjectInfoCardProps {
   data: ProjectInfo
   onConfirm?: () => void
   onEdit?: () => void
+  /** All organizations identified in the extracted plan, for the leader dropdown */
+  organizations?: { id: string; name: string }[]
 }
 
-export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, onCancel }: ProjectInfoCardProps & { isEditing?: boolean, onSave?: (data: ProjectInfo) => void, onCancel?: () => void }) {
+export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, onCancel, organizations = [] }: ProjectInfoCardProps & { isEditing?: boolean, onSave?: (data: ProjectInfo) => void, onCancel?: () => void }) {
   const [formData, setFormData] = useState<ProjectInfo>(data)
 
   // Reset form data when data prop changes or when entering edit mode
@@ -81,7 +83,7 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
 
           <div className="p-5 space-y-5">
             {/* Project name and organization */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <label className="block text-xs font-bold text-gold uppercase tracking-wide mb-1">Proyecto</label>
                 <input
@@ -93,12 +95,24 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
               </div>
               <div>
                 <label className="block text-xs font-bold text-gold uppercase tracking-wide mb-1">Organización Líder</label>
-                <input
-                  type="text"
-                  value={formData.organization}
-                  onChange={(e) => handleChange('organization', e.target.value)}
-                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-gold focus:ring focus:ring-gold/50"
-                />
+                {organizations.length > 1 ? (
+                  <select
+                    value={formData.organization}
+                    onChange={(e) => handleChange('organization', e.target.value)}
+                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-gold focus:ring focus:ring-gold/50"
+                  >
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.name}>{org.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.organization}
+                    onChange={(e) => handleChange('organization', e.target.value)}
+                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-gold focus:ring focus:ring-gold/50"
+                  />
+                )}
               </div>
             </div>
 
@@ -114,20 +128,14 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
             </div>
 
             {/* Financing and Team */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <p className="text-xs font-bold text-gold uppercase tracking-wide mb-3">Financiamiento Proyectado</p>
                 <div className="space-y-2">
                   <div className="py-2 border-b border-gray-100 space-y-2">
                     <span className="text-xs text-gray-500 block">Capital Semilla</span>
                     <input
-                      placeholder="Monto"
-                      value={formData.financing.seed.amount}
-                      onChange={(e) => handleFinancingChange('seed', 'amount', e.target.value)}
-                      className="w-full text-sm border-gray-300 rounded-md shadow-sm mb-1"
-                    />
-                    <input
-                      placeholder="Fuente"
+                      placeholder="Fuente de financiamiento"
                       value={formData.financing.seed.source}
                       onChange={(e) => handleFinancingChange('seed', 'source', e.target.value)}
                       className="w-full text-sm border-gray-300 rounded-md shadow-sm"
@@ -136,13 +144,7 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
                   <div className="py-2 space-y-2">
                     <span className="text-xs text-gray-500 block">Escalamiento</span>
                     <input
-                      placeholder="Monto"
-                      value={formData.financing.scaling.amount}
-                      onChange={(e) => handleFinancingChange('scaling', 'amount', e.target.value)}
-                      className="w-full text-sm border-gray-300 rounded-md shadow-sm mb-1"
-                    />
-                    <input
-                      placeholder="Fuente"
+                      placeholder="Fuente de financiamiento"
                       value={formData.financing.scaling.source}
                       onChange={(e) => handleFinancingChange('scaling', 'source', e.target.value)}
                       className="w-full text-sm border-gray-300 rounded-md shadow-sm"
@@ -219,7 +221,7 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
 
         <div className="p-5 space-y-5">
           {/* Project name and organization */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <p className="text-xs font-bold text-gold uppercase tracking-wide mb-1">Proyecto</p>
               <p className="font-semibold text-gray-900">{data.projectName}</p>
@@ -237,19 +239,17 @@ export function ProjectInfoCard({ data, onConfirm, onEdit, isEditing, onSave, on
           </div>
 
           {/* Financing and Team */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <p className="text-xs font-bold text-gold uppercase tracking-wide mb-3">Financiamiento Proyectado</p>
               <div className="space-y-3">
                 <div className="py-2 border-b border-gray-100">
                   <span className="text-xs text-gray-500 block mb-1">Capital Semilla</span>
-                  <span className="text-sm font-semibold text-gray-900">{data.financing.seed.amount}</span>
-                  <span className="text-xs text-gray-400 ml-1">({data.financing.seed.source})</span>
+                  <span className="text-sm text-gray-700">{data.financing.seed.source}</span>
                 </div>
                 <div className="py-2">
                   <span className="text-xs text-gray-500 block mb-1">Escalamiento</span>
-                  <span className="text-sm font-semibold text-gray-900">{data.financing.scaling.amount}</span>
-                  <span className="text-xs text-gray-400 ml-1">({data.financing.scaling.source})</span>
+                  <span className="text-sm text-gray-700">{data.financing.scaling.source}</span>
                 </div>
               </div>
             </div>

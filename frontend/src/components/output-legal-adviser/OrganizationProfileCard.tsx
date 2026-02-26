@@ -29,7 +29,7 @@ export function OrganizationProfileCard({ profile, legalStatusCards }: Organizat
     }
 
     return (
-        <div className="bg-gold/5 rounded-2xl border-2 border-gold/30 p-8 animate-slide-up transition-all duration-300 hover:shadow-card-hover">
+        <div className="bg-gold/5 rounded-2xl border-2 border-gold/30 p-5 md:p-8 animate-slide-up transition-all duration-300 hover:shadow-card-hover">
             <div className="flex items-center gap-3 mb-6">
                 <h3 className="text-lg font-bold text-gray-900">Perfil de la Organización</h3>
             </div>
@@ -61,11 +61,14 @@ export function OrganizationProfileCard({ profile, legalStatusCards }: Organizat
             <div className="bg-white rounded-xl p-5 border border-gold/20">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Tipo de Financiamiento</p>
                 <div className="flex items-center gap-2 flex-wrap">
-                    {profile.fundingTypes.includes('extranjero') && (
+                    {profile.fundingTypes?.includes('extranjero') && (
                         <span className="badge-info">USD Internacional</span>
                     )}
-                    {profile.fundingTypes.includes('nacional') && (
+                    {profile.fundingTypes?.includes('nacional') && (
                         <span className="badge bg-purple-100 text-purple-700">Nacional</span>
+                    )}
+                    {(!profile.fundingTypes || profile.fundingTypes.length === 0) && (
+                        <span className="text-sm text-gray-400 italic">No especificado</span>
                     )}
                 </div>
             </div>

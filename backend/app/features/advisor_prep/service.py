@@ -66,14 +66,17 @@ Reglas ESTRICTAS:
 - pageSubtitle: resume en UNA frase el tema legal central de la conversación
   (ej: "Denuncia SUNAFIL por ex-trabajador" o "Consulta sobre registro APCI").
   NUNCA copies mensajes del usuario verbatim como "Sí, la información es correcta".
-- criticalTopics: solo temas críticos mencionados en la conversación.
+- criticalTopics: OBLIGATORIO generar al menos 1 tema crítico basado en la conversación.
+- lawyerQuestions: OBLIGATORIO generar al menos 3 preguntas específicas para el asesor.
+- requiredDocuments: OBLIGATORIO listar al menos 2 documentos relevantes.
+- fundingTypes: OBLIGATORIO — array con uno o ambos valores:
+    "nacional" si solo recibe fondos locales o no se menciona financiamiento internacional.
+    "extranjero" si se menciona cooperación internacional, APCI, donaciones del exterior, etc.
+    NUNCA dejes este array vacío.
 - Si el área es tributaria → legalStatusCards incluye SUNAT/RUC.
 - Si es laboral → MTPE, contratos laborales.
 - Si es formalización → SUNARP, estatutos.
-- Si es APCI/cooperación → APCI, Ministerio de RREE.
-- Genera 4-6 preguntas ESPECÍFICAS y relevantes para el asesor, basadas en los temas discutidos.
-- Lista 3-5 documentos concretos a presentar según el área legal.
-- internalDecisions: alternativas reales que la organización debe decidir antes de la reunión.
+- Si es APCI/cooperación → APCI, Ministerio de RREE; agrega "extranjero" en fundingTypes.
 - legalStatus: 'red' si hay problema grave detectado, 'yellow' si hay incertidumbre, 'green' si está regularizado.
 - Responde SOLO con JSON válido. Sin explicaciones. Sin markdown.
 """
@@ -120,7 +123,13 @@ class AdvisorPrepService:
                 schema=_PACKAGE_SCHEMA,
                 system_prompt=_SYSTEM_PROMPT,
             )
-            return _normalize_package(result)
+            normalized = _normalize_package(result)
+            # Validate that the package has meaningful content; if not, use fallback
+            has_topics = bool(normalized.get("criticalTopics"))
+            has_questions = bool(normalized.get("lawyerQuestions"))
+            if not has_topics and not has_questions:
+                return _fallback_package(conversation)
+            return normalized
         except Exception:
             return _fallback_package(conversation)
 
@@ -149,7 +158,9 @@ def _normalize_package(raw: Dict[str, Any]) -> Dict[str, Any]:
     profile.setdefault("entityName", "Organización consultante")
     profile.setdefault("legalStatus", "yellow")
     profile.setdefault("stage", "unknown")
-    profile.setdefault("fundingTypes", ["nacional"])
+    # Always ensure fundingTypes is a non-empty list (override empty array too)
+    if not profile.get("fundingTypes"):
+        profile["fundingTypes"] = ["nacional"]
 
     raw.setdefault("legalStatusCards", [])
     raw.setdefault("fundingCritical", {

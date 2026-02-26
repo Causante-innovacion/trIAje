@@ -11,7 +11,7 @@ export function LawyerQuestionsSection({ questions }: LawyerQuestionsSectionProp
     }
 
     return (
-        <section className="bg-blue-50 rounded-2xl border-2 border-blue-200 p-8 animate-slide-up">
+        <section className="bg-blue-50 rounded-2xl border-2 border-blue-200 p-5 md:p-8 animate-slide-up">
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
                     <MessageSquare className="w-4 h-4 text-blue-600" />
