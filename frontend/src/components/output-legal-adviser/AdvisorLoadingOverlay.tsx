@@ -40,8 +40,8 @@ export function AdvisorLoadingOverlay({ visible }: Props) {
   const progress = Math.round(((stepIndex + 1) / STEPS.length) * 100)
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-      <div className="bg-gray-900 text-white rounded-2xl shadow-xl px-5 py-3.5 flex items-center gap-4 min-w-[320px] max-w-sm">
+    <div className="fixed bottom-6 inset-x-0 flex justify-center z-50 animate-slide-up pointer-events-none">
+      <div className="bg-gray-900 text-white rounded-2xl shadow-xl px-5 py-3.5 flex items-center gap-4 w-[320px] pointer-events-auto">
         {/* Spinner */}
         <Loader2 className="w-4 h-4 text-gold flex-shrink-0 animate-spin" />
 

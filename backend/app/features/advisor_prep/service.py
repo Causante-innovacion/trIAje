@@ -125,7 +125,7 @@ class AdvisorPrepService:
         )
 
         try:
-            result = await self._ai_router.reason_json(
+            result = await self._ai_router.intake_json(
                 prompt=prompt,
                 schema=_PACKAGE_SCHEMA,
                 system_prompt=_SYSTEM_PROMPT,

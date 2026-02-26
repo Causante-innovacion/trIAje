@@ -292,6 +292,15 @@ class AIRouter:
         """REASONING con respuesta JSON estructurada."""
         return await self._call_json(self._reason_llm, prompt, schema, system_prompt)
 
+    async def intake_json(
+        self,
+        prompt: str,
+        schema: Dict[str, Any],
+        system_prompt: str | None = None,
+    ) -> Dict[str, Any]:
+        """INTAKE (modelo rápido/económico) con respuesta JSON estructurada."""
+        return await self._call_json(self._intake_llm, prompt, schema, system_prompt)
+
     async def _call_json(
         self,
         llm: BaseChatModel,

@@ -167,7 +167,9 @@ export function LegalAdviserPage() {
                 {/* Two Column Layout for Checklists */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up stagger-4">
                     <RequiredDocumentsChecklist documents={adviserData.requiredDocuments} />
-                    <InternalDecisionsChecklist decisions={adviserData.internalDecisions} />
+                    {adviserData.internalDecisions?.length > 0 && (
+                        <InternalDecisionsChecklist decisions={adviserData.internalDecisions} />
+                    )}
                 </div>
             </main>
         </div>
