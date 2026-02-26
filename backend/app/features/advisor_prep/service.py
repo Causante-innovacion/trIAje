@@ -166,7 +166,17 @@ def _format_conversation(conversation: List[Dict[str, str]]) -> str:
     if context_block:
         parts.append(context_block)
         parts.append("")  # blank line separator
-    parts.append("\n\n".join(lines))
+
+    if lines:
+        parts.append("\n\n".join(lines))
+    elif context_block:
+        # No user turns — came from evaluation page. Use explicit directive.
+        parts.append(
+            "SOLICITUD: Genera el paquete de preparación basándote EXCLUSIVAMENTE en el análisis "
+            "legal mostrado arriba. Cada pregunta, tema crítico y decisión interna debe hacer "
+            "referencia directa a un problema concreto identificado en ese análisis."
+        )
+
     return "\n".join(parts)
 
 
@@ -262,9 +272,84 @@ def _fallback_package(conversation: List[Dict[str, str]]) -> Dict[str, Any]:
         and t.get("content", "").strip().lower() not in FILLER
         # Skip the structured context block injected by the frontend
         and not t.get("content", "").startswith("===")
+        and not t.get("content", "").startswith("Basándote")
     ]
-    # Use last substantive user message (most specific to the problem)
-    main_concern = user_messages[-1][:300] if user_messages else "Consulta legal general"
+
+    # Try to extract a meaningful summary from the context block
+    context_blocks = [
+        t["content"] for t in conversation if t.get("role") == "context"
+    ]
+
+    if context_blocks:
+        # Extract project title line from the context block as the main concern
+        for line in context_blocks[0].splitlines():
+            if line.startswith("=== ANÁLISIS LEGAL DEL PROYECTO:"):
+                main_concern = line.replace("===", "").replace("ANÁLISIS LEGAL DEL PROYECTO:", "").strip().rstrip(" =")
+                break
+            if line.startswith("Nombre del proyecto:"):
+                main_concern = line.replace("Nombre del proyecto:", "").strip()
+                break
+        else:
+            main_concern = user_messages[-1][:300] if user_messages else "Consulta legal general"
+    else:
+        # Use last substantive user message (most specific to the problem)
+        main_concern = user_messages[-1][:300] if user_messages else "Consulta legal general"
+
+    # Extract critical issues from context block to build specific fallback content
+    critical_issues: List[str] = []
+    legal_entities: List[str] = []
+    if context_blocks:
+        in_critical = False
+        in_entities = False
+        for line in context_blocks[0].splitlines():
+            if "CONDICIONES DE VIABILIDAD CRÍTICAS" in line:
+                in_critical = True
+                in_entities = False
+            elif "ENTIDADES LEGALES CON PROBLEMAS" in line:
+                in_entities = True
+                in_critical = False
+            elif line.startswith("===") or (line.strip() == "" and (in_critical or in_entities)):
+                in_critical = False
+                in_entities = False
+            elif in_critical and line.strip().startswith("-"):
+                # Extract "- [CRÍTICA] Title: reason" → "Title: reason"
+                issue = line.strip().lstrip("- ").split("]")[-1].strip().rstrip(".")
+                if issue:
+                    critical_issues.append(issue[:200])
+            elif in_entities and line.strip().startswith("-"):
+                entity = line.strip().lstrip("- ").split("]")[-1].strip().rstrip(".")
+                if entity:
+                    legal_entities.append(entity[:150])
+
+    # Build specific topics
+    topics = []
+    if critical_issues:
+        for i, issue in enumerate(critical_issues[:3], 1):
+            topics.append({
+                "id": str(i),
+                "title": issue.split(":")[0].strip() if ":" in issue else issue[:60],
+                "description": issue,
+                "priority": "URGENTE",
+            })
+    if not topics:
+        topics = [{"id": "1", "title": main_concern[:60], "description": main_concern, "priority": "URGENTE"}]
+
+    # Build specific questions
+    questions = []
+    if critical_issues:
+        for i, issue in enumerate(critical_issues[:3], 1):
+            title = issue.split(":")[0].strip() if ":" in issue else issue
+            questions.append({"id": str(i), "number": i,
+                              "question": f"¿Cuáles son los pasos concretos y el plazo para resolver: {title}?"})
+    if legal_entities:
+        q_id = len(questions) + 1
+        entity = legal_entities[0].split(":")[0].strip() if ":" in legal_entities[0] else legal_entities[0]
+        questions.append({"id": str(q_id), "number": q_id,
+                          "question": f"¿Qué documentos y acciones específicas requiere regularizar {entity}?"})
+    if len(questions) < 3:
+        questions.append({"id": str(len(questions)+1), "number": len(questions)+1,
+                          "question": "¿Cuáles son los riesgos legales si no se regulariza esta situación a tiempo?"})
+
     return {
         "pageTitle": "Ruta de preparación para reunión con asesor legal",
         "pageSubtitle": "GENERADA EN BASE A TU CONSULTA LEGAL",
@@ -283,17 +368,8 @@ def _fallback_package(conversation: List[Dict[str, str]]) -> Dict[str, Any]:
             "description": "Definir con el asesor según las necesidades de la organización.",
         },
         "fundingDescription": "Por determinar",
-        "criticalTopics": [{
-            "id": "1",
-            "title": "Tema principal de consulta",
-            "description": main_concern,
-            "priority": "URGENTE",
-        }],
-        "lawyerQuestions": [
-            {"id": "1", "number": 1, "question": "¿Cuál es la mejor estrategia para abordar esta situación?"},
-            {"id": "2", "number": 2, "question": "¿Cuáles son los riesgos legales principales y cómo mitigarlos?"},
-            {"id": "3", "number": 3, "question": "¿Cuál es el cronograma estimado y costo para regularizar la situación?"},
-        ],
+        "criticalTopics": topics,
+        "lawyerQuestions": questions,
         "requiredDocuments": [
             {"id": "1", "title": "Documentos de identidad de los representantes", "completed": False},
             {"id": "2", "title": "Documentación de la organización disponible", "completed": False},
