@@ -10,6 +10,7 @@
 
 import type { Message } from '../../types/chat'
 import type { PlanExtractionResponse } from '../../types/extraction.types'
+import type { ProjectEvaluation } from '../../types/evaluation.types'
 
 interface ConvTurn {
   role: 'user' | 'assistant' | 'context'
@@ -82,6 +83,77 @@ function buildProjectContextMessage(plan: PlanExtractionResponse): string {
 
   lines.push('=== FIN CONTEXTO DEL PROYECTO ===')
   return lines.join('\n')
+}
+
+/**
+ * Builds a structured context block from a completed project evaluation.
+ * Used when generating the adviser package FROM the evaluation page.
+ * This is richer than the plan context — it contains the actual legal gaps
+ * and viability issues identified by the analysis engine.
+ */
+export function buildAdviserContextFromEvaluation(evaluation: ProjectEvaluation): ConvTurn[] {
+  const lines: string[] = [
+    `=== ANÁLISIS LEGAL DEL PROYECTO: ${evaluation.projectTitle} ===`,
+    `Líder: ${evaluation.projectLeader}`,
+    '',
+  ]
+
+  // Organization traffic lights
+  lines.push('SEMÁFORO POR ORGANIZACIÓN:')
+  evaluation.organizations.forEach(org => {
+    const status = org.status === 'red' ? '🔴 CRÍTICO' : org.status === 'yellow' ? '🟡 PENDIENTE' : '🟢 OK'
+    lines.push(`  - ${org.name}: ${status} — ${org.message}`)
+  })
+
+  // Legal entities with issues
+  const problemEntities = evaluation.legalEntities.filter(e => e.status !== 'green')
+  if (problemEntities.length) {
+    lines.push('\nENTIDADES LEGALES CON PROBLEMAS DETECTADOS:')
+    problemEntities.forEach(e => {
+      lines.push(`  - ${e.entity} [${e.priority}]: ${e.description}`)
+      if (e.action) lines.push(`    Acción requerida: ${e.action}`)
+    })
+  }
+
+  // Critical viability conditions (CRÍTICA + ALTA)
+  const criticalConditions = evaluation.viabilityConditions.filter(
+    c => c.severity === 'CRÍTICA' || c.severity === 'ALTA'
+  )
+  if (criticalConditions.length) {
+    lines.push('\nCONDICIONES DE VIABILIDAD CRÍTICAS (deben resolverse antes de escalar):')
+    criticalConditions.forEach(c => {
+      lines.push(`  - [${c.severity}] ${c.title}: ${c.reason}`)
+      if (c.requirements?.length)
+        lines.push(`    Requisitos: ${c.requirements.join(' | ')}`)
+      if (c.time || c.cost)
+        lines.push(`    Tiempo: ${c.time || '?'} | Costo estimado: ${c.cost || '?'}`)
+    })
+  }
+
+  // Action steps
+  if (evaluation.actionSteps?.length) {
+    lines.push('\nPASOS DE ACCIÓN IDENTIFICADOS:')
+    evaluation.actionSteps.forEach((step, i) => lines.push(`  ${i + 1}. ${step}`))
+  }
+
+  // Alternatives
+  if (evaluation.alternatives?.length) {
+    lines.push('\nALTERNATIVAS EVALUADAS:')
+    evaluation.alternatives.forEach(a => lines.push(`  - ${a.title}: ${a.description}`))
+  }
+
+  lines.push('\n=== FIN ANÁLISIS LEGAL ===')
+
+  return [
+    { role: 'context', content: lines.join('\n') },
+    {
+      role: 'user',
+      content:
+        'Basándote en el análisis legal anterior, genera el paquete de preparación para la reunión con el asesor. ' +
+        'Las preguntas, temas críticos y decisiones deben surgir DIRECTAMENTE de las brechas, condiciones de viabilidad ' +
+        'y problemas detectados en el análisis — no de manera genérica.',
+    },
+  ]
 }
 
 export function buildAdviserConversation(

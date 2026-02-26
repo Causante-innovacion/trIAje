@@ -4,7 +4,7 @@ import { Download, FileText, Calendar, ArrowLeft } from 'lucide-react'
 import { ProjectEvaluation } from '../../types/evaluation.types'
 import { useChatStore } from '../../stores/chatStore'
 import { advisorPrepApi } from '../../shared/services/api'
-import { buildAdviserConversation } from '../../shared/utils/buildAdviserConversation'
+import { buildAdviserConversation, buildAdviserContextFromEvaluation } from '../../shared/utils/buildAdviserConversation'
 import { LoadingScreen } from './LoadingScreen'
 import { TrafficLightCard } from './TrafficLightCard'
 import { ProjectContextCard } from './ProjectContextCard'
@@ -37,8 +37,15 @@ export function ProjectEvaluationPage() {
         setIsGeneratingAdviser(true)
         setAdviserError(null)
         try {
-            const { messages, conversationId, extractedPlan } = useChatStore.getState()
-            const conversation = buildAdviserConversation(messages, extractedPlan)
+            const { conversationId } = useChatStore.getState()
+            // Build conversation from the evaluation analysis — this is the rich source
+            // of legal gaps, viability issues and critical conditions for the adviser.
+            const conversation = evaluationData
+                ? buildAdviserContextFromEvaluation(evaluationData)
+                : buildAdviserConversation(
+                    useChatStore.getState().messages,
+                    useChatStore.getState().extractedPlan
+                  )
             const response = await advisorPrepApi.prepareFromChat(conversation, conversationId ?? undefined)
             useChatStore.getState().setLastAdviserData(response.data)
             navigate('/legal-adviser', { state: { adviserData: response.data, skipAnimation: true } })
