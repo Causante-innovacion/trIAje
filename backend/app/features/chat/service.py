@@ -58,25 +58,27 @@ from .classifier import (
 # =============================================================================
 
 _BASE_RULES = (
-    # Idioma y razonamiento
-    "Siempre responde en español. "
-    "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar "
-    "escrito enteramente en español. Nunca uses inglés, ni siquiera para razonar internamente. "
+    # Idioma y razonamiento — instrucción fuerte para modelos con CoT en inglés (e.g. DeepSeek-R1)
+    "IDIOMA OBLIGATORIO: Responde siempre en español. "
+    "RAZONAMIENTO INTERNO: Si tienes un bloque de razonamiento (etiquetas <think> o CoT), "
+    "DEBES escribirlo íntegramente en español. "
+    "Nunca uses inglés en ningún parte de tu respuesta, ni en el análisis interno, ni en los títulos, "
+    "ni en los ejemplos. Si tu tendencia es razonar en inglés, haz un esfuerzo explícito y "
+    "tráduce cada pensamiento al español antes de continuar. "
     # Acrónimos
     "Cuando menciones siglas o acrónimos, escríbelos siempre en su forma completa la primera vez "
-    "que aparezcan en la respuesta (ejemplo: en lugar de 'SUNARP' escribe "
-    "'Superintendencia Nacional de los Registros Públicos (SUNARP)'). "
+    "que aparezcan (ejemplo: 'Superintendencia Nacional de los Registros Públicos (SUNARP)'). "
     # Porcentajes y límites
     "Cada vez que cites un porcentaje, umbral numérico o límite legal (por ejemplo: '30 %', "
-    "'50 UIT', '3 meses'), DEBES indicar inmediatamente su base legal: la ley, decreto o artículo "
-    "concreto que lo establece. Nunca menciones un porcentaje sin su fundamento normativo. "
+    "'50 Unidades Impositivas Tributarias (UIT)', '3 meses'), indica inmediatamente su base legal: "
+    "la ley, decreto o artículo concreto que lo establece. "
     # Lenguaje condicional
     "Usa lenguaje condicional cuando no tengas certeza: 'en principio', 'según el marco general', "
     "'se recomienda verificar con la normativa vigente'. "
     # Memoria contextual
     "Si el historial de conversación contiene información provista por el usuario (tipo de "
-    "organización, estado del RUC, estatutos modificados, etc.), úsala en tu respuesta sin "
-    "volver a pedirla. Mantén la continuidad del contexto durante toda la sesión. "
+    "organización, estado del RUC, estatutos modificados, etc.), úsala sin volver a pedirla. "
+    "Mantén la continuidad del contexto durante toda la sesión. "
 )
 
 _STRUCTURE_RULES = (
@@ -89,18 +91,25 @@ _STRUCTURE_RULES = (
     "4. **📌 Próximo paso recomendado**: UNA acción concreta y específica que el usuario "
     "debe tomar inmediatamente (incluye el nombre del registro, trámite, plataforma o "
     "profesional; si hay costo o plazo aproximado, mencionarlo).\n\n"
-    # Instrucciones de citas — el frontend las convierte en tooltips
-    "SISTEMA DE CITAS (OBLIGATORIO cuando cites normativa):\n"
-    "- Cuando hagas referencia a una ley, artículo o norma, añade un marcador de cita inline: [1], [2], etc.\n"
-    "- NO escribas el nombre completo de la ley en el párrafo. Solo el marcador [N] al final de la frase.\n"
-    "- Al FINAL de toda la respuesta, agrega un bloque con el encabezado exacto '## Referencias' "
-    "y lista cada cita en el formato: [N] Descripción breve — Ley o decreto, Art. X.\n"
-    "Ejemplo de cita inline: 'Las asociaciones deben inscribirse en registros públicos [1].'\n"
-    "Ejemplo de bloque final:\n"
+    # Instrucciones de citas — REGLA CRÍTICA de no redundancia
+    "SISTEMA DE CITAS — LEE CON ATENCIÓN:\n"
+    "Cuando menciones normativa (leyes, decretos, artículos), NUNCA escribas su nombre completo "
+    "en el cuerpo del texto. Solo coloca el número de cita [N] al final de la frase.\n"
+    "El detalle completo de cada cita va EXCLUSIVAMENTE en el bloque '## Referencias' al final.\n"
+    "\n"
+    "❌ MAL (PROHIBIDO):\n"
+    "'Según el Artículo 82 del Código Civil (D.Leg. N.º 295), las asociaciones requieren "
+    "inscripción [1].'  ← Aquí escribiste la cita EN EL PÁRRAFO y además pusiste [1]. PROHIBIDO.\n"
+    "\n"
+    "✅ CORRECTO:\n"
+    "'Las asociaciones requieren inscripción [1].'\n"
+    "(El artículo exacto va solo en ## Referencias)\n"
+    "\n"
+    "Al FINAL de toda la respuesta, agrega:\n"
     "## Referencias\n"
-    "[1] Inscripción de asociaciones — Código Civil, Art. 77 y ss., D.Leg. N.º 295.\n"
-    "[2] Exoneración del Impuesto a la Renta — Ley del Impuesto a la Renta, Art. 19 inc. b), D.S. N.º 179-2004-EF.\n"
-    "Si en una respuesta no citas ninguna norma específica, omite el bloque ## Referencias.\n"
+    "[1] Inscripción de asociaciones — Código Civil, Art. 82, D.Leg. N.º 295.\n"
+    "[2] Exoneración del Impuesto a la Renta — Ley del IR, Art. 19 inc. b), D.S. N.º 179-2004-EF.\n"
+    "Si no citas ninguna norma específica, omite el bloque ## Referencias.\n"
 )
 
 
@@ -160,6 +169,20 @@ def _build_system_prompt(mode: str) -> str:
         core = "Proporciona orientación legal clara y estructurada. "
 
     return base + core + _BASE_RULES + _STRUCTURE_RULES
+
+
+# Prefijo que se añade al CUERPO de cada prompt (HumanMessage), no al system prompt.
+# DeepSeek-R1 procesa las instrucciones de idioma con mayor fidelidad cuando aparecen
+# dentro del mensaje del usuario, no solo en el system prompt.
+_PROMPT_LANGUAGE_PREFIX = (
+    "[INSTRUCCIÓN DE IDIOMA: Tu razonamiento interno y toda tu respuesta DEBEN estar en español. "
+    "Comienza tu análisis <think> directamente en español.]\n\n"
+)
+
+
+def _build_prompt(body: str) -> str:
+    """Envuelve el cuerpo del prompt con el prefijo de idioma obligatorio."""
+    return _PROMPT_LANGUAGE_PREFIX + body
 
 
 class ChatService:
@@ -634,10 +657,8 @@ class ChatService:
                    "message": "Generando respuesta..."})
 
         if _amber_intention or _prior_amber_ctx:
-            # El usuario ya proporcionó contexto (ahora o en un turno anterior)
-            # → respuesta específica y personalizada usando esa información
             system_prompt = _build_system_prompt("followup")
-            prompt = (
+            prompt = _build_prompt(
                 f"Intención legal: {INTENTIONS[intention].name}\n"
                 f"Consulta con contexto del usuario:\n{eff_message}\n\n"
                 + (f"Normativa relevante:\n{rag_context}\n\n" if rag_context else "")
@@ -647,7 +668,7 @@ class ChatService:
             )
         elif rag_context:
             system_prompt = _build_system_prompt("verde_rag")
-            prompt = (
+            prompt = _build_prompt(
                 f"Intención detectada: {INTENTIONS[intention].name}\n"
                 f"Pregunta del usuario: {eff_message}\n\n"
                 f"Contexto normativo relevante:\n{rag_context}\n\n"
@@ -657,7 +678,7 @@ class ChatService:
         else:
             intention_config = INTENTIONS.get(intention)
             system_prompt = _build_system_prompt("verde_norag")
-            prompt = (
+            prompt = _build_prompt(
                 f"El usuario consulta sobre: {intention_config.name if intention_config else ''}\n"
                 f"Pregunta: {eff_message}\n\n"
                 "Da una respuesta orientativa general. "
@@ -1210,7 +1231,7 @@ class ChatService:
         """Genera respuesta usando LLM con contexto RAG."""
         if amber_followup:
             system_prompt = _build_system_prompt("amber_rag")
-            prompt = (
+            prompt = _build_prompt(
                 f"Intención legal: {classification.intention_name}\n"
                 f"Consulta con contexto adicional del usuario:\n{message}\n\n"
                 f"Normativa relevante:\n{rag_context}\n\n"
@@ -1219,7 +1240,7 @@ class ChatService:
             )
         else:
             system_prompt = _build_system_prompt("verde_rag")
-            prompt = (
+            prompt = _build_prompt(
                 f"Intención detectada: {classification.intention_name}\n"
                 f"Pregunta del usuario: {message}\n\n"
                 f"Contexto normativo relevante:\n{rag_context}\n\n"
@@ -1250,7 +1271,7 @@ class ChatService:
 
         if amber_followup:
             system_prompt = _build_system_prompt("followup")
-            prompt = (
+            prompt = _build_prompt(
                 f"Área legal: {intention_config.name}\n"
                 f"Consulta con contexto adicional del usuario: {message}\n\n"
                 "Da una respuesta personalizada y específica para este caso concreto, "
@@ -1259,7 +1280,7 @@ class ChatService:
             )
         else:
             system_prompt = _build_system_prompt("verde_norag")
-            prompt = (
+            prompt = _build_prompt(
                 f"El usuario consulta sobre: {intention_config.name}\n"
                 f"Descripción del área: {intention_config.description}\n"
                 f"Pregunta: {message}\n\n"

@@ -8,7 +8,16 @@ interface MarkdownRendererProps {
     className?: string
     /** When provided, inline [N] markers render as hoverable citation badge circles */
     citations?: CitationMap
+    /**
+     * When true, suppress raw [N] citation markers without replacing them with badges.
+     * Use this during typewriter animation so markers don't flash as plain text before
+     * the citations map is ready.
+     */
+    suppressCitationMarkers?: boolean
 }
+
+/** Regex that matches [N] citation markers in text */
+const CITATION_MARKER_RE = /\[(\d+)\]/g
 
 /**
  * Converts `[N]` markers in the content to inline-code sentinels `cite:N`
@@ -16,10 +25,15 @@ interface MarkdownRendererProps {
  * Only markers whose index exists in `citations` are converted.
  */
 function injectCitationSentinels(content: string, citations: CitationMap): string {
-    return content.replace(/\[(\d+)\]/g, (original, numStr) => {
+    return content.replace(CITATION_MARKER_RE, (original, numStr) => {
         const idx = parseInt(numStr, 10)
         return citations[idx] !== undefined ? `\`cite:${idx}\`` : original
     })
+}
+
+/** Strips [N] markers from text silently (used during typewriter animation). */
+function stripCitationMarkers(content: string): string {
+    return content.replace(CITATION_MARKER_RE, '')
 }
 
 /**
@@ -29,9 +43,18 @@ function injectCitationSentinels(content: string, citations: CitationMap): strin
  *
  * Supports: bold, italic, lists, links, headings, code, blockquotes, tables (GFM).
  */
-export function MarkdownRenderer({ content, className = '', citations }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, className = '', citations, suppressCitationMarkers }: MarkdownRendererProps) {
     const hasCitations = !!citations && Object.keys(citations).length > 0
-    const processedContent = hasCitations ? injectCitationSentinels(content, citations!) : content
+
+    // Prepare content:
+    //  - If citations are ready: inject sentinels so code renderer turns them into badges.
+    //  - If suppressing (during animation): strip markers so they never flash as [1],[2].
+    //  - Otherwise: pass content unchanged.
+    const processedContent = hasCitations
+        ? injectCitationSentinels(content, citations!)
+        : suppressCitationMarkers
+            ? stripCitationMarkers(content)
+            : content
 
     return (
         <div className={`markdown-content ${className}`}>

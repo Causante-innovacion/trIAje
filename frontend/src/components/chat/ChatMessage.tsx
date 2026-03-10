@@ -41,17 +41,29 @@ function ErrorIcon({ type }: { type?: string }) {
 
 /** Renders text with optional typewriter animation + Markdown + citation badges */
 function AnimatedText({ text, animate, messageId }: { text: string; animate: boolean; messageId?: string }) {
-  // Extract citations block (## Referencias) from the full text
-  const { cleanContent, citations, hasCitations } = useCitations(text)
-
-  const { visibleText, isAnimating } = useTypewriter(cleanContent, {
+  // 1. Animate the RAW text (including ## Referencias block if present).
+  //    This keeps the typewriter input stable during streaming — the ## block
+  //    always arrives LAST, so cleanContent could shrink and reset the animation
+  //    mid-stream if we animated cleanContent instead.
+  const { visibleText, isAnimating } = useTypewriter(text, {
     enabled: animate,
     wordsPerTick: 3,
     speed: 25,
   })
 
-  // Once the typewriter finishes, mark this message so it never re-animates
-  // when the user navigates away and comes back.
+  // 2. Extract citations from the VISIBLE text.
+  //    During animation visibleText is a partial of `text`, so ## Referencias
+  //    may not have arrived yet → citations = {} (no badges, no markers visible).
+  //    Once animation completes and ## Referencias is in visibleText, citations
+  //    populate and cleanContent strips the block → badges appear, block hidden.
+  const { cleanContent, citations, hasCitations } = useCitations(visibleText)
+
+  // 3. During animation: don't pass citations → [N] sentinels render as nothing
+  //    (the code renderer returns the CitationBadge only when citations[N] exists).
+  //    After animation: pass the full citations map → badges render.
+  const activeCitations = isAnimating ? undefined : (hasCitations ? citations : undefined)
+
+  // Once the typewriter finishes, mark this message so it never re-animates.
   useEffect(() => {
     if (!isAnimating && animate && messageId) {
       useChatStore.getState().markMessageAnimated(messageId)
@@ -61,8 +73,9 @@ function AnimatedText({ text, animate, messageId }: { text: string; animate: boo
   return (
     <div className="leading-relaxed">
       <MarkdownRenderer
-        content={visibleText}
-        citations={hasCitations ? citations : undefined}
+        content={isAnimating ? visibleText : cleanContent}
+        citations={activeCitations}
+        suppressCitationMarkers={isAnimating}
       />
       {isAnimating && (
         <span className="inline-block w-1.5 h-4 bg-gold/60 ml-0.5 animate-pulse rounded-sm" />
