@@ -1535,6 +1535,75 @@ PRE_CLARIFY_QUESTIONS: Dict[Intention, List[str]] = {
     ],
 }
 
+# =============================================================================
+# PALABRAS CLAVE QUE INDICAN QUE EL USUARIO YA RESPONDIÓ LA PRE-CLARIFICACIÓN
+# Si el mensaje del usuario contiene alguna de estas palabras o frases para la
+# intención dada, el flujo de pre-clarificación NO se activa (el usuario ya
+# dio contexto suficiente de forma implícita en su pregunta).
+#
+# Lógica: si la pregunta de pre-clarificación preguntaría sobre "APCI" pero
+# el usuario ya mencionó "apci" o "registrar en apci", no tiene sentido
+# volver a preguntarlo.
+# =============================================================================
+PRE_CLARIFY_SKIP_KEYWORDS: Dict[Intention, List[str]] = {
+    Intention.FORMALIZACION: [
+        "ya tenemos", "ya está inscrit", "ya estamos inscrit", "personeria juridica",
+        "sunarp", "registros publicos", "en proceso", "sin fines de lucro",
+        "con fines de lucro", "asociacion", "fundacion", "constituir",
+    ],
+    Intention.IDENTIDAD_RUC: [
+        "persona natural", "persona juridica", "baja provisional", "baja definitiva",
+        "activo", "inactivo", "mi ruc", "nuestro ruc",
+    ],
+    Intention.DONACIONES: [
+        "apci", "agencia peruana de cooperacion", "fondos nacionales", "fondos internacionales",
+        "cooperacion internacional", "inscribir en apci", "registrar en apci",
+        "inscripcion en apci", "registro en apci", "inscribirme", "inscribirnos",
+        "registrarme", "registrarnos",
+    ],
+    Intention.TRIBUTACION: [
+        "sin fines de lucro", "con fines de lucro", "exoneracion", "exonerado",
+        "impuesto a la renta", "ir exonerado", "ir activo", "tributacion",
+    ],
+    Intention.CONTRATACION: [
+        "sueldo", "salario", "pago mensual", "temporal", "permanente", "contrato",
+        "voluntario", "planilla", "honorarios", "recibo por honorarios",
+    ],
+    Intention.PROPIEDAD_INTELECTUAL: [
+        "indecopi", "ya registrado", "primera vez", "creado por", "contratado",
+        "marca propia", "logo propio",
+    ],
+    Intention.DATOS_PERSONALES: [
+        "beneficiarios", "donantes", "voluntarios", "politica de privacidad",
+        "aviso de privacidad", "ya tenemos politica",
+    ],
+    Intention.GOBERNANZA: [
+        "con directivos", "sin directivos", "ya tenemos junta", "reglamento",
+        "estatutos", "conflicto de interes",
+    ],
+    Intention.ALIANZAS: [
+        "convenio", "convenios", "con persona juridica", "con persona natural",
+        "empresa", "organismo publico",
+    ],
+    Intention.PERMISOS: [
+        "evento", "permanente", "municipalidad", "ministerio", "local",
+        "licencia de funcionamiento",
+    ],
+    Intention.MARCA_IDENTIDAD: [
+        "busqueda de anterioridad", "ya buscamos", "nombre de la organizacion",
+        "producto", "servicio", "logo",
+    ],
+    Intention.SEGURIDAD_INFORMACION: [
+        "menores", "victimas", "beneficiarios de salud", "vulnerables",
+        "ya tenemos protocolo", "politica de seguridad",
+    ],
+    Intention.PREPARACION_ASESORIA: [
+        "urgente", "plazo proximo", "desde cero", "ya tenemos estatutos",
+        "ya tenemos documentos",
+    ],
+}
+
+
 # Prompt de sistema para el flujo de pre-clarificación
 PRE_CLARIFY_SYSTEM_PROMPT = (
     "Eres Justo, un asistente legal especializado en derecho peruano para organizaciones civiles. "

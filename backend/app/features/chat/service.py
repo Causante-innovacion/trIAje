@@ -34,6 +34,7 @@ from .config import (
     GREETING_MESSAGE,
     ADVISOR_PREP_ENDPOINT,
     PRE_CLARIFY_QUESTIONS,
+    PRE_CLARIFY_SKIP_KEYWORDS,
     PRE_CLARIFY_SYSTEM_PROMPT,
     PRE_CLARIFY_INTRO_TEMPLATE,
 )
@@ -65,9 +66,26 @@ _BASE_RULES = (
     "Nunca uses inglés en ningún parte de tu respuesta, ni en el análisis interno, ni en los títulos, "
     "ni en los ejemplos. Si tu tendencia es razonar en inglés, haz un esfuerzo explícito y "
     "tráduce cada pensamiento al español antes de continuar. "
-    # Acrónimos
-    "Cuando menciones siglas o acrónimos, escríbelos siempre en su forma completa la primera vez "
-    "que aparezcan (ejemplo: 'Superintendencia Nacional de los Registros Públicos (SUNARP)'). "
+    # Acrónimos — regla estricta con lista de referencia
+    "ACRÓNIMOS — REGLA CRÍTICA: NUNCA asumas que el usuario conoce una sigla o acrónimo. "
+    "La primera vez que uses cualquier acrónimo en la respuesta, SIEMPRE escribe la forma "
+    "completa seguida de la sigla entre paréntesis. "
+    "Ejemplos correctos: 'Superintendencia Nacional de los Registros Públicos (SUNARP)', "
+    "'Agencia Peruana de Cooperación Internacional (APCI)', "
+    "'Superintendencia Nacional de Aduanas y de Administración Tributaria (SUNAT)', "
+    "'Registro Único de Contribuyentes (RUC)', "
+    "'Instituto Nacional de Defensa de la Competencia y de la Protección de la Propiedad Intelectual (INDECOPI)', "
+    "'Ministerio de la Mujer y Poblaciones Vulnerables (MIMP)', "
+    "'Unidad Impositiva Tributaria (UIT)', "
+    "'Impuesto a la Renta (IR)', "
+    "'Impuesto General a las Ventas (IGV)', "
+    "'Autoridad Nacional de Protección de Datos Personales (ANPDP)', "
+    "'Centro Nacional de Planeamiento Estratégico (CEPLAN)', "
+    "'Organización No Gubernamental (ONG)', "
+    "'Junta de Acreedores (JA)', "
+    "'Recibo por Honorarios Electrónico (RHE)'. "
+    "En los turnos siguientes de la misma respuesta, puedes usar la sigla sola. "
+    "Nunca uses la sigla sola en la primera mención. "
     # Porcentajes y límites
     "Cada vez que cites un porcentaje, umbral numérico o límite legal (por ejemplo: '30 %', "
     "'50 Unidades Impositivas Tributarias (UIT)', '3 meses'), indica inmediatamente su base legal: "
@@ -984,25 +1002,41 @@ class ChatService:
         Condiciones para activar:
         1. La intención tiene preguntas configuradas en PRE_CLARIFY_QUESTIONS.
         2. El mensaje es una pregunta informativa general (no tiene indicadores de caso específico).
-        3. El historial no contiene ya respuestas a las preguntas de pre-clarificación
-           (es decir, el usuario ya respondió en turnos anteriores → no volver a preguntar).
-
-        Esto evita preguntar de nuevo si el usuario ya dio contexto en la misma sesión.
+        3. El historial no contiene ya respuestas a las preguntas de pre-clarificación.
+        4. [NUEVO] El mensaje NO menciona ya palabras clave que responden las preguntas
+           (ej. si el usuario menciona 'apci' no hay que preguntarle de nuevo sobre APCI).
         """
+        import unicodedata
+
         # Si no hay preguntas configuradas para esta intención, no activar
         if intention not in PRE_CLARIFY_QUESTIONS:
             return False
 
-        # Si el usuario ya tiene historial largo (> 2 turnos), asumimos que el
-        # contexto ya está establecido — no interrumpir con preguntas nuevas.
+        # Si el usuario ya tiene historial largo (> 2 turnos), el contexto ya está
+        # establecido — no interrumpir con preguntas nuevas.
         if history and len(history) > 2:
             return False
 
-        # Si el mensaje tiene indicadores de caso específico (posesivos, verbos en 1ª persona,
+        # Si el mensaje tiene indicadores de caso específico (posesivos, verbos en 1˚ persona,
         # palabras de problema), el sistema de semáforo ya lo maneja → no duplicar.
         from .classifier import SemaphoreClassifier
         if SemaphoreClassifier._is_specific_case(message):
             return False
+
+        # Normalizar el mensaje (sin acentos, minúsculas) para comparación robusta
+        msg_lower = message.lower()
+        nfkd = unicodedata.normalize("NFKD", msg_lower)
+        msg_norm = "".join(c for c in nfkd if not unicodedata.combining(c))
+
+        # [NUEVO] Verificar si el mensaje ya contiene palabras clave que responden
+        # alguna de las preguntas de pre-clarificación para esta intención.
+        # Si el usuario ya mencionó la entidad clave (ej. "apci", "sunarp"), no preguntar.
+        skip_keywords = PRE_CLARIFY_SKIP_KEYWORDS.get(intention, [])
+        for kw in skip_keywords:
+            kw_norm = unicodedata.normalize("NFKD", kw.lower())
+            kw_norm = "".join(c for c in kw_norm if not unicodedata.combining(c))
+            if kw_norm in msg_norm:
+                return False  # El usuario ya dio contexto implícito → no pre-clarificar
 
         # Solo activar para preguntas informativas generales
         return SemaphoreClassifier._is_informative_question(message)
