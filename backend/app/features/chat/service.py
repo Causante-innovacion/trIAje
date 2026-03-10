@@ -108,7 +108,15 @@ _STRUCTURE_RULES = (
     "3. **⚠️ Consideraciones clave** (si aplica): riesgos, plazos críticos, excepciones.\n"
     "4. **📌 Próximo paso recomendado**: UNA acción concreta y específica que el usuario "
     "debe tomar inmediatamente (incluye el nombre del registro, trámite, plataforma o "
-    "profesional; si hay costo o plazo aproximado, mencionarlo).\n\n"
+    "tipo de profesional si se necesita uno; si hay un plazo aproximado mencionarlo).\n"
+    "   PROHIBIDO en el Próximo paso: mencionar tarifas, honorarios, rangos de costo "
+    "o estimaciones económicas de ningún profesional (abogado, notario, contador, etc.).\n\n"
+    "REGLA GLOBAL: NUNCA menciones tarifas, honorarios, rangos de precios ni costos "
+    "estimados para contratar a un abogado, notario, asesor legal o cualquier profesional. "
+    "Puedes decir 'considera consultar con un abogado especializado' pero NUNCA añadir "
+    "cuánto podría cobrar ni ningún rango de precio. "
+    "Sí puedes mencionar costos oficiales de trámites (aranceles registrales, tasas SUNAT, "
+    "costos de publicación, etc.) cuando sean datos concretos y verificables.\n\n"
     # Instrucciones de citas — REGLA CRÍTICA de no redundancia
     "SISTEMA DE CITAS — LEE CON ATENCIÓN:\n"
     "Cuando menciones normativa (leyes, decretos, artículos), NUNCA escribas su nombre completo "
@@ -631,7 +639,13 @@ class ChatService:
                     topic=topic,
                     questions=questions_text,
                 )
-                yield sse({"type": "token", "text": pre_clarify_msg})
+                # Emitir palabra a palabra para producir el efecto typewriter
+                # igual que el texto generado por el LLM (evita que aparezca de golpe).
+                words = pre_clarify_msg.split(" ")
+                for i, word in enumerate(words):
+                    token = word if i == 0 else " " + word
+                    yield sse({"type": "token", "text": token})
+                    await asyncio.sleep(0.018)
                 yield sse({
                     "type": "done",
                     "actions": [],

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
 import { useChat } from '../../hooks/useChat'
@@ -78,27 +78,29 @@ export function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasSentPending = useRef(false)
   const userHasScrolledUp = useRef(false)
-  // Refs para detectar nuevo mensaje del asistente y hacer scroll a su inicio
   const lastJustoMessageRef = useRef<HTMLDivElement>(null)
   const lastJustoMessageIdRef = useRef<string | null>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  // 'start' = scroll al inicio del mensaje nuevo; 'bottom' = scroll al fondo
+  const scrollIntentRef = useRef<'start' | 'bottom' | null>(null)
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
     }
-  }
+  }, [])
 
-  /** Hace scroll para que el inicio del último mensaje del asistente quede visible */
   const scrollToLastJustoMessageStart = useCallback(() => {
     const container = scrollContainerRef.current
     const msgEl = lastJustoMessageRef.current
     if (!container || !msgEl) return
     const msgTop = msgEl.offsetTop - container.offsetTop
     container.scrollTo({ top: Math.max(0, msgTop - 16), behavior: 'smooth' })
+    // Mostrar la flecha de scroll inmediatamente para que el usuario pueda ir al final
+    setShowScrollToBottom(true)
   }, [])
 
-  // Detect if the user manually scrolled up
+  // Detectar scroll manual del usuario
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return
@@ -107,25 +109,59 @@ export function ChatContainer() {
     setShowScrollToBottom(distanceFromBottom > 200)
   }, [])
 
+  // Cuando llega un mensaje nuevo, registrar la intención de scroll.
+  // NO scrolleamos aquí porque el DOM puede no estar listo todavía.
   useEffect(() => {
     const lastMsg = messages[messages.length - 1]
     if (!lastMsg) return
 
     if (lastMsg.sender === 'user') {
-      // Mensaje del usuario: forzar scroll al fondo
       userHasScrolledUp.current = false
-      scrollToBottom()
+      scrollIntentRef.current = 'bottom'
     } else if (lastMsg.sender === 'justo' && lastMsg.id !== lastJustoMessageIdRef.current) {
-      // Nuevo mensaje del asistente: scroll al inicio del mensaje
+      // Nuevo mensaje del asistente — queremos ver su inicio
       lastJustoMessageIdRef.current = lastMsg.id
-      userHasScrolledUp.current = true // no auto-scroll al fondo mientras lee
-      // Pequeño timeout para que el DOM renderice el mensaje
-      setTimeout(() => scrollToLastJustoMessageStart(), 80)
+      userHasScrolledUp.current = true
+      scrollIntentRef.current = 'start'
     } else if (!userHasScrolledUp.current) {
-      // Streaming en curso y usuario no subió: seguir al final
-      scrollToBottom()
+      // Streaming en curso y el usuario no scrolleó — seguir al fondo
+      scrollIntentRef.current = 'bottom'
     }
-  }, [messages, isTyping, scrollToLastJustoMessageStart])
+  }, [messages])
+
+  // Ejecutar la intención de scroll cuando el DOM actualiza.
+  // useLayoutEffect corre DESPUÉS de que React renderizó los nuevos nodos.
+  useLayoutEffect(() => {
+    const intent = scrollIntentRef.current
+    if (!intent) return
+    scrollIntentRef.current = null
+
+    if (intent === 'bottom') {
+      scrollToBottom()
+    } else if (intent === 'start') {
+      // Si el elemento ya está montado, scrollear directamente.
+      // Si todavía no (DOM aún vacío), usar un ResizeObserver como fallback.
+      if (lastJustoMessageRef.current) {
+        scrollToLastJustoMessageStart()
+      } else {
+        // El mensaje aún no se renderizó — esperar a que el contenedor crezca
+        const container = scrollContainerRef.current
+        if (!container) return
+        let fired = false
+        const observer = new ResizeObserver(() => {
+          if (fired) return
+          if (lastJustoMessageRef.current) {
+            fired = true
+            observer.disconnect()
+            scrollToLastJustoMessageStart()
+          }
+        })
+        observer.observe(container)
+        // Safety timeout: si en 800ms no disparó, limpiar
+        setTimeout(() => { if (!fired) observer.disconnect() }, 800)
+      }
+    }
+  }, [messages, scrollToBottom, scrollToLastJustoMessageStart])
 
   // If extractedPlan already in store (e.g. navigating back), rebuild local state
   useEffect(() => {
