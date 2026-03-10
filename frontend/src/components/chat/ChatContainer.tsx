@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
 import { useChat } from '../../hooks/useChat'
@@ -79,15 +79,13 @@ export function ChatContainer() {
   const hasSentPending = useRef(false)
   const userHasScrolledUp = useRef(false)
   const lastJustoMessageRef = useRef<HTMLDivElement>(null)
-  const lastJustoMessageIdRef = useRef<string | null>(null)
+  // ID del último mensaje del asistente al que ya scrolleamos el inicio
+  const scrolledToStartForId = useRef<string | null>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
-  // 'start' = scroll al inicio del mensaje nuevo; 'bottom' = scroll al fondo
-  const scrollIntentRef = useRef<'start' | 'bottom' | null>(null)
 
   const scrollToBottom = useCallback(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
-    }
+    const el = scrollContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [])
 
   const scrollToLastJustoMessageStart = useCallback(() => {
@@ -96,71 +94,65 @@ export function ChatContainer() {
     if (!container || !msgEl) return
     const msgTop = msgEl.offsetTop - container.offsetTop
     container.scrollTo({ top: Math.max(0, msgTop - 16), behavior: 'smooth' })
-    // Mostrar la flecha de scroll inmediatamente para que el usuario pueda ir al final
+    // Mostrar la flecha inmediatamente para que el usuario pueda ir al final
     setShowScrollToBottom(true)
   }, [])
 
-  // Detectar scroll manual del usuario
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    userHasScrolledUp.current = distanceFromBottom > 120
-    setShowScrollToBottom(distanceFromBottom > 200)
+    userHasScrolledUp.current = distanceFromBottom > 80
+    setShowScrollToBottom(distanceFromBottom > 150)
   }, [])
 
-  // Cuando llega un mensaje nuevo, registrar la intención de scroll.
-  // NO scrolleamos aquí porque el DOM puede no estar listo todavía.
   useEffect(() => {
     const lastMsg = messages[messages.length - 1]
     if (!lastMsg) return
 
     if (lastMsg.sender === 'user') {
+      // Usuario envió un mensaje: ir al fondo para ver el indicador de carga
       userHasScrolledUp.current = false
-      scrollIntentRef.current = 'bottom'
-    } else if (lastMsg.sender === 'justo' && lastMsg.id !== lastJustoMessageIdRef.current) {
-      // Nuevo mensaje del asistente — queremos ver su inicio
-      lastJustoMessageIdRef.current = lastMsg.id
-      userHasScrolledUp.current = true
-      scrollIntentRef.current = 'start'
-    } else if (!userHasScrolledUp.current) {
-      // Streaming en curso y el usuario no scrolleó — seguir al fondo
-      scrollIntentRef.current = 'bottom'
-    }
-  }, [messages])
-
-  // Ejecutar la intención de scroll cuando el DOM actualiza.
-  // useLayoutEffect corre DESPUÉS de que React renderizó los nuevos nodos.
-  useLayoutEffect(() => {
-    const intent = scrollIntentRef.current
-    if (!intent) return
-    scrollIntentRef.current = null
-
-    if (intent === 'bottom') {
+      scrolledToStartForId.current = null
       scrollToBottom()
-    } else if (intent === 'start') {
-      // Si el elemento ya está montado, scrollear directamente.
-      // Si todavía no (DOM aún vacío), usar un ResizeObserver como fallback.
-      if (lastJustoMessageRef.current) {
-        scrollToLastJustoMessageStart()
-      } else {
-        // El mensaje aún no se renderizó — esperar a que el contenedor crezca
-        const container = scrollContainerRef.current
-        if (!container) return
-        let fired = false
-        const observer = new ResizeObserver(() => {
-          if (fired) return
-          if (lastJustoMessageRef.current) {
-            fired = true
-            observer.disconnect()
-            scrollToLastJustoMessageStart()
-          }
-        })
-        observer.observe(container)
-        // Safety timeout: si en 800ms no disparó, limpiar
-        setTimeout(() => { if (!fired) observer.disconnect() }, 800)
-      }
+      return
     }
+
+    if (
+      lastMsg.sender === 'justo' &&
+      lastMsg.id !== scrolledToStartForId.current
+    ) {
+      // Nuevo mensaje del asistente: scrollear al inicio UNA Única vez
+      scrolledToStartForId.current = lastMsg.id
+      userHasScrolledUp.current = true
+
+      // Ejecutar el scroll después de que el DOM haya pintado el nuevo mensaje.
+      // doble rAF = espera al menos dos frames de render (el navegador pintó el nodo).
+      const doScroll = () => {
+        if (lastJustoMessageRef.current) {
+          scrollToLastJustoMessageStart()
+        } else {
+          // El elemento aún no existe en el DOM: esperar con ResizeObserver
+          const container = scrollContainerRef.current
+          if (!container) return
+          let fired = false
+          const obs = new ResizeObserver(() => {
+            if (fired || !lastJustoMessageRef.current) return
+            fired = true
+            obs.disconnect()
+            scrollToLastJustoMessageStart()
+          })
+          obs.observe(container)
+          setTimeout(() => { if (!fired) obs.disconnect() }, 1000)
+        }
+      }
+
+      requestAnimationFrame(() => requestAnimationFrame(doScroll))
+      return
+    }
+
+    // Durante el streaming (mismo id) → NO hacer nada.
+    // El usuario permanece donde está sin que la vista lo arrastre.
   }, [messages, scrollToBottom, scrollToLastJustoMessageStart])
 
   // If extractedPlan already in store (e.g. navigating back), rebuild local state
