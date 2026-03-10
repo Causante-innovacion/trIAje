@@ -125,17 +125,31 @@ INTENTIONS: Dict[Intention, IntentionConfig] = {
     ),
     Intention.TRIBUTACION: IntentionConfig(
         id=Intention.TRIBUTACION,
-        name="Tributación para Sostenibilidad",
-        description="Gestión de la exoneración del IR, aplicación del IGV en operaciones comerciales, sostenibilidad de organizaciones sin fines de lucro.",
+        name="Tributación de Organizaciones Civiles",
+        description=(
+            "Gestión de obligaciones y beneficios tributarios para organizaciones civiles: "
+            "exoneración del Impuesto a la Renta (IR), Impuesto General a las Ventas (IGV) en "
+            "operaciones comerciales, declaraciones juradas, sostenibilidad financiera de "
+            "organizaciones sin fines de lucro y optimización fiscal conforme a ley. "
+            "La sostenibilidad aqui incluye las tres dimensiones: social (servicios a "
+            "comunidades, salud, educación), económica (generación de ingresos propios, "
+            "empresas sociales) y ambiental (conservación, residuos, energía). "
+            "Aplica a todo tipo de organización civil: asociaciones, fundaciones, "
+            "comités, cooperativas, empresas sociales, organizaciones de impacto."
+        ),
         keywords=[
             "impuesto", "renta", "IGV", "exoneración", "tributación", "OSAL",
             "sin fines de lucro", "beneficio tributario", "formulario 2119",
-            "declaración jurada", "UIT",
+            "declaración jurada", "UIT", "optimización fiscal", "planificación fiscal",
+            "evadir", "evitar impuestos", "reducir impuestos", "eficiencia tributaria",
+            "impuesto a la renta", "impuesto general a las ventas", "regimen tributario",
+            "SUNAT", "carga tributaria", "deduccion", "base imponible",
         ],
         example_questions=[
             "¿Qué es el beneficio de exoneración?",
             "¿Cómo pido la exoneración del IR?",
             "¿Vigencia de la exoneración?",
+            "¿Cómo reducir la carga tributaria legalmente?",
         ],
     ),
     Intention.CONTRATACION: IntentionConfig(

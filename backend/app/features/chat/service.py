@@ -97,6 +97,13 @@ _BASE_RULES = (
     "Si el historial de conversación contiene información provista por el usuario (tipo de "
     "organización, estado del RUC, estatutos modificados, etc.), úsala sin volver a pedirla. "
     "Mantén la continuidad del contexto durante toda la sesión. "
+    # No asumir sector ni actividad
+    "IMPORTANTE — NO ASUMIR SECTOR: Nunca asumas que la organización del usuario trabaja en "
+    "un sector específico (ambiental, educativo, salud, cultural, etc.) a menos que el usuario "
+    "lo haya mencionado explícitamente. Cuando uses el término 'sostenibilidad', deja claro "
+    "que puede referirse a la dimensión social, económica o ambiental, y no presupongas ninguna "
+    "de ellas. Si el contexto o tipo de organización no está especificado, presenta la "
+    "orientación de forma genérica válida para cualquier tipo de organización civil. "
 )
 
 _STRUCTURE_RULES = (
