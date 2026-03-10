@@ -138,6 +138,34 @@ def _to_messages(
     return msgs
 
 
+# Prefill en español para DeepSeek-R1 y modelos similares con CoT visible.
+# Al añadir un AIMessage parcial que COMIENZA el bloque <think> en español,
+# el modelo lo continúa en ese idioma (no puede "retroceder" en su cadena de tokens).
+# Compatible con endpoints OpenAI-like (Maple/DeepSeek). Ignorado silenciosamente
+# por modelos que no soportan prefill (el assistant message se trata como contexto).
+_SPANISH_THINK_PREFILL = "<think>\nAnalizando la consulta en español:\n"
+
+
+def _to_messages_with_prefill(
+    prompt: str,
+    system_prompt: str | None,
+    history: list | None,
+) -> List[BaseMessage]:
+    """
+    Como _to_messages pero añade un AIMessage parcial que abre el bloque
+    <think> en español, forzando a DeepSeek-R1 a continuar su cadena de
+    razonamiento en ese idioma.
+
+    Para evitar romper APIs que no usan <think> (GPT-4o, Claude, etc.),
+    el prefill solo se añade cuando el proveedor es 'maple' (DeepSeek-R1).
+    Lo controla el caller pasando `use_prefill=True`.
+    """
+    msgs = _to_messages(prompt, system_prompt, history)
+    # Insertar el AIMessage de prefill DESPUÉS del último HumanMessage
+    msgs.append(AIMessage(content=_SPANISH_THINK_PREFILL))
+    return msgs
+
+
 def _parse_json(content: str) -> Dict[str, Any]:
     """Extrae un JSON del texto del LLM (maneja bloques markdown)."""
     content = content.strip()
@@ -223,11 +251,24 @@ class AIRouter:
         system_prompt: str | None = None,
         history: List[Dict[str, str]] | None = None,
     ) -> AIResponse:
-        """Análisis legal. Soporte de historial para memoria multi-turno."""
-        msgs = _to_messages(prompt, system_prompt, history)
+        """
+        Análisis legal. Soporte de historial para memoria multi-turno.
+        Usa prefill en español para Maple/DeepSeek-R1 para forzar razonamiento en español.
+        """
+        use_prefill = self._reason_provider == "maple"
+        msgs = (
+            _to_messages_with_prefill(prompt, system_prompt, history)
+            if use_prefill
+            else _to_messages(prompt, system_prompt, history)
+        )
         result = await self._reason_llm.ainvoke(msgs)
+        content = str(result.content)
+        # Si usamos prefill, el modelo omite el <think>\n inicial (ya lo dimos nosotros).
+        # Lo re-inyectamos para que el parser del frontend lo detecte correctamente.
+        if use_prefill and not content.startswith("<think>"):
+            content = _SPANISH_THINK_PREFILL + content
         return AIResponse(
-            content=str(result.content),
+            content=content,
             model=settings.MODEL_REASONING,
             provider=self._reason_provider,
         )
@@ -238,11 +279,25 @@ class AIRouter:
         system_prompt: str | None = None,
         history: List[Dict[str, str]] | None = None,
     ) -> AsyncGenerator[str, None]:
-        """Análisis legal en streaming. Yield token a token vía LangChain .astream()."""
-        msgs = _to_messages(prompt, system_prompt, history)
+        """
+        Análisis legal en streaming. Yield token a token vía LangChain .astream().
+        Usa prefill en español para Maple/DeepSeek-R1.
+        """
+        use_prefill = self._reason_provider == "maple"
+        msgs = (
+            _to_messages_with_prefill(prompt, system_prompt, history)
+            if use_prefill
+            else _to_messages(prompt, system_prompt, history)
+        )
+        first_chunk = True
         async for chunk in self._reason_llm.astream(msgs):
             if chunk.content:
-                yield str(chunk.content)
+                text = str(chunk.content)
+                # Re-inyectar el prefill al inicio del stream si el modelo lo omitió
+                if first_chunk and use_prefill and not text.startswith("<think>"):
+                    yield _SPANISH_THINK_PREFILL
+                first_chunk = False
+                yield text
 
     # ------------------------------------------------------------------
     # CREATIVITY — redacción y generación de contenido
