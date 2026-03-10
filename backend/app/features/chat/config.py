@@ -1471,3 +1471,86 @@ STANDARD_DISCLAIMERS: List[str] = [
 # =============================================================================
 
 ADVISOR_PREP_ENDPOINT: str = "/api/v1/advisor-prep"
+
+
+# =============================================================================
+# PREGUNTAS DE PRE-CLARIFICACIÓN POR INTENCIÓN (editable)
+# Una o dos preguntas clave que el sistema hace ANTES de responder cuando la
+# consulta es una pregunta general informativa pero el contexto cambia mucho
+# la orientación. Solo se activa si no hay señales de caso específico ya.
+# =============================================================================
+
+PRE_CLARIFY_QUESTIONS: Dict[Intention, List[str]] = {
+    Intention.FORMALIZACION: [
+        "¿La organización ya tiene personería jurídica inscrita en la Superintendencia Nacional de los Registros Públicos (SUNARP), o están en proceso de constituirla?",
+        "¿Cuál es la actividad principal: presta servicios sin cobro, genera ingresos propios o recibe fondos de terceros (donaciones, convenios)?",
+    ],
+    Intention.IDENTIDAD_RUC: [
+        "¿El Registro Único de Contribuyentes (RUC) que mencionas corresponde a una persona natural o a una persona jurídica (organización)?",
+        "¿Cuál es el estado actual del RUC: activo, en baja provisional, dado de baja definitiva u otro?",
+    ],
+    Intention.DONACIONES: [
+        "¿Tu organización opera con fondos nacionales, internacionales o ambos?",
+        "¿Están inscritos ante la Agencia Peruana de Cooperación Internacional (APCI) o están evaluando hacerlo?",
+    ],
+    Intention.TRIBUTACION: [
+        "¿La organización opera con o sin fines de lucro según sus estatutos?",
+        "¿Cuenta actualmente con la exoneración del Impuesto a la Renta (IR) o está tramitándola?",
+    ],
+    Intention.CONTRATACION: [
+        "¿La persona que quieres vincular recibirá una contraprestación económica regular (sueldo o pago mensual)?",
+        "¿Se trata de una actividad temporal o continua dentro de la organización?",
+    ],
+    Intention.PROPIEDAD_INTELECTUAL: [
+        "¿El contenido o marca fue creado por miembros de la organización, por terceros contratados, o es una combinación?",
+        "¿Ya tienen algún registro ante el Instituto Nacional de Defensa de la Competencia y de la Protección de la Propiedad Intelectual (INDECOPI) o es la primera vez?",
+    ],
+    Intention.DATOS_PERSONALES: [
+        "¿Los datos personales que manejan provienen de beneficiarios, donantes, voluntarios o de todos ellos?",
+        "¿Tienen actualmente alguna política de privacidad o aviso de privacidad publicado?",
+    ],
+    Intention.GOBERNANZA: [
+        "¿La organización tiene una asamblea general activa y una junta directiva vigente con mandato en curso?",
+        "¿El conflicto o duda es sobre elecciones internas, toma de decisiones o exclusión de algún miembro?",
+    ],
+    Intention.ALIANZAS: [
+        "¿El acuerdo que buscan es solo de colaboración (sin fondo compartido) o involucra recursos económicos conjuntos?",
+        "¿Las partes del acuerdo son organizaciones peruanas, internacionales o ambas?",
+    ],
+    Intention.PERMISOS: [
+        "¿El permiso que necesitan es para un evento puntual o para operar de forma permanente en un local?",
+        "¿El trámite es ante una municipalidad, un ministerio o ambos?",
+    ],
+    Intention.MARCA_IDENTIDAD: [
+        "¿Ya realizaron una búsqueda de anterioridad del nombre o logo que quieren registrar?",
+        "¿El registro de marca es para el nombre de la organización, un producto/servicio, o ambos?",
+    ],
+    Intention.SEGURIDAD_INFORMACION: [
+        "¿Manejan datos de personas vulnerables (menores, víctimas, beneficiarios de salud)?",
+        "¿Ya tienen un protocolo o política interna de seguridad de la información?",
+    ],
+    Intention.PREPARACION_ASESORIA: [
+        "¿La consulta con el asesor es urgente (plazo legal próximo) o es de planificación a futuro?",
+        "¿Ya tienen documentos legales básicos (estatutos, actas, contratos) o hay que prepararlos desde cero?",
+    ],
+}
+
+# Prompt de sistema para el flujo de pre-clarificación
+PRE_CLARIFY_SYSTEM_PROMPT = (
+    "Eres Justo, un asistente legal especializado en derecho peruano para organizaciones civiles. "
+    "Tu tarea en este momento NO es responder la consulta, sino hacer UNA o DOS preguntas breves y precisas "
+    "para entender mejor el contexto antes de orientar al usuario. "
+    "Las preguntas deben ser directas, comprensibles para personas sin conocimientos legales, "
+    "y deben cubrir la información que más cambiaría la orientación legal. "
+    "NO respondas la consulta todavía. Solo presenta las preguntas de forma amigable. "
+    "Finaliza con una frase breve como: 'Con esa información podré darte una orientación más precisa.' "
+    "Responde en español. CRÍTICO: Tu razonamiento interno (dentro de <think>) DEBE estar en español."
+)
+
+# Plantilla de introducción para preguntas de pre-clarificación
+PRE_CLARIFY_INTRO_TEMPLATE = (
+    "Antes de orientarte sobre **{topic}**, necesito entender mejor tu situación. "
+    "Esto me permitirá darte una respuesta adaptada a tu caso real:\n\n"
+    "{questions}\n\n"
+    "Con esas respuestas podré orientarte de forma mucho más precisa. 🙂"
+)

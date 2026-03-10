@@ -6,6 +6,7 @@ import { documentsApi } from '../../shared/services/api'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { Avatar } from '../ui/Avatar'
+import { ChevronDown } from 'lucide-react'
 import { ProjectInfoCard, ProjectInfo } from './ProjectInfoCard'
 import { OrganizationsDetected } from './OrganizationsDetected'
 import { FileUpload } from './FileUpload'
@@ -77,6 +78,10 @@ export function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasSentPending = useRef(false)
   const userHasScrolledUp = useRef(false)
+  // Refs para detectar nuevo mensaje del asistente y hacer scroll a su inicio
+  const lastJustoMessageRef = useRef<HTMLDivElement>(null)
+  const lastJustoMessageIdRef = useRef<string | null>(null)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -84,29 +89,43 @@ export function ChatContainer() {
     }
   }
 
+  /** Hace scroll para que el inicio del último mensaje del asistente quede visible */
+  const scrollToLastJustoMessageStart = useCallback(() => {
+    const container = scrollContainerRef.current
+    const msgEl = lastJustoMessageRef.current
+    if (!container || !msgEl) return
+    const msgTop = msgEl.offsetTop - container.offsetTop
+    container.scrollTo({ top: Math.max(0, msgTop - 16), behavior: 'smooth' })
+  }, [])
+
   // Detect if the user manually scrolled up
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
     userHasScrolledUp.current = distanceFromBottom > 120
+    setShowScrollToBottom(distanceFromBottom > 200)
   }, [])
 
   useEffect(() => {
-    // Auto-scroll only if user hasn't scrolled up
-    if (!userHasScrolledUp.current) {
-      scrollToBottom()
-    }
-  }, [messages, isTyping])
-
-  // When the user sends a new message, force-scroll back to bottom
-  useEffect(() => {
     const lastMsg = messages[messages.length - 1]
-    if (lastMsg?.sender === 'user') {
+    if (!lastMsg) return
+
+    if (lastMsg.sender === 'user') {
+      // Mensaje del usuario: forzar scroll al fondo
       userHasScrolledUp.current = false
       scrollToBottom()
+    } else if (lastMsg.sender === 'justo' && lastMsg.id !== lastJustoMessageIdRef.current) {
+      // Nuevo mensaje del asistente: scroll al inicio del mensaje
+      lastJustoMessageIdRef.current = lastMsg.id
+      userHasScrolledUp.current = true // no auto-scroll al fondo mientras lee
+      // Pequeño timeout para que el DOM renderice el mensaje
+      setTimeout(() => scrollToLastJustoMessageStart(), 80)
+    } else if (!userHasScrolledUp.current) {
+      // Streaming en curso y usuario no subió: seguir al final
+      scrollToBottom()
     }
-  }, [messages])
+  }, [messages, isTyping, scrollToLastJustoMessageStart])
 
   // If extractedPlan already in store (e.g. navigating back), rebuild local state
   useEffect(() => {
@@ -292,6 +311,9 @@ export function ChatContainer() {
       !message.wasStreamed &&
       !message.hasBeenAnimated
 
+    // Whether this is the last justo message (for scroll anchor)
+    const isLastJusto = message.id === lastJustoMessageId && message.sender === 'justo'
+
     // Special rendering for project info card
     if (message.content === 'project_info_card' && message.sender === 'justo') {
       const data = projectInfo ?? {
@@ -306,7 +328,7 @@ export function ChatContainer() {
       }
 
       return (
-        <div key={message.id} className="chat-message">
+        <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined} className="chat-message">
           <div className="flex items-start gap-4">
             <Avatar size="md" />
             <div className="flex-1">
@@ -347,7 +369,7 @@ export function ChatContainer() {
       })
 
       return (
-        <div key={message.id} className="chat-message">
+        <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined} className="chat-message">
           <div className="flex items-start gap-4">
             <Avatar size="md" />
             <div className="flex-1">
@@ -371,19 +393,20 @@ export function ChatContainer() {
     }
 
     return (
-      <ChatMessage
-        key={message.id}
-        message={message}
-        onOptionSelect={handleOptionSelect}
-        onFileUpload={handleFileUpload}
-        onFileUploadRequest={handleFileUploadRequest}
-        animate={shouldAnimate}
-      />
+      <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined}>
+        <ChatMessage
+          message={message}
+          onOptionSelect={handleOptionSelect}
+          onFileUpload={handleFileUpload}
+          onFileUploadRequest={handleFileUploadRequest}
+          animate={shouldAnimate}
+        />
+      </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Messages area - scrollable */}
       <div
         ref={scrollContainerRef}
@@ -435,6 +458,26 @@ export function ChatContainer() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Floating scroll-to-bottom button */}
+      {showScrollToBottom && (
+        <button
+          onClick={scrollToBottom}
+          aria-label="Ir al final de la respuesta"
+          className="
+            absolute right-5 bottom-20 z-20
+            w-9 h-9 rounded-full shadow-lg
+            bg-white border border-gray-200
+            flex items-center justify-center
+            text-gray-500 hover:text-gray-800 hover:bg-gray-50
+            hover:shadow-xl hover:scale-110
+            transition-all duration-200
+            animate-fade-in
+          "
+        >
+          <ChevronDown className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Input area - fixed at bottom */}
       <div className="flex-shrink-0">

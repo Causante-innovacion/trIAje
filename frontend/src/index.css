@@ -182,3 +182,36 @@ body {
 *:focus-visible {
   @apply outline-2 outline-offset-2 outline-causante-yellow;
 }
+
+/* ── CITATION BADGES ─────────────────────────────────────────────────────── */
+/*
+ * CitationBadge: small numbered circle rendered inline inside AI responses.
+ * The wrapper needs `position: relative` so the tooltip (position: absolute)
+ * anchors to it, and `display: inline` / `inline-block` to stay within prose flow.
+ */
+.citation-badge-wrapper {
+  position: relative;
+  display: inline;
+}
+
+/* The tooltip uses absolute positioning anchored to the wrapper */
+.citation-tooltip {
+  position: absolute;
+  pointer-events: auto;
+  white-space: normal;
+  word-break: break-word;
+  animation: citationFadeIn 0.15s ease-out both;
+  z-index: 9999;
+}
+
+/* A subtle fade-in for the tooltip */
+@keyframes citationFadeIn {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Ensure citation badges don't shift surrounding text vertically */
+.citation-badge {
+  vertical-align: super;
+  line-height: 0;
+}

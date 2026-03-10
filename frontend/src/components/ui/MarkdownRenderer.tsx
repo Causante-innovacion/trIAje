@@ -1,16 +1,38 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { CitationMap } from '../../hooks/useCitations'
+import { CitationBadge } from './CitationBadge'
 
 interface MarkdownRendererProps {
     content: string
     className?: string
+    /** When provided, inline [N] markers render as hoverable citation badge circles */
+    citations?: CitationMap
+}
+
+/**
+ * Converts `[N]` markers in the content to inline-code sentinels `cite:N`
+ * that the code renderer below will pick up and turn into CitationBadge elements.
+ * Only markers whose index exists in `citations` are converted.
+ */
+function injectCitationSentinels(content: string, citations: CitationMap): string {
+    return content.replace(/\[(\d+)\]/g, (original, numStr) => {
+        const idx = parseInt(numStr, 10)
+        return citations[idx] !== undefined ? `\`cite:${idx}\`` : original
+    })
 }
 
 /**
  * Renders Markdown content with styled typography.
- * Supports: bold, italic, lists, links, headings, code, blockquotes.
+ * When `citations` is provided, inline `[N]` markers are replaced with small
+ * hoverable circle badges showing the full citation text on hover.
+ *
+ * Supports: bold, italic, lists, links, headings, code, blockquotes, tables (GFM).
  */
-export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, className = '', citations }: MarkdownRendererProps) {
+    const hasCitations = !!citations && Object.keys(citations).length > 0
+    const processedContent = hasCitations ? injectCitationSentinels(content, citations!) : content
+
     return (
         <div className={`markdown-content ${className}`}>
             <ReactMarkdown
@@ -61,9 +83,19 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                     li: ({ children }) => (
                         <li className="text-gray-700 leading-relaxed pl-1 [&>p]:inline [&>p]:mb-0">{children}</li>
                     ),
-                    // Inline code
+                    // Code — intercepts citation sentinels `cite:N`, passes the rest through normally
                     code: ({ children, className: codeClassName }) => {
-                        // Block code (has language class)
+                        const raw = String(children ?? '')
+
+                        // ── Citation badge ────────────────────────────────────────
+                        if (!codeClassName && raw.startsWith('cite:') && hasCitations) {
+                            const index = parseInt(raw.slice(5), 10)
+                            if (!isNaN(index)) {
+                                return <CitationBadge index={index} citations={citations!} />
+                            }
+                        }
+
+                        // ── Block code (has language class) ───────────────────────
                         if (codeClassName) {
                             return (
                                 <code className="block bg-gray-100 rounded-lg p-3 text-sm font-mono text-gray-800 overflow-x-auto my-2">
@@ -71,7 +103,8 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                                 </code>
                             )
                         }
-                        // Inline code
+
+                        // ── Inline code ───────────────────────────────────────────
                         return (
                             <code className="bg-gray-100 text-gray-800 text-sm font-mono px-1.5 py-0.5 rounded">
                                 {children}
@@ -121,7 +154,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                     ),
                 }}
             >
-                {content}
+                {processedContent}
             </ReactMarkdown>
         </div>
     )

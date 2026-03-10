@@ -12,6 +12,7 @@ import { useTypewriter } from '../../hooks/useTypewriter'
 import { ThinkingBlock, parseThinkContent } from './ThinkingBlock'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
+import { useCitations } from '../../hooks/useCitations'
 
 /** Detect file-attachment messages and extract just the filename */
 function parseFileAttachment(content: string): string | null {
@@ -38,9 +39,12 @@ function ErrorIcon({ type }: { type?: string }) {
   }
 }
 
-/** Renders text with optional typewriter animation + Markdown */
+/** Renders text with optional typewriter animation + Markdown + citation badges */
 function AnimatedText({ text, animate, messageId }: { text: string; animate: boolean; messageId?: string }) {
-  const { visibleText, isAnimating } = useTypewriter(text, {
+  // Extract citations block (## Referencias) from the full text
+  const { cleanContent, citations, hasCitations } = useCitations(text)
+
+  const { visibleText, isAnimating } = useTypewriter(cleanContent, {
     enabled: animate,
     wordsPerTick: 3,
     speed: 25,
@@ -56,7 +60,10 @@ function AnimatedText({ text, animate, messageId }: { text: string; animate: boo
 
   return (
     <div className="leading-relaxed">
-      <MarkdownRenderer content={visibleText} />
+      <MarkdownRenderer
+        content={visibleText}
+        citations={hasCitations ? citations : undefined}
+      />
       {isAnimating && (
         <span className="inline-block w-1.5 h-4 bg-gold/60 ml-0.5 animate-pulse rounded-sm" />
       )}

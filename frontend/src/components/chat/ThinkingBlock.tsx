@@ -19,7 +19,7 @@ export function ThinkingBlock({ content, isThinking }: ThinkingBlockProps) {
       >
         <Brain className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="font-medium flex-1">
-          {isThinking ? 'Razonando…' : 'Ver razonamiento'}
+          {isThinking ? 'Analizando…' : 'Ver razonamiento completo'}
         </span>
         {isThinking ? (
           <span className="flex gap-0.5">

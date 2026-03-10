@@ -33,6 +33,9 @@ from .config import (
     GREETING_PATTERNS,
     GREETING_MESSAGE,
     ADVISOR_PREP_ENDPOINT,
+    PRE_CLARIFY_QUESTIONS,
+    PRE_CLARIFY_SYSTEM_PROMPT,
+    PRE_CLARIFY_INTRO_TEMPLATE,
 )
 from .schemas import (
     ChatRequest,
@@ -49,7 +52,118 @@ from .classifier import (
 )
 
 
+# =============================================================================
+# FÁBRICA DE SYSTEM PROMPTS
+# Centraliza las instrucciones comunes para todos los flujos de REASONING.
+# =============================================================================
+
+_BASE_RULES = (
+    # Idioma y razonamiento
+    "Siempre responde en español. "
+    "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar "
+    "escrito enteramente en español. Nunca uses inglés, ni siquiera para razonar internamente. "
+    # Acrónimos
+    "Cuando menciones siglas o acrónimos, escríbelos siempre en su forma completa la primera vez "
+    "que aparezcan en la respuesta (ejemplo: en lugar de 'SUNARP' escribe "
+    "'Superintendencia Nacional de los Registros Públicos (SUNARP)'). "
+    # Porcentajes y límites
+    "Cada vez que cites un porcentaje, umbral numérico o límite legal (por ejemplo: '30 %', "
+    "'50 UIT', '3 meses'), DEBES indicar inmediatamente su base legal: la ley, decreto o artículo "
+    "concreto que lo establece. Nunca menciones un porcentaje sin su fundamento normativo. "
+    # Lenguaje condicional
+    "Usa lenguaje condicional cuando no tengas certeza: 'en principio', 'según el marco general', "
+    "'se recomienda verificar con la normativa vigente'. "
+    # Memoria contextual
+    "Si el historial de conversación contiene información provista por el usuario (tipo de "
+    "organización, estado del RUC, estatutos modificados, etc.), úsala en tu respuesta sin "
+    "volver a pedirla. Mantén la continuidad del contexto durante toda la sesión. "
+)
+
+_STRUCTURE_RULES = (
+    # Estructura estándar de respuesta
+    "\n\nESTRUCTURA OBLIGATORIA DE TU RESPUESTA:\n"
+    "1. **Resumen ejecutivo** (máximo 3 líneas): respuesta directa a la pregunta principal.\n"
+    "2. **Desarrollo** (secciones numeradas o con encabezados ##): normativa aplicable, "
+    "pasos o requisitos, consideraciones importantes.\n"
+    "3. **⚠️ Consideraciones clave** (si aplica): riesgos, plazos críticos, excepciones.\n"
+    "4. **📌 Próximo paso recomendado**: UNA acción concreta y específica que el usuario "
+    "debe tomar inmediatamente (incluye el nombre del registro, trámite, plataforma o "
+    "profesional; si hay costo o plazo aproximado, mencionarlo).\n\n"
+    # Instrucciones de citas — el frontend las convierte en tooltips
+    "SISTEMA DE CITAS (OBLIGATORIO cuando cites normativa):\n"
+    "- Cuando hagas referencia a una ley, artículo o norma, añade un marcador de cita inline: [1], [2], etc.\n"
+    "- NO escribas el nombre completo de la ley en el párrafo. Solo el marcador [N] al final de la frase.\n"
+    "- Al FINAL de toda la respuesta, agrega un bloque con el encabezado exacto '## Referencias' "
+    "y lista cada cita en el formato: [N] Descripción breve — Ley o decreto, Art. X.\n"
+    "Ejemplo de cita inline: 'Las asociaciones deben inscribirse en registros públicos [1].'\n"
+    "Ejemplo de bloque final:\n"
+    "## Referencias\n"
+    "[1] Inscripción de asociaciones — Código Civil, Art. 77 y ss., D.Leg. N.º 295.\n"
+    "[2] Exoneración del Impuesto a la Renta — Ley del Impuesto a la Renta, Art. 19 inc. b), D.S. N.º 179-2004-EF.\n"
+    "Si en una respuesta no citas ninguna norma específica, omite el bloque ## Referencias.\n"
+)
+
+
+
+def _build_system_prompt(mode: str) -> str:
+    """
+    Construye el system prompt según el modo de respuesta.
+
+    Modos:
+    - 'followup'    : Usuario ya dio contexto; respuesta específica y personalizada.
+    - 'verde_rag'   : Respuesta VERDE con normativa RAG disponible.
+    - 'verde_norag' : Respuesta VERDE sin normativa específica (orientación general).
+    - 'amber_partial': Respuesta orientativa AMARILLO antes de recibir contexto completo.
+    - 'amber_rag'   : Respuesta AMARILLO tras recibir contexto del usuario + RAG.
+    """
+    base = "Eres Justo, un asistente legal especializado en derecho peruano para organizaciones civiles. "
+
+    if mode == "followup":
+        core = (
+            "El usuario ya te proporcionó información específica de su caso (en este mensaje o en "
+            "turnos anteriores del historial). USA esa información para dar una respuesta "
+            "ESPECÍFICA Y PERSONALIZADA — no orientación genérica. "
+            "Cita los artículos normativos que aplican exactamente a su situación. "
+            "Si el historial menciona detalles concretos (tipo de organización, estatutos, "
+            "fechas, montos), recuérdalos y úsalos en tu respuesta sin pedirlos de nuevo. "
+        )
+    elif mode == "verde_rag":
+        core = (
+            "Responde SOLO con base en la normativa proporcionada en el contexto. "
+            "Cita los artículos específicos con su número y nombre de ley. "
+            "Si la información no está en el contexto normativo, indícalo claramente. "
+            "No inventes normas ni artículos. "
+            "Si detectas riesgo medio-alto o ambigüedad, recomienda asesoría profesional. "
+        )
+    elif mode == "verde_norag":
+        core = (
+            "Responde de forma orientativa; no se dispone de normativa específica en este momento. "
+            "SIEMPRE usa lenguaje condicional. Nunca afirmes con certeza sin respaldo normativo. "
+            "Si el caso parece de riesgo medio o alto, recomienda explícitamente asesoría profesional. "
+        )
+    elif mode == "amber_partial":
+        core = (
+            "El usuario tiene una situación específica pero faltan datos clave para orientarlo con precisión. "
+            "Proporciona una orientación GENERAL usando lenguaje condicional. "
+            "IMPORTANTE: incluye al final la sección '📋 **Supuestos que estoy aplicando:**' "
+            "listando los supuestos que asumes. "
+            "No des recomendaciones definitivas hasta confirmar los supuestos con el usuario. "
+        )
+    elif mode == "amber_rag":
+        core = (
+            "El usuario acaba de darte información adicional específica de su caso. "
+            "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
+            "No des orientación genérica: enfócate en los detalles concretos del caso. "
+            "Cita los artículos normativos aplicables. "
+        )
+    else:
+        core = "Proporciona orientación legal clara y estructurada. "
+
+    return base + core + _BASE_RULES + _STRUCTURE_RULES
+
+
 class ChatService:
+
     """Servicio principal del chat. Orquesta clasificación, RAG y respuestas."""
 
     def __init__(self):
@@ -397,7 +511,12 @@ class ChatService:
                 "IMPORTANTE: Al final de tu respuesta incluye una sección '📋 **Supuestos que estoy aplicando:**' "
                 "donde listes explícitamente los supuestos que estás asumiendo sobre el caso del usuario. "
                 "No des recomendaciones definitivas hasta que el usuario confirme esos supuestos. "
-                "Responde en español, con estructura clara y concisa."
+                "Responde en español, con estructura clara y concisa. "
+                "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar escrito enteramente en español. "
+                "Nunca uses inglés, ni siquiera para razonar internamente. "
+                "Cuando menciones siglas o acrónimos (por ejemplo: Registro Único de Contribuyentes, Registro Nacional de Grandes Contribuyentes, "
+                "Agencia de Cooperación Internacional del Perú, Sistema de Administración Tributaria), "
+                "escríbelos siempre en su forma completa la primera vez que aparezcan en la respuesta."
             )
             intention_config = INTENTIONS.get(classification.intention)
             if rag_context:
@@ -451,6 +570,36 @@ class ChatService:
                        "conversation_id": conversation_id})
             return
 
+        # ── PRE-CLARIFICACIÓN: preguntar antes de responder si falta contexto clave ──
+        # Solo activa si: semáforo es VERDE, no hay follow-up ámbar, no hay historial
+        # con contexto relevante, y la intención tiene preguntas configuradas.
+        if (
+            semaphore == Semaphore.VERDE
+            and not _amber_intention
+            and not _prior_amber_ctx
+            and self._should_pre_clarify(eff_message, intention, history)
+        ):
+            pre_clarify_qs = PRE_CLARIFY_QUESTIONS.get(intention, [])
+            if pre_clarify_qs:
+                intent_cfg = INTENTIONS.get(intention)
+                topic = intent_cfg.name if intent_cfg else "este tema"
+                questions_text = "\n".join(
+                    f"{i+1}. {q}" for i, q in enumerate(pre_clarify_qs[:2])
+                )
+                pre_clarify_msg = PRE_CLARIFY_INTRO_TEMPLATE.format(
+                    topic=topic,
+                    questions=questions_text,
+                )
+                yield sse({"type": "token", "text": pre_clarify_msg})
+                yield sse({
+                    "type": "done",
+                    "actions": [],
+                    "disclaimers": [],
+                    "conversation_id": conversation_id,
+                    "metadata": {"pre_clarify": True, "intention": intention.value},
+                })
+                return
+
         # ── VERDE: RAG + stream LLM ──────────────────────────────────────────
         yield sse({"type": "status", "stage": "searching",
                    "message": "Buscando normativa relevante..."})
@@ -487,54 +636,33 @@ class ChatService:
         if _amber_intention or _prior_amber_ctx:
             # El usuario ya proporcionó contexto (ahora o en un turno anterior)
             # → respuesta específica y personalizada usando esa información
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario te ha proporcionado información específica de su caso (ya sea ahora o en un turno anterior). "
-                "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
-                "No des orientación genérica: enfócate en los detalles concretos del usuario. "
-                "Cita los artículos normativos aplicables a su situación exacta. "
-                "Responde en español, de forma clara y con estructura."
-            )
+            system_prompt = _build_system_prompt("followup")
             prompt = (
                 f"Intención legal: {INTENTIONS[intention].name}\n"
                 f"Consulta con contexto del usuario:\n{eff_message}\n\n"
                 + (f"Normativa relevante:\n{rag_context}\n\n" if rag_context else "")
-                + "Responde de forma específica y personalizada para este caso concreto, "
-                "citando la normativa aplicable a su situación."
+                + "Estructura tu respuesta con: resumen ejecutivo (≤ 3 líneas), "
+                "desarrollo con secciones numeradas, justificación explícita de cualquier "
+                "porcentaje o umbral legal citado, y CTA concreto al final."
             )
         elif rag_context:
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde SOLO con base en la normativa proporcionada en el contexto. "
-                "Cita los artículos específicos. "
-                "Si la información no está en el contexto, indícalo claramente. "
-                "No inventes normas ni artículos. "
-                "Usa siempre lenguaje condicional: 'en principio', 'típicamente', 'se recomienda verificar'. "
-                "Si detectas ambigüedad o riesgo medio-alto en el caso, menciona que se recomienda asesoría profesional. "
-                "Si te falta información del usuario para ser más preciso, indícalo al final de la respuesta. "
-                "Responde en español, de forma clara y con estructura."
-            )
+            system_prompt = _build_system_prompt("verde_rag")
             prompt = (
                 f"Intención detectada: {INTENTIONS[intention].name}\n"
                 f"Pregunta del usuario: {eff_message}\n\n"
                 f"Contexto normativo relevante:\n{rag_context}\n\n"
-                "Responde la pregunta citando los artículos específicos de la normativa."
+                "Responde la pregunta citando los artículos específicos de la normativa. "
+                "Estructura: resumen ejecutivo (≤ 3 líneas), desarrollo con secciones, CTA concreto al final."
             )
         else:
             intention_config = INTENTIONS.get(intention)
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde de forma orientativa, ya que no se dispone de normativa específica en este momento. "
-                "SIEMPRE usa lenguaje condicional: 'en principio', 'según el marco general', 'se recomienda verificar'. "
-                "Nunca afirmes con certeza sin respaldo normativo. "
-                "Al final de tu respuesta indica qué información adicional del usuario cambiaría esta orientación. "
-                "Si el caso parece de riesgo medio o alto, recomienda explícitamente asesoría profesional. "
-                "Responde en español, de forma estructurada."
-            )
+            system_prompt = _build_system_prompt("verde_norag")
             prompt = (
                 f"El usuario consulta sobre: {intention_config.name if intention_config else ''}\n"
                 f"Pregunta: {eff_message}\n\n"
-                "Da una respuesta orientativa general indicando que debe consultar la normativa específica."
+                "Da una respuesta orientativa general. "
+                "Incluye resumen ejecutivo, secciones, justificación de cualquier porcentaje o umbral, "
+                "y un CTA claro al final con pasos prácticos."
             )
 
         try:
@@ -681,15 +809,7 @@ class ChatService:
         """Genera respuesta orientativa parcial para AMARILLO, con o sin contexto RAG."""
         intention_config = INTENTIONS.get(classification.intention)
 
-        system_prompt = (
-            "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-            "El usuario tiene una situación específica pero faltan datos clave para precisar la orientación. "
-            "Proporciona orientación general sobre el marco normativo aplicable usando lenguaje condicional. "
-            "IMPORTANTE: Al final de tu respuesta incluye una sección '📋 **Supuestos que estoy aplicando:**' "
-            "donde listes explícitamente los supuestos que estás asumiendo sobre el caso del usuario. "
-            "No des recomendaciones definitivas hasta que el usuario confirme esos supuestos. "
-            "Responde en español, con estructura clara y concisa."
-        )
+        system_prompt = _build_system_prompt("amber_partial")
 
         if rag_context:
             prompt = (
@@ -835,6 +955,37 @@ class ChatService:
             conversation_id=conversation_id,
         )
 
+    @staticmethod
+    def _should_pre_clarify(message: str, intention: Intention, history: list | None) -> bool:
+        """
+        Determina si se debe activar el flujo de pre-clarificación para una consulta VERDE.
+
+        Condiciones para activar:
+        1. La intención tiene preguntas configuradas en PRE_CLARIFY_QUESTIONS.
+        2. El mensaje es una pregunta informativa general (no tiene indicadores de caso específico).
+        3. El historial no contiene ya respuestas a las preguntas de pre-clarificación
+           (es decir, el usuario ya respondió en turnos anteriores → no volver a preguntar).
+
+        Esto evita preguntar de nuevo si el usuario ya dio contexto en la misma sesión.
+        """
+        # Si no hay preguntas configuradas para esta intención, no activar
+        if intention not in PRE_CLARIFY_QUESTIONS:
+            return False
+
+        # Si el usuario ya tiene historial largo (> 2 turnos), asumimos que el
+        # contexto ya está establecido — no interrumpir con preguntas nuevas.
+        if history and len(history) > 2:
+            return False
+
+        # Si el mensaje tiene indicadores de caso específico (posesivos, verbos en 1ª persona,
+        # palabras de problema), el sistema de semáforo ya lo maneja → no duplicar.
+        from .classifier import SemaphoreClassifier
+        if SemaphoreClassifier._is_specific_case(message):
+            return False
+
+        # Solo activar para preguntas informativas generales
+        return SemaphoreClassifier._is_informative_question(message)
+
     def _build_out_of_scope_response(self, conversation_id: str) -> ChatResponse:
         """Respuesta para consultas fuera del ámbito legal."""
         return ChatResponse(
@@ -909,6 +1060,9 @@ class ChatService:
             "6. **Recomendaciones**: Pasos a seguir para la viabilidad legal del proyecto.\n\n"
             "Cita los artículos normativos aplicables cuando sea posible. "
             "Responde en español, de forma clara, con estructura y encabezados. "
+            "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar escrito enteramente en español. "
+            "Nunca uses inglés, ni siquiera para razonar internamente. "
+            "Cuando menciones siglas o acrónimos, escríbelos siempre en su forma completa la primera vez que aparezcan en la respuesta. "
             "NO des respuestas genéricas; analiza el contenido específico del documento."
         )
 
@@ -1055,14 +1209,7 @@ class ChatService:
     ) -> str:
         """Genera respuesta usando LLM con contexto RAG."""
         if amber_followup:
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario acaba de darte información adicional específica de su caso. "
-                "Usa esa información junto con la normativa para dar una respuesta ESPECÍFICA y PERSONALIZADA. "
-                "No des orientación genérica: enfócate en los detalles concretos del caso del usuario. "
-                "Cita los artículos normativos aplicables a su situación exacta. "
-                "Responde en español, de forma clara y con estructura."
-            )
+            system_prompt = _build_system_prompt("amber_rag")
             prompt = (
                 f"Intención legal: {classification.intention_name}\n"
                 f"Consulta con contexto adicional del usuario:\n{message}\n\n"
@@ -1071,22 +1218,12 @@ class ChatService:
                 "citando los artículos de la normativa aplicables a su situación."
             )
         else:
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde SOLO con base en la normativa proporcionada en el contexto. "
-                "Cita los artículos específicos. "
-                "Si la información no está en el contexto, indícalo claramente. "
-                "No inventes normas ni artículos. "
-                "Usa siempre lenguaje condicional: 'en principio', 'típicamente', 'se recomienda verificar'. "
-                "Si detectas ambigüedad o riesgo medio-alto en el caso, menciona que se recomienda asesoría profesional. "
-                "Si te falta información del usuario para ser más preciso, indícalo al final. "
-                "Responde en español, de forma clara y con estructura."
-            )
+            system_prompt = _build_system_prompt("verde_rag")
             prompt = (
                 f"Intención detectada: {classification.intention_name}\n"
                 f"Pregunta del usuario: {message}\n\n"
                 f"Contexto normativo relevante:\n{rag_context}\n\n"
-                f"Responde la pregunta citando los artículos específicos de la normativa."
+                "Responde la pregunta citando los artículos específicos de la normativa."
             )
 
         try:
@@ -1112,36 +1249,21 @@ class ChatService:
             return "No tengo información suficiente para responder esta consulta."
 
         if amber_followup:
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario acaba de darte información adicional específica de su caso. "
-                "Usa esa información para dar una respuesta CONCRETA y PERSONALIZADA, no genérica. "
-                "Enfócate en los detalles específicos que el usuario mencionó. "
-                "Indica qué normativa peruana aplicaría a su situación concreta y los pasos recomendados. "
-                "Responde en español, de forma clara."
-            )
+            system_prompt = _build_system_prompt("followup")
             prompt = (
                 f"Área legal: {intention_config.name}\n"
                 f"Consulta con contexto adicional del usuario: {message}\n\n"
                 "Da una respuesta personalizada y específica para este caso concreto, "
-                "indicando qué normativa aplicaría y cuáles son los pasos recomendados."
+                "incluyendo qué normativa aplicaría y cuáles son los pasos recomendados. "
+                "Recuerda usar la estructura: resumen ejecutivo + desarrollo + CTA concreto al final."
             )
         else:
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "Responde de forma orientativa, ya que no se dispone de normativa específica en este momento. "
-                "SIEMPRE usa lenguaje condicional: 'en principio', 'según el marco general', 'se recomienda verificar'. "
-                "Nunca afirmes con certeza sin respaldo normativo. "
-                "NO des respuestas categóricas ni afirmes con certeza. "
-                "Al final indica qué información adicional del usuario cambiaría esta orientación. "
-                "Si el caso parece de riesgo medio o alto, recomienda explícitamente asesoría profesional. "
-                "Responde en español, de forma estructurada."
-            )
+            system_prompt = _build_system_prompt("verde_norag")
             prompt = (
                 f"El usuario consulta sobre: {intention_config.name}\n"
                 f"Descripción del área: {intention_config.description}\n"
                 f"Pregunta: {message}\n\n"
-                f"Da una respuesta orientativa general indicando qué información adicional precisaría la respuesta."
+                "Da una respuesta orientativa general indicando qué información adicional precisaría la respuesta."
             )
 
         try:
