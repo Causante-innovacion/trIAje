@@ -143,7 +143,30 @@ def _to_messages(
 # el modelo lo continúa en ese idioma (no puede "retroceder" en su cadena de tokens).
 # Compatible con endpoints OpenAI-like (Maple/DeepSeek). Ignorado silenciosamente
 # por modelos que no soportan prefill (el assistant message se trata como contexto).
-_SPANISH_THINK_PREFILL = "<think>\nAnalizando la consulta en español:\n"
+_SPANISH_THINK_PREFILL = (
+    "<think>\n"
+    "[IDIOMA DEL RAZONAMIENTO: ESPAÑOL OBLIGATORIO]\n"
+    "Debo razonar íntegramente en español. No usaré inglés ni ningún otro idioma "
+    "en este bloque de análisis.\n\n"
+    "Analizando la consulta en español:\n"
+)
+
+# Encabezado que se antepone a TODOS los system prompts cuando el provider es Maple/DeepSeek.
+# Se coloca ANTES de cualquier otra instrucción para que sea lo primero que el modelo procese.
+_SPANISH_SYSTEM_HEADER = (
+    "INSTRUCCIÓN DE IDIOMA — PRIORIDAD MÁXIMA: "
+    "Debes razonar y responder EXCLUSIVAMENTE en español. "
+    "Tu bloque de razonamiento interno (<think>...</think>) DEBE estar escrito "
+    "íntegramente en español desde la primera palabra. "
+    "Está PROHIBIDO usar inglés, chino u otro idioma incluso para razonar internamente. "
+    "Si tu tendencia es razonar en inglés, traduce cada pensamiento al español antes de continuar.\n\n"
+)
+
+
+def _inject_spanish_header(system_prompt: str | None) -> str:
+    """Antepone el encabezado de idioma al system prompt para forzar razonamiento en español."""
+    header = _SPANISH_SYSTEM_HEADER
+    return header + (system_prompt or "")
 
 
 def _to_messages_with_prefill(
@@ -256,8 +279,9 @@ class AIRouter:
         Usa prefill en español para Maple/DeepSeek-R1 para forzar razonamiento en español.
         """
         use_prefill = self._reason_provider == "maple"
+        effective_system = _inject_spanish_header(system_prompt) if use_prefill else system_prompt
         msgs = (
-            _to_messages_with_prefill(prompt, system_prompt, history)
+            _to_messages_with_prefill(prompt, effective_system, history)
             if use_prefill
             else _to_messages(prompt, system_prompt, history)
         )
@@ -284,8 +308,9 @@ class AIRouter:
         Usa prefill en español para Maple/DeepSeek-R1.
         """
         use_prefill = self._reason_provider == "maple"
+        effective_system = _inject_spanish_header(system_prompt) if use_prefill else system_prompt
         msgs = (
-            _to_messages_with_prefill(prompt, system_prompt, history)
+            _to_messages_with_prefill(prompt, effective_system, history)
             if use_prefill
             else _to_messages(prompt, system_prompt, history)
         )
@@ -335,8 +360,8 @@ class AIRouter:
         schema: Dict[str, Any],
         system_prompt: str | None = None,
     ) -> Dict[str, Any]:
-        """INTAKE con respuesta JSON estructurada."""
-        return await self._call_json(self._intake_llm, prompt, schema, system_prompt)
+        """INTAKE (modelo rápido/económico) con respuesta JSON estructurada."""
+        return await self._call_json(self._intake_llm, prompt, schema, system_prompt, provider=self._intake_provider)
 
     async def reason_json(
         self,
@@ -345,16 +370,7 @@ class AIRouter:
         system_prompt: str | None = None,
     ) -> Dict[str, Any]:
         """REASONING con respuesta JSON estructurada."""
-        return await self._call_json(self._reason_llm, prompt, schema, system_prompt)
-
-    async def intake_json(
-        self,
-        prompt: str,
-        schema: Dict[str, Any],
-        system_prompt: str | None = None,
-    ) -> Dict[str, Any]:
-        """INTAKE (modelo rápido/económico) con respuesta JSON estructurada."""
-        return await self._call_json(self._intake_llm, prompt, schema, system_prompt)
+        return await self._call_json(self._reason_llm, prompt, schema, system_prompt, provider=self._reason_provider)
 
     async def _call_json(
         self,
@@ -362,6 +378,7 @@ class AIRouter:
         prompt: str,
         schema: Dict[str, Any],
         system_prompt: str | None,
+        provider: str = "",
     ) -> Dict[str, Any]:
         """
         Llama al LLM y parsea la respuesta como JSON.
@@ -375,8 +392,16 @@ class AIRouter:
             "(sin texto antes ni después, sin bloques markdown):\n"
             + json.dumps(schema, ensure_ascii=False, indent=2)
         )
-        json_system = (system_prompt or "") + json_instruction
+        # Inyectar encabezado de idioma cuando el provider es Maple/DeepSeek
+        use_spanish_header = provider == "maple"
+        base_system = _inject_spanish_header(system_prompt) if use_spanish_header else (system_prompt or "")
+        json_system = base_system + json_instruction
         msgs = _to_messages(prompt, json_system, None)
+
+        # Para DeepSeek-R1, añadir prefill que fuerza el razonamiento en español
+        # y cierra inmediatamente el <think> para no contaminar la salida JSON.
+        if use_spanish_header:
+            msgs.append(AIMessage(content="<think>\nAnalizando en español.\n</think>\n"))
 
         try:
             # Modo JSON nativo (OpenAI / Maple)

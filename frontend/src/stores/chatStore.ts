@@ -57,7 +57,7 @@ interface ChatStore {
   setStreamingSources: (id: string, sources: LegalSource[]) => void
   appendToStreamingMessage: (id: string, text: string) => void
   appendScanningDoc: (id: string, title: string) => void
-  finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string; content?: string }) => void
+  finalizeStreamingMessage: (id: string, options: { actions?: SuggestedAction[]; disclaimers?: string[]; conversation_id?: string; content?: string; preClarifyIntention?: string }) => void
   setUploadProgress: (progress: number) => void
   setPendingFile: (file: UploadedFile | null) => void
   updateFileStatus: (fileId: string, status: UploadedFile['status'], progress?: number) => void
@@ -292,17 +292,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }))
   },
 
-  finalizeStreamingMessage: (id, { actions, disclaimers, conversation_id, content }) => {
+  finalizeStreamingMessage: (id, { actions, disclaimers, conversation_id, content, preClarifyIntention }) => {
     if (conversation_id) {
       set({ conversationId: conversation_id })
     }
-    // Detect AMARILLO to save context for the user's next reply
+    // Detect AMARILLO *or* pre-clarify to save context for the user's next reply
     const currentState = get()
     const msg = currentState.messages.find(m => m.id === id)
     const classification = msg?.metadata?.classification as import('../types/chat').ChatClassification | undefined
-    const newPendingAmberContext = classification?.semaphore === 'amarillo'
-      ? { intention: classification.intention, originalMessage: currentState.lastUserMessage ?? '' }
-      : null
+    const newPendingAmberContext =
+      classification?.semaphore === 'amarillo'
+        ? { intention: classification.intention, originalMessage: currentState.lastUserMessage ?? '' }
+        : preClarifyIntention
+          ? { intention: preClarifyIntention, originalMessage: currentState.lastUserMessage ?? '' }
+          : null
     set((state) => ({
       pendingAmberContext: newPendingAmberContext,
       messages: state.messages.map((m) => {

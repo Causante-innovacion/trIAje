@@ -282,6 +282,18 @@ class ChatService:
         #    clasificado como fuera de alcance aunque contenga un trigger claro.
         #    detect_gatillos ya hace búsqueda cruzada por todas las intenciones.
         if intention == Intention.FUERA_DE_ALCANCE:
+            # Fallback: detectar si el usuario está respondiendo una pre-clarificación
+            if not pending_amber and history:
+                _pc = self._detect_pre_clarify_followup(history)
+                if _pc:
+                    intention = _pc["intention"]
+                    intention_confidence = 0.85
+                    message = (
+                        f"{_pc['original_query']}\n\n"
+                        f"Información adicional proporcionada por el usuario: {message}"
+                    )
+
+        if intention == Intention.FUERA_DE_ALCANCE:
             early_gatillos = SemaphoreClassifier.detect_gatillos(message, intention)
             if early_gatillos:
                 # Inferir la intención real buscando cuál gatillo disparó
@@ -424,6 +436,29 @@ class ChatService:
             intention, intention_confidence, _llm_semaphore_hint = _amber_intention, 0.95, None
         else:
             intention, intention_confidence, _llm_semaphore_hint = await IntentionClassifier.classify(message)
+
+        if intention == Intention.FUERA_DE_ALCANCE:
+            # ── Fallback: detectar si el usuario está respondiendo una pre-clarificación ──
+            # Si el frontend no envió pending_amber (ej., sessión recargada o bug
+            # previo), se escanea el historial buscando el patrón de pre-clarify generado
+            # por PRE_CLARIFY_INTRO_TEMPLATE ("Antes de orientarte sobre **").
+            if not _amber_intention and history:
+                _pc = self._detect_pre_clarify_followup(history)
+                if _pc:
+                    _amber_intention = _pc["intention"]
+                    original_query = _pc["original_query"]
+                    eff_message = (
+                        f"{original_query}\n\n"
+                        f"Información adicional proporcionada por el usuario: {message}"
+                    )
+                    intention = _amber_intention
+                    intention_confidence = 0.85
+                    _llm_semaphore_hint = None
+
+            # ── Verificar de nuevo si la intención ya fue resuelta por el fallback ──
+            if intention == Intention.FUERA_DE_ALCANCE:
+                # Antes de salir, verificar si hay gatillos ROJO en el mensaje.
+                pass  # continue to early_gatillos check below
 
         if intention == Intention.FUERA_DE_ALCANCE:
             # Antes de salir, verificar si hay gatillos ROJO en el mensaje.
@@ -955,6 +990,37 @@ class ChatService:
                 # Hay un mensaje siguiente del usuario = su respuesta de contexto
                 if i + 1 < len(history) and history[i + 1].get("role") == "user":
                     return history[i + 1]["content"]
+        return None
+
+    @staticmethod
+    def _detect_pre_clarify_followup(history: list) -> dict | None:
+        """
+        Detecta si el usuario está respondiendo a una pregunta de pre-clarificación.
+        Busca el patrón generado por PRE_CLARIFY_INTRO_TEMPLATE en mensajes recientes
+        del asistente ("Antes de orientarte sobre **") y recupera la consulta original
+        del usuario para re-clasificar la intención por keywords (sin LLM).
+
+        Retorna {intention: Intention, original_query: str} o None.
+        """
+        # Recorrer el historial en reversa para encontrar el exchange más reciente
+        for i in range(len(history) - 1, -1, -1):
+            msg = history[i]
+            if msg.get("role") != "assistant":
+                continue
+            content = msg.get("content", "")
+            # Detectar el prefijo del template de pre-clarificación
+            if "Antes de orientarte sobre" not in content:
+                continue
+            # El mensaje del usuario que disparó la pre-clarificación está justo antes
+            if i == 0 or history[i - 1].get("role") != "user":
+                continue
+            original_query = history[i - 1].get("content", "")
+            if not original_query:
+                continue
+            # Clasificar la consulta original solo por keywords (rápido, sin LLM)
+            inferred_intention, confidence = IntentionClassifier.classify_by_keywords(original_query)
+            if inferred_intention and inferred_intention != Intention.FUERA_DE_ALCANCE:
+                return {"intention": inferred_intention, "original_query": original_query}
         return None
 
     @staticmethod

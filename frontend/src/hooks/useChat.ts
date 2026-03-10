@@ -142,6 +142,11 @@ export function useChat() {
                   // lets AnimatedText show it with the typewriter from the start
                   // instead of flashing the raw text first.
                   ...(event.message ? { content: event.message } : {}),
+                  // Pre-clarify responses (semaphore VERDE) also need pending context
+                  // so the user's answer is treated as a follow-up, not a new query.
+                  ...(event.metadata?.pre_clarify && event.metadata?.intention
+                    ? { preClarifyIntention: event.metadata.intention }
+                    : {}),
                 })
                 break
             }
