@@ -431,6 +431,7 @@ export function ChatContainer() {
           onOptionSelect={handleOptionSelect}
           onFileUpload={handleFileUpload}
           onFileUploadRequest={handleFileUploadRequest}
+          onSendMessage={handleSendMessage}
           animate={shouldAnimate}
         />
       </div>

@@ -26,6 +26,7 @@ interface ChatMessageProps {
   onOptionSelect?: (value: string) => void
   onFileUpload?: (file: File) => void
   onFileUploadRequest?: () => void
+  onSendMessage?: (text: string) => void
   /** If true, animate the text with a typewriter effect */
   animate?: boolean
 }
@@ -98,7 +99,7 @@ function StreamingStatusPill({ status }: { status: string }) {
   )
 }
 
-export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, animate = false }: ChatMessageProps) {
+export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, onSendMessage, animate = false }: ChatMessageProps) {
   const isJusto = message.sender === 'justo'
   const navigate = useNavigate()
 
@@ -159,19 +160,21 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             )}
 
             {/* Quick Actions */}
-            {!message.isStreaming && (answer || message.content) && (
+            {!message.isStreaming && (answer || message.content) && message.metadata?.classification?.semaphore !== 'amarillo' && !message.options && (
               <div className="mt-3 flex">
                 <button
                   onClick={() => {
-                    useChatStore.getState().startIntelligentChat(
-                      "Explícame tu respuesta anterior con manzanas 🍎. Usa un ejemplo casuístico, cotidiano y un poco de storytelling para que sea muy fácil de entender para alguien sin conocimientos legales."
-                    )
+                    if (onSendMessage) {
+                      onSendMessage(
+                        "Explícame tu respuesta anterior con un ejemplo práctico. Usa un caso casuístico, cotidiano y un poco de storytelling para que sea muy fácil de entender para alguien sin conocimientos legales."
+                      )
+                    }
                   }}
                   className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-200 transition-all shadow-sm"
                   title="Pide una explicación más sencilla con un ejemplo práctico"
                 >
-                  <span className="text-[13px]">🍎</span>
-                  <span>Explicar con manzanas</span>
+                  <span className="text-[13px]">💡</span>
+                  <span>Explícame con un ejemplo</span>
                 </button>
               </div>
             )}
