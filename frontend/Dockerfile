@@ -11,7 +11,7 @@ RUN npm install
 # Ahora sí, cocinamos el código fuente
 COPY . .
 # En producción, las llamadas API pasan por el mismo dominio via Nginx proxy
-ENV VITE_API_URL=/gpt-legal
+ENV VITE_API_URL=/trIAje
 RUN npm run build
 # (Al terminar esto, tendremos una carpeta 'dist' con la web lista)
 
