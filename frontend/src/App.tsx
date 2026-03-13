@@ -6,6 +6,7 @@ import { LegalFormPage } from './components/legal-form'
 import { ProjectEvaluationPage } from './components/output-evaluation/ProjectEvaluationPage'
 import { LegalAdviserPage } from './components/output-legal-adviser/LegalAdviserPage'
 import { FormalizationPage } from './components/output-formalization/FormalizationPage'
+import { PrivacyPolicyPage } from './components/legal/PrivacyPolicyPage'
 
 function AppContent() {
   const location = useLocation()
@@ -44,13 +45,14 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter basename="/gpt-legal">
+    <BrowserRouter basename="/trIAje">
       <Header />
       <Routes>
         <Route path="/legal-form" element={<LegalFormPage />} />
         <Route path="/evaluation" element={<ProjectEvaluationPage />} />
         <Route path="/legal-adviser" element={<LegalAdviserPage />} />
         <Route path="/formalization" element={<FormalizationPage />} />
+        <Route path="/privacy" element={<div className="h-[calc(100vh-64px)] overflow-auto bg-gradient-main"><PrivacyPolicyPage /><Footer /></div>} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:tool" element={<ChatPage />} />
         <Route path="*" element={<AppContent />} />
