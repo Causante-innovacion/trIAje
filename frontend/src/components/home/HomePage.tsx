@@ -89,11 +89,15 @@ export function HomePage() {
       // Navigate to chat — ChatContainer will reconstruct projectInfo from extractedPlan
       navigate('/chat')
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error procesando el archivo'
-      setUploadError(
-        `No se pudo procesar el archivo. ${errorMessage}\nVerifica que el servidor esté activo.`
-      )
+      let errorMessage = 'Error procesando el archivo'
+      if (error instanceof Error) {
+        if (error.message.includes('413')) {
+          errorMessage = 'El archivo es demasiado grande para ser procesado.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      setUploadError(`No se pudo procesar el archivo. ${errorMessage}`)
     } finally {
       setIsUploading(false)
     }

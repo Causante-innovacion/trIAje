@@ -276,10 +276,14 @@ export function ChatContainer() {
       useChatStore.getState().updateFileStatus(fileId, 'error', 0)
 
       const axiosDetail = (error as any)?.response?.data?.detail
-      const errorMessage = axiosDetail
-        || (error instanceof Error ? error.message : 'Error procesando el archivo')
+      let errorMessage = axiosDetail || (error instanceof Error ? error.message : 'Error procesando el archivo')
+      
+      if (errorMessage.includes('413')) {
+        errorMessage = 'El archivo es demasiado grande y supera el límite permitido.'
+      }
+
       addJustoMessage(
-        `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx o empecemos desde cero.`
+        `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx o .pdf, o empecemos desde cero.`
       )
     }
   }
