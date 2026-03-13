@@ -35,7 +35,7 @@ export function useChat() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Intelligent chat mode: uses /chat/message/stream (SSE)
-  const sendIntelligentMessage = useCallback(async (content: string) => {
+  const sendIntelligentMessage = useCallback(async (content: string, options?: { hidden?: boolean; isExplanation?: boolean }) => {
     if (!content.trim() || isProcessing) return
 
     if (content.length > MAX_MESSAGE_LENGTH) {
@@ -57,14 +57,16 @@ export function useChat() {
       .slice(-8)  // últimas 4 conversaciones (8 mensajes)
       .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant' as const, content: m.content }))
 
-    addUserMessage(content)
+    if (!options?.hidden) {
+      addUserMessage(content)
+    }
     setProcessing(true)
 
     // Consume pending AMARILLO context before we overwrite lastUserMessage
     const pendingAmber = consumePendingAmberContext()
 
     // Create placeholder streaming message bubble immediately
-    const streamId = startStreamingMessage()
+    const streamId = startStreamingMessage({ isExplanation: options?.isExplanation })
 
     try {
       // Create an AbortController so we can cancel the request
@@ -195,12 +197,12 @@ export function useChat() {
   ])
 
   // Legacy tool-based chat
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, options?: { hidden?: boolean; isExplanation?: boolean }) => {
     if (!content.trim() || isProcessing) return
 
     // If in intelligent chat mode, use the intelligent endpoint
     if (currentTool === 'chat') {
-      return sendIntelligentMessage(content)
+      return sendIntelligentMessage(content, options)
     }
 
     // Legacy flow for evaluation/compliance/advisor tools

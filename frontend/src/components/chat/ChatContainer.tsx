@@ -326,9 +326,9 @@ export function ChatContainer() {
     setTimeout(scrollToBottom, 100)
   }, [])
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = (content: string, options?: { hidden?: boolean; isExplanation?: boolean }) => {
     // Use the unified sendMessage from useChat
-    sendMessage(message)
+    sendMessage(content, options)
   }
 
   // Find the last justo message ID for animation

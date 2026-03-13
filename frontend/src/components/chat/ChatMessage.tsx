@@ -26,7 +26,7 @@ interface ChatMessageProps {
   onOptionSelect?: (value: string) => void
   onFileUpload?: (file: File) => void
   onFileUploadRequest?: () => void
-  onSendMessage?: (text: string) => void
+  onSendMessage?: (text: string, options?: { hidden?: boolean; isExplanation?: boolean }) => void
   /** If true, animate the text with a typewriter effect */
   animate?: boolean
 }
@@ -160,13 +160,14 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             )}
 
             {/* Quick Actions */}
-            {!message.isStreaming && (answer || message.content) && message.metadata?.classification?.semaphore !== 'amarillo' && !message.options && (
+            {!message.isStreaming && (answer || message.content) && !message.metadata?.isFollowUp && !message.options && !message.metadata?.isExplanation && (
               <div className="mt-3 flex">
                 <button
                   onClick={() => {
                     if (onSendMessage) {
                       onSendMessage(
-                        "Explícame tu respuesta anterior con un ejemplo práctico. Usa un caso casuístico, cotidiano y un poco de storytelling para que sea muy fácil de entender para alguien sin conocimientos legales."
+                        "Explícame tu respuesta anterior con un ejemplo práctico. Usa un caso casuístico, cotidiano y un poco de storytelling para que sea muy fácil de entender para alguien sin conocimientos legales.",
+                        { hidden: true, isExplanation: true }
                       )
                     }
                   }}

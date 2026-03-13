@@ -51,7 +51,7 @@ interface ChatStore {
   setProcessing: (status: boolean) => void
   setTyping: (status: boolean) => void
   // Streaming actions
-  startStreamingMessage: () => string
+  startStreamingMessage: (options?: { isExplanation?: boolean }) => string
   setStreamingStatus: (id: string, status: string | null) => void
   setStreamingClassification: (id: string, classification: ChatClassification) => void
   setStreamingSources: (id: string, sources: LegalSource[]) => void
@@ -218,7 +218,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   // ── Streaming ──────────────────────────────────────────────────────────
 
-  startStreamingMessage: () => {
+  startStreamingMessage: (options) => {
     const id = generateId()
     set((state) => ({
       messages: [
@@ -231,7 +231,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           timestamp: new Date(),
           isStreaming: true,
           streamingStatus: 'Clasificando tu consulta\u2026',
-          metadata: { toolContext: 'chat' as const },
+          metadata: { toolContext: 'chat' as const, isExplanation: options?.isExplanation },
         },
       ],
     }))
@@ -325,6 +325,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             ...m.metadata,
             actions: actions ?? [],
             disclaimers: disclaimers ?? [],
+            isFollowUp: classification?.semaphore === 'amarillo' || !!preClarifyIntention,
           },
         }
       }),

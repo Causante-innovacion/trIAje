@@ -105,6 +105,10 @@ export interface Message {
     scanningDocs?: string[]
     /** Tipo de reporte generado a partir de este mensaje (para mostrar enlace inline) */
     generatedReport?: 'evaluation' | 'adviser'
+    /** Bandera para saber si el mensaje fue generado tras hacer clic en "Explícame con un ejemplo" */
+    isExplanation?: boolean
+    /** Bandera que indica si el mensaje espera una repuesta del usuario (precisión o "amarillo") */
+    isFollowUp?: boolean
   }
 }
 
