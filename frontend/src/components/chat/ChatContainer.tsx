@@ -404,7 +404,7 @@ export function ChatContainer() {
         <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined} className="chat-message">
           <div className="flex items-start gap-4">
             <Avatar size="md" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                 JUSTO
               </p>
@@ -454,11 +454,11 @@ export function ChatContainer() {
             <div className="chat-message animate-fade-in">
               <div className="flex items-start gap-4">
                 <Avatar size="md" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                     JUSTO
                   </p>
-                  <div className="chat-bubble">
+                  <div className="chat-bubble overflow-hidden">
                     <p className="mb-3 text-sm text-gray-600">
                       Sube tu archivo aquí para que pueda analizarlo:
                     </p>
@@ -474,11 +474,11 @@ export function ChatContainer() {
             <div className="chat-message">
               <div className="flex items-start gap-4">
                 <Avatar size="md" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                     JUSTO
                   </p>
-                  <div className="chat-bubble inline-flex items-center gap-1 py-3 px-4">
+                  <div className="chat-bubble inline-flex items-center gap-1 py-3 px-4 overflow-hidden">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />

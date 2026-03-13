@@ -334,11 +334,11 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
       <div className="chat-message">
         <div className="flex items-start gap-4">
           <Avatar size="md" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
               JUSTO
             </p>
-            <div className="chat-bubble">
+            <div className="chat-bubble overflow-hidden">
               {renderContent()}
             </div>
           </div>
