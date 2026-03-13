@@ -25,6 +25,9 @@ services:
       - qdrant
       - maple-proxy
     restart: unless-stopped
+    networks:
+      - default
+      - red-externa
 
   # 🎨 LA CAJA DEL FRONTEND
   frontend:
@@ -35,6 +38,9 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - default
+      - red-externa
 
   # 🔒 MAPLE PROXY — Puerta de entrada segura a DeepSeek R1 (TEE encriptado)
   # Requiere que el backend apunte a: MAPLE_API_URL=http://maple-proxy:8080/v1
@@ -70,3 +76,9 @@ services:
 # Volúmenes persistentes
 volumes:
   qdrant_data:
+networks:
+  default:
+    driver: bridge
+  red-externa:
+    name: red-interna-causante
+    external: true
