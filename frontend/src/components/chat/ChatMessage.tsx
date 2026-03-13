@@ -158,6 +158,24 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
               <AnimatedText text={answer || message.content} animate={animate} messageId={message.id} />
             )}
 
+            {/* Quick Actions */}
+            {!message.isStreaming && (answer || message.content) && (
+              <div className="mt-3 flex">
+                <button
+                  onClick={() => {
+                    useChatStore.getState().startIntelligentChat(
+                      "Explícame tu respuesta anterior con manzanas 🍎. Usa un ejemplo casuístico, cotidiano y un poco de storytelling para que sea muy fácil de entender para alguien sin conocimientos legales."
+                    )
+                  }}
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-200 transition-all shadow-sm"
+                  title="Pide una explicación más sencilla con un ejemplo práctico"
+                >
+                  <span className="text-[13px]">🍎</span>
+                  <span>Explicar con manzanas</span>
+                </button>
+              </div>
+            )}
+
             {/* Sources */}
             {message.metadata?.sources && message.metadata.sources.length > 0 && (
               <SourcesCitation sources={message.metadata.sources} />
