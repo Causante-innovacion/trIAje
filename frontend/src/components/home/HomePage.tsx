@@ -5,6 +5,7 @@ import { ActionMenu } from '../chat/ActionMenu'
 import { MAX_MESSAGE_LENGTH } from '../../types/chat'
 import { useChatStore } from '../../stores/chatStore'
 import { documentsApi } from '../../shared/services/api'
+import triajeLogo from '../../shared/logo TRIAJE.svg'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -123,6 +124,11 @@ export function HomePage() {
 
         {/* Title */}
         <div className="text-center mb-14">
+          <img
+            src={triajeLogo}
+            alt="TRIAJE"
+            className="mx-auto mb-8 w-24 md:w-28 h-auto"
+          />
           <h1 className="font-heading text-4xl md:text-5xl font-bold text-black mb-5 tracking-tight">
             ¿Cómo puedo ayudarte?
           </h1>
