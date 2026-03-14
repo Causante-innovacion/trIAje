@@ -127,7 +127,7 @@ export function HomePage() {
           <img
             src={triajeLogo}
             alt="TRIAJE"
-            className="mx-auto mb-8 w-24 md:w-28 h-auto"
+            className="mx-auto mb-8 w-48 md:w-56 h-auto"
           />
           <h1 className="font-heading text-4xl md:text-5xl font-bold text-black mb-5 tracking-tight">
             ¿Cómo puedo ayudarte?
