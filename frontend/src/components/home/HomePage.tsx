@@ -143,7 +143,7 @@ export function HomePage() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isUploading ? 'Procesando archivo...' : 'Escribe tu consulta legal aquí...'}
-              className="chat-input resize-none overflow-hidden"
+              className="chat-input resize-none overflow-y-auto"
               disabled={isUploading}
             />
             <div className="flex items-center gap-2">

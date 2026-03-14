@@ -58,6 +58,8 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
             if (!badge || !tooltip) return
 
             const vv = window.visualViewport
+            const viewportLeft = vv?.offsetLeft ?? 0
+            const viewportTop = vv?.offsetTop ?? 0
             const viewportWidth = vv?.width ?? document.documentElement.clientWidth ?? window.innerWidth
             const viewportHeight = vv?.height ?? document.documentElement.clientHeight ?? window.innerHeight
             const rect = badge.getBoundingClientRect()
@@ -73,22 +75,22 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
             let nextPosition: 'top' | 'bottom' = rect.top > tooltipHeight + 24 ? 'top' : 'bottom'
 
             let left = rect.left + rect.width / 2 - tooltipWidth / 2
-            left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin))
+            left = Math.max(viewportLeft + margin, Math.min(left, viewportLeft + viewportWidth - tooltipWidth - margin))
 
             let top = nextPosition === 'top'
                 ? rect.top - tooltipHeight - gap
                 : rect.bottom + gap
 
             // Flip if the selected side overflows vertically.
-            if (nextPosition === 'top' && top < margin) {
+            if (nextPosition === 'top' && top < viewportTop + margin) {
                 nextPosition = 'bottom'
                 top = rect.bottom + gap
-            } else if (nextPosition === 'bottom' && top + tooltipHeight > viewportHeight - margin) {
+            } else if (nextPosition === 'bottom' && top + tooltipHeight > viewportTop + viewportHeight - margin) {
                 nextPosition = 'top'
                 top = rect.top - tooltipHeight - gap
             }
 
-            top = Math.max(margin, Math.min(top, viewportHeight - tooltipHeight - margin))
+            top = Math.max(viewportTop + margin, Math.min(top, viewportTop + viewportHeight - tooltipHeight - margin))
 
             setPosition(nextPosition)
             setCoords({ top, left })

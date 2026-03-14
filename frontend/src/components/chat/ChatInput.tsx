@@ -119,7 +119,7 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
                   ? 'Espere a que termine el procesamiento...'
                   : 'Escribe tu respuesta aquí... (Shift+Enter para nueva línea)'
             }
-            className="chat-input resize-none overflow-hidden"
+            className="chat-input resize-none overflow-y-auto"
             disabled={isDisabled}
           />
 
