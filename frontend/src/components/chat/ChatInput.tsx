@@ -108,6 +108,7 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
           <textarea
             ref={inputRef}
             rows={1}
+            wrap="soft"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}

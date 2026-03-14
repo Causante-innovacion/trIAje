@@ -138,6 +138,7 @@ export function HomePage() {
             <textarea
               ref={inputRef}
               rows={1}
+              wrap="soft"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}

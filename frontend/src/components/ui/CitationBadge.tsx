@@ -125,7 +125,7 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
                 onMouseEnter={show}
                 onMouseLeave={hide}
                 onFocus={show}
-                onBlur={hide}
+                    onBlur={hide}
                 onClick={() => setVisible(v => !v)}
                 className={`
           citation-badge
