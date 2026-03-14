@@ -18,6 +18,7 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
     const [position, setPosition] = useState<'top' | 'bottom'>('top')
     const [coords, setCoords] = useState({ top: 0, left: 0 })
     const [tooltipMaxWidth, setTooltipMaxWidth] = useState(320)
+    const [arrowX, setArrowX] = useState(20)
     const badgeRef = useRef<HTMLButtonElement>(null)
     const tooltipRef = useRef<HTMLSpanElement>(null)
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -68,9 +69,11 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
             const margin = 8
             const gap = 8
 
-            // On narrow screens (mobile Safari included), enforce a safe width inside viewport.
+            // Keep citations readable (roughly ~2 lines on desktop), while adapting on mobile.
             const maxAllowedWidth = Math.max(180, Math.floor(viewportWidth - margin * 2))
-            setTooltipMaxWidth(maxAllowedWidth)
+            const preferredMaxWidth = Math.min(maxAllowedWidth, 420)
+            tooltip.style.maxWidth = `${preferredMaxWidth}px`
+            setTooltipMaxWidth(preferredMaxWidth)
 
             let nextPosition: 'top' | 'bottom' = rect.top > tooltipHeight + 24 ? 'top' : 'bottom'
 
@@ -92,8 +95,12 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
 
             top = Math.max(viewportTop + margin, Math.min(top, viewportTop + viewportHeight - tooltipHeight - margin))
 
+            const badgeCenterX = rect.left + rect.width / 2
+            const nextArrowX = Math.max(12, Math.min(tooltipWidth - 12, badgeCenterX - left))
+
             setPosition(nextPosition)
             setCoords({ top, left })
+            setArrowX(nextArrowX)
         }
 
         // Run twice to stabilize position after first paint/font metrics in mobile browsers.
@@ -165,12 +172,6 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
             px-3 py-2 rounded-lg shadow-xl
             pointer-events-auto
             border border-gray-700
-            before:content-['']
-            before:absolute before:left-1/2 before:-translate-x-1/2
-            ${position === 'top'
-                            ? "before:top-full before:border-[5px] before:border-transparent before:border-t-gray-900"
-                            : "before:bottom-full before:border-[5px] before:border-transparent before:border-b-gray-900"
-                        }
             animate-fade-in
           `}
                     style={{
@@ -180,6 +181,17 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
                         left: `${coords.left}px`,
                     }}
                 >
+                    <span
+                        aria-hidden="true"
+                        className={`
+              absolute w-0 h-0 -translate-x-1/2
+              ${position === 'top'
+                                ? 'top-full border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-gray-900'
+                                : 'bottom-full border-l-[5px] border-r-[5px] border-b-[5px] border-l-transparent border-r-transparent border-b-gray-900'
+                            }
+            `}
+                        style={{ left: `${arrowX}px` }}
+                    />
                     <span className="font-bold text-amber-400 mr-1">[{index}]</span>
                     {citationText}
                 </span>,
