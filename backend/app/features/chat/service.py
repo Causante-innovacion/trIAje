@@ -32,6 +32,8 @@ from .config import (
     STANDARD_DISCLAIMERS,
     GREETING_PATTERNS,
     GREETING_MESSAGE,
+    SELF_DESCRIPTION_PATTERNS,
+    SELF_DESCRIPTION_MESSAGE,
     ADVISOR_PREP_ENDPOINT,
     PRE_CLARIFY_QUESTIONS,
     PRE_CLARIFY_SKIP_KEYWORDS,
@@ -265,6 +267,10 @@ class ChatService:
         if self._is_greeting(message):
             return self._build_greeting_response(conversation_id)
 
+        # 1.1 Detectar preguntas sobre el propio asistente
+        if self._is_self_description_request(message):
+            return self._build_self_description_response(conversation_id)
+
         # 2. Detectar si quiere analizar un proyecto
         #    Si el mensaje ya trae un archivo adjunto (📎), saltar el detector
         #    para que el flujo normal clasifique y analice el contenido.
@@ -391,6 +397,15 @@ class ChatService:
         # ── Saludo ──────────────────────────────────────────────────────────
         if self._is_greeting(message):
             resp = self._build_greeting_response(conversation_id)
+            yield sse({"type": "done", "message": resp.message,
+                       "classification": resp.classification.model_dump(),
+                       "actions": [], "disclaimers": [],
+                       "conversation_id": conversation_id})
+            return
+
+        # ── Presentación del asistente ──────────────────────────────────────
+        if self._is_self_description_request(message):
+            resp = self._build_self_description_response(conversation_id)
             yield sse({"type": "done", "message": resp.message,
                        "classification": resp.classification.model_dump(),
                        "actions": [], "disclaimers": [],
@@ -1063,6 +1078,17 @@ class ChatService:
                 return True
         return False
 
+    @staticmethod
+    def _is_self_description_request(message: str) -> bool:
+        """Detecta preguntas donde el usuario pide una descripción del asistente."""
+        import unicodedata
+
+        msg = message.lower().strip()
+        nfkd = unicodedata.normalize("NFKD", msg)
+        msg_norm = "".join(c for c in nfkd if not unicodedata.combining(c))
+
+        return any(pattern in msg_norm for pattern in SELF_DESCRIPTION_PATTERNS)
+
     def _build_greeting_response(self, conversation_id: str) -> ChatResponse:
         """Respuesta amigable para saludos."""
         return ChatResponse(
@@ -1070,6 +1096,24 @@ class ChatService:
             classification=ChatClassification(
                 intention=Intention.FUERA_DE_ALCANCE,
                 intention_name="Saludo",
+                semaphore=Semaphore.VERDE,
+                confidence=1.0,
+                gatillos_detected=[],
+                requires_context=[],
+            ),
+            sources=[],
+            actions=[],
+            disclaimers=[],
+            conversation_id=conversation_id,
+        )
+
+    def _build_self_description_response(self, conversation_id: str) -> ChatResponse:
+        """Respuesta breve para preguntas sobre qué es y qué puede hacer JUSTO."""
+        return ChatResponse(
+            message=SELF_DESCRIPTION_MESSAGE,
+            classification=ChatClassification(
+                intention=Intention.FUERA_DE_ALCANCE,
+                intention_name="Sobre JUSTO",
                 semaphore=Semaphore.VERDE,
                 confidence=1.0,
                 gatillos_detected=[],

@@ -1345,6 +1345,13 @@ GREETING_PATTERNS: List[str] = [
     "hey", "hi", "hello", "ey", "buenas",
 ]
 
+SELF_DESCRIPTION_PATTERNS: List[str] = [
+    "quien eres", "quién eres", "que eres", "qué eres",
+    "como te defines", "cómo te defines", "hablame de ti", "háblame de ti",
+    "que puedes hacer", "qué puedes hacer", "que capacidades tienes", "qué capacidades tienes",
+    "cuales son tus capacidades", "cuáles son tus capacidades",
+]
+
 GREETING_MESSAGE = (
     "¡Hola! 👋 Soy **JUSTO**, tu asistente legal especializado en derecho peruano "
     "para organizaciones civiles.\n\n"
@@ -1362,6 +1369,17 @@ GREETING_MESSAGE = (
     "- Marca, identidad y reputación\n"
     "- Seguridad de la información\n\n"
     "¿En qué puedo ayudarte hoy?"
+)
+
+SELF_DESCRIPTION_MESSAGE = (
+    "Soy **JUSTO**, un asistente legal especializado en derecho peruano para organizaciones civiles.\n\n"
+    "Puedo ayudarte de forma breve y práctica con:\n"
+    "- Consultas sobre formalización y registros (SUNARP)\n"
+    "- RUC, obligaciones tributarias y cumplimiento ante SUNAT\n"
+    "- Donaciones, cooperación internacional y APCI\n"
+    "- Contratos, voluntariado, propiedad intelectual y protección de datos\n"
+    "- Riesgos legales y pasos recomendados según tu caso\n\n"
+    "Si me cuentas tu situación, te doy una orientación legal inicial y el siguiente paso sugerido."
 )
 
 

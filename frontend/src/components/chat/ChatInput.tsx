@@ -31,8 +31,8 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
 
     // Validate by extension (MIME type varies by browser/OS and is unreliable)
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
-    if (!['pdf', 'docx'].includes(ext)) {
-      setUploadError('Solo se aceptan archivos PDF o DOCX.')
+    if (!['pdf', 'docx', 'txt'].includes(ext)) {
+      setUploadError('Solo se aceptan archivos PDF, DOCX o TXT.')
       return
     }
     const sizeMB = file.size / 1024 / 1024
@@ -64,8 +64,8 @@ export function ChatInput({ onSend, onFileUpload, onStopProcessing }: ChatInputP
       const preview = (data.content_preview as string) || ''
 
       const msg = preview
-        ? `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}":\n\n${preview}`
-        : `Analiza mi proyecto. 📎 He adjuntado el archivo "${filename}".`
+        ? `📎 He adjuntado el archivo "${filename}". Analiza su contenido y dame una orientación legal inicial dentro de tu ámbito.\n\nContenido extraído:\n${preview}`
+        : `📎 He adjuntado el archivo "${filename}". Analiza su contenido y dame una orientación legal inicial dentro de tu ámbito.`
 
       onSend(msg)
     } catch {

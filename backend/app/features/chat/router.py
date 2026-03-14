@@ -140,7 +140,7 @@ async def list_gatillos() -> GatilloListResponse:
     "/upload",
     summary="Subir archivo para análisis en el chat",
     description=(
-        "Acepta un PDF o DOCX, extrae su texto y retorna un preview que el frontend "
+        "Acepta un PDF, DOCX o TXT, extrae su texto y retorna un preview que el frontend "
         "puede enviar como mensaje al chat para que JUSTO lo analice."
     ),
 )
@@ -153,7 +153,7 @@ async def upload_chat_file(
 
     Flujo:
     1. Valida tipo y tamaño del archivo.
-    2. Extrae texto (PDF via PyMuPDF, DOCX via python-docx).
+     2. Extrae texto (PDF via PyMuPDF, DOCX via python-docx, TXT via UTF-8).
     3. Retorna filename + content_preview (hasta 3000 chars) para que el frontend
        lo pueda re-enviar como mensaje a JUSTO.
     """
@@ -162,14 +162,15 @@ async def upload_chat_file(
     allowed_types = {
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
     }
     # Algunos browsers envían application/octet-stream; confiar también en la extensión
     filename = file.filename or "archivo"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if file.content_type not in allowed_types and ext not in ("pdf", "docx"):
+    if file.content_type not in allowed_types and ext not in ("pdf", "docx", "txt"):
         raise HTTPException(
             status_code=400,
-            detail="Tipo de archivo no permitido. Solo se aceptan PDF y DOCX.",
+            detail="Tipo de archivo no permitido. Solo se aceptan PDF, DOCX o TXT.",
         )
 
     content = await file.read()
@@ -198,6 +199,9 @@ async def upload_chat_file(
             doc = docx_lib.Document(io.BytesIO(content))
             paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
             full_text = "\n".join(paragraphs).strip()
+            text_preview = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
+        elif ext == "txt":
+            full_text = content.decode("utf-8", errors="replace").strip()
             text_preview = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
     except Exception:
         text_preview = ""

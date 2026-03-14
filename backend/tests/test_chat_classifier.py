@@ -984,6 +984,20 @@ class TestChatService:
             assert "no puedo responder" in response.message.lower() or "fuera" in response.message.lower() or "especializado" in response.message.lower()
 
     @pytest.mark.asyncio
+    async def test_autodescripcion_asistente(self, mock_ai_router, mock_rag):
+        """Preguntas sobre el asistente devuelven su descripción y capacidades."""
+        from app.features.chat.service import ChatService
+
+        service = ChatService()
+        request = ChatRequest(message="¿Cómo te defines y qué capacidades tienes?")
+        response = await service.process_message(request)
+
+        assert response.classification.intention == Intention.FUERA_DE_ALCANCE
+        assert "soy **justo**" in response.message.lower()
+        assert "puedo ayudarte" in response.message.lower()
+        assert "no puedo responder" not in response.message.lower()
+
+    @pytest.mark.asyncio
     async def test_proyecto_analysis_sugiere_archivo(self, mock_ai_router, mock_rag):
         """Análisis de proyecto sugiere subir archivo."""
         from app.features.chat.service import ChatService

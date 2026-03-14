@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
 import { useChat } from '../../hooks/useChat'
-import { documentsApi } from '../../shared/services/api'
+import { chatApi, documentsApi } from '../../shared/services/api'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { Avatar } from '../ui/Avatar'
@@ -247,6 +247,27 @@ export function ChatContainer() {
     try {
       // Real API call
       useChatStore.getState().updateFileStatus(fileId, 'uploading', 95)
+
+      if (currentTool === 'chat') {
+        const response = await chatApi.uploadDocument(file, 'general')
+        clearInterval(interval)
+
+        useChatStore.getState().updateFileStatus(fileId, 'analyzing', 100)
+
+        const data = response.data as Record<string, unknown>
+        const filename = (data.filename as string) || file.name
+        const preview = (data.content_preview as string) || ''
+
+        useChatStore.getState().updateFileStatus(fileId, 'complete', 100)
+
+        const chatMessage = preview
+          ? `📎 He adjuntado el archivo "${filename}". Analiza su contenido y dame una orientación legal inicial dentro de tu ámbito.\n\nContenido extraído:\n${preview}`
+          : `📎 He adjuntado el archivo "${filename}". Analiza su contenido y dame una orientación legal inicial dentro de tu ámbito.`
+
+        sendMessage(chatMessage)
+        return
+      }
+
       const response = await documentsApi.extractPlan(file)
       clearInterval(interval)
 
@@ -283,7 +304,7 @@ export function ChatContainer() {
       }
 
       addJustoMessage(
-        `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx o .pdf, o empecemos desde cero.`
+        `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx, .pdf o .txt, o empecemos desde cero.`
       )
     }
   }

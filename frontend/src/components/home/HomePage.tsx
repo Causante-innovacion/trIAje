@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Send, Loader2, X } from 'lucide-react'
 import { ActionMenu } from '../chat/ActionMenu'
@@ -13,8 +13,17 @@ export function HomePage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showTerms, setShowTerms] = useState(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const isOverLimit = inputValue.length > MAX_MESSAGE_LENGTH
+
+  // Auto-resize textarea height to fit content (max ~6 lines)
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 168) + 'px'
+  }, [inputValue])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,10 +31,14 @@ export function HomePage() {
 
     startIntelligentChat(inputValue.trim())
     navigate('/chat')
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       handleSubmit(e)
     }
   }
@@ -122,13 +135,14 @@ export function HomePage() {
         <form onSubmit={handleSubmit} className="w-full">
           <div className="chat-input-container">
             <ActionMenu onFileSelect={handleFileSelect} />
-            <input
-              type="text"
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isUploading ? 'Procesando archivo...' : 'Escribe tu consulta legal aquí...'}
-              className="chat-input"
+              className="chat-input resize-none overflow-hidden"
               disabled={isUploading}
             />
             <div className="flex items-center gap-2">
@@ -159,7 +173,7 @@ export function HomePage() {
 
           {/* Subtle hint */}
           <p className="text-center text-xs text-gray-400 mt-4">
-            Presiona <strong className="text-gray-500">Enter</strong> para enviar
+            Presiona <strong className="text-gray-500">Enter</strong> para enviar · <strong className="text-gray-500">Shift+Enter</strong> para nueva línea
           </p>
         </form>
 

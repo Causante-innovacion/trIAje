@@ -10,7 +10,7 @@ interface FileUploadProps {
 
 export function FileUpload({
   onFileSelect,
-  accept = '.pdf,.docx',
+  accept = '.pdf,.docx,.txt',
   maxSize = 10,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -21,9 +21,16 @@ export function FileUpload({
     setError(null)
 
     // Check file type
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-    if (!allowedTypes.includes(file.type)) {
-      setError('Solo se permiten archivos PDF o DOCX')
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      '',
+    ]
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    const allowedExts = ['pdf', 'docx', 'txt']
+    if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
+      setError('Solo se permiten archivos PDF, DOCX o TXT')
       return false
     }
 
@@ -107,7 +114,7 @@ export function FileUpload({
               Arrastra tu archivo aquí
             </p>
             <p className="text-sm text-gray-400">
-              (PDF, DOCX - máx. {maxSize} MB)
+              (PDF, DOCX, TXT - máx. {maxSize} MB)
             </p>
           </div>
 

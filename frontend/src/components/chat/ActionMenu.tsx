@@ -42,7 +42,7 @@ export function ActionMenu({ onFileSelect }: ActionMenuProps) {
             <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.docx"
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileChange}
                 className="hidden"
             />
@@ -74,7 +74,7 @@ export function ActionMenu({ onFileSelect }: ActionMenuProps) {
                                     Subir archivo
                                 </span>
                                 <span className="text-gray-500 text-xs">
-                                    PDF, DOCX — máx. 10 MB
+                                    PDF, DOCX, TXT — máx. 10 MB
                                 </span>
                             </div>
                         </button>

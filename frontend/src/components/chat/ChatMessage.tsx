@@ -363,7 +363,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
                 <p className="text-sm font-medium truncate leading-tight">
                   {parseFileAttachment(message.content)}
                 </p>
-                <p className="text-xs text-white/50 mt-0.5">Solicitando análisis de proyecto…</p>
+                <p className="text-xs text-white/50 mt-0.5">Solicitando análisis del documento…</p>
               </div>
             </div>
           ) : (

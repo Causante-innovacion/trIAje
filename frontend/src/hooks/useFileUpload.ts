@@ -12,7 +12,12 @@ interface UseFileUploadOptions {
 export function useFileUpload(options: UseFileUploadOptions = {}) {
   const {
     maxSize = 10,
-    allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      '',
+    ],
     onSuccess,
     onError,
   } = options
@@ -24,8 +29,9 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
   const { currentTool, setUploadProgress } = useChatStore()
 
   const validateFile = useCallback((file: File): string | null => {
-    if (!allowedTypes.includes(file.type)) {
-      return 'Tipo de archivo no permitido. Solo se aceptan PDF y DOCX.'
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!allowedTypes.includes(file.type) && !['pdf', 'docx', 'txt'].includes(ext)) {
+      return 'Tipo de archivo no permitido. Solo se aceptan PDF, DOCX o TXT.'
     }
 
     const fileSizeInMB = file.size / 1024 / 1024

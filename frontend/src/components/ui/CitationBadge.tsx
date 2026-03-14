@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { CitationMap } from '../../hooks/useCitations'
 
 interface CitationBadgeProps {
@@ -15,8 +16,10 @@ interface CitationBadgeProps {
 export function CitationBadge({ index, citations }: CitationBadgeProps) {
     const [visible, setVisible] = useState(false)
     const [position, setPosition] = useState<'top' | 'bottom'>('top')
+    const [coords, setCoords] = useState({ top: 0, left: 0 })
+    const [tooltipMaxWidth, setTooltipMaxWidth] = useState(320)
     const badgeRef = useRef<HTMLButtonElement>(null)
-    const tooltipRef = useRef<HTMLDivElement>(null)
+    const tooltipRef = useRef<HTMLSpanElement>(null)
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const citationText = citations[index]
@@ -24,11 +27,6 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
 
     const show = useCallback(() => {
         if (hideTimer.current) clearTimeout(hideTimer.current)
-        // Decide whether to open upward or downward based on space
-        if (badgeRef.current) {
-            const rect = badgeRef.current.getBoundingClientRect()
-            setPosition(rect.top > 160 ? 'top' : 'bottom')
-        }
         setVisible(true)
     }, [])
 
@@ -48,6 +46,72 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
+    }, [visible])
+
+    // Position the portal tooltip against viewport so it never gets clipped by overflow containers.
+    useEffect(() => {
+        if (!visible) return
+
+        const updatePosition = () => {
+            const badge = badgeRef.current
+            const tooltip = tooltipRef.current
+            if (!badge || !tooltip) return
+
+            const vv = window.visualViewport
+            const viewportWidth = vv?.width ?? document.documentElement.clientWidth ?? window.innerWidth
+            const viewportHeight = vv?.height ?? document.documentElement.clientHeight ?? window.innerHeight
+            const rect = badge.getBoundingClientRect()
+            const tooltipWidth = tooltip.offsetWidth
+            const tooltipHeight = tooltip.offsetHeight
+            const margin = 8
+            const gap = 8
+
+            // On narrow screens (mobile Safari included), enforce a safe width inside viewport.
+            const maxAllowedWidth = Math.max(180, Math.floor(viewportWidth - margin * 2))
+            setTooltipMaxWidth(maxAllowedWidth)
+
+            let nextPosition: 'top' | 'bottom' = rect.top > tooltipHeight + 24 ? 'top' : 'bottom'
+
+            let left = rect.left + rect.width / 2 - tooltipWidth / 2
+            left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin))
+
+            let top = nextPosition === 'top'
+                ? rect.top - tooltipHeight - gap
+                : rect.bottom + gap
+
+            // Flip if the selected side overflows vertically.
+            if (nextPosition === 'top' && top < margin) {
+                nextPosition = 'bottom'
+                top = rect.bottom + gap
+            } else if (nextPosition === 'bottom' && top + tooltipHeight > viewportHeight - margin) {
+                nextPosition = 'top'
+                top = rect.top - tooltipHeight - gap
+            }
+
+            top = Math.max(margin, Math.min(top, viewportHeight - tooltipHeight - margin))
+
+            setPosition(nextPosition)
+            setCoords({ top, left })
+        }
+
+        // Run twice to stabilize position after first paint/font metrics in mobile browsers.
+        const raf = requestAnimationFrame(() => {
+            updatePosition()
+            requestAnimationFrame(updatePosition)
+        })
+
+        window.addEventListener('resize', updatePosition)
+        window.addEventListener('scroll', updatePosition, true)
+        window.visualViewport?.addEventListener('resize', updatePosition)
+        window.visualViewport?.addEventListener('scroll', updatePosition)
+
+        return () => {
+            cancelAnimationFrame(raf)
+            window.removeEventListener('resize', updatePosition)
+            window.removeEventListener('scroll', updatePosition, true)
+            window.visualViewport?.removeEventListener('resize', updatePosition)
+            window.visualViewport?.removeEventListener('scroll', updatePosition)
+        }
     }, [visible])
 
     return (
@@ -84,25 +148,21 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
             </button>
 
             {/* Floating tooltip */}
-            {visible && (
+            {visible && createPortal(
                 <span
-                    ref={tooltipRef as React.RefObject<HTMLSpanElement>}
+                    ref={tooltipRef}
                     role="tooltip"
                     onMouseEnter={keepOpen}
                     onMouseLeave={hide}
                     className={`
             citation-tooltip
-            absolute z-50
+            fixed z-[9999]
             max-w-xs w-max
             bg-gray-900 text-gray-100
             text-xs leading-snug
             px-3 py-2 rounded-lg shadow-xl
             pointer-events-auto
             border border-gray-700
-            ${position === 'top'
-                            ? 'bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2'
-                            : 'top-[calc(100%+6px)] left-1/2 -translate-x-1/2'
-                        }
             before:content-['']
             before:absolute before:left-1/2 before:-translate-x-1/2
             ${position === 'top'
@@ -111,11 +171,17 @@ export function CitationBadge({ index, citations }: CitationBadgeProps) {
                         }
             animate-fade-in
           `}
-                    style={{ whiteSpace: 'normal', maxWidth: '20rem' }}
+                    style={{
+                        whiteSpace: 'normal',
+                        maxWidth: `${tooltipMaxWidth}px`,
+                        top: `${coords.top}px`,
+                        left: `${coords.left}px`,
+                    }}
                 >
                     <span className="font-bold text-amber-400 mr-1">[{index}]</span>
                     {citationText}
-                </span>
+                </span>,
+                document.body
             )}
         </span>
     )
