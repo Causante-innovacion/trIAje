@@ -519,22 +519,22 @@ export function ChatContainer() {
           onClick={scrollToBottom}
           aria-label="Ir al final de la respuesta"
           className="
-            absolute right-5 bottom-20 z-20
-            w-9 h-9 rounded-full shadow-lg
-            bg-white border border-gray-200
+            absolute right-1/2 translate-x-1/2 bottom-[100px] z-20 /* Mover al centro y un poco más arriba de la caja de texto */
+            w-10 h-10 rounded-full shadow-lg
+            bg-gray-900 border border-black
             flex items-center justify-center
-            text-gray-500 hover:text-gray-800 hover:bg-gray-50
+            text-white hover:bg-black
             hover:shadow-xl hover:scale-110
             transition-all duration-200
             animate-fade-in
           "
         >
-          <ChevronDown className="w-5 h-5" />
+          <ChevronDown className="w-6 h-6" />
         </button>
       )}
 
       {/* Input area - fixed at bottom */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 z-10 bg-white relative">
         <ChatInput
           onSend={handleSendMessage}
           onFileUpload={handleFileUpload}
