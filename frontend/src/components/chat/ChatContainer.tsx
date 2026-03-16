@@ -519,7 +519,7 @@ export function ChatContainer() {
           onClick={scrollToBottom}
           aria-label="Ir al final de la respuesta"
           className="
-            absolute right-1/2 translate-x-1/2 bottom-[100px] z-20 /* Mover al centro y un poco más arriba de la caja de texto */
+            absolute left-[50%] -ml-5 bottom-[100px] z-20
             w-10 h-10 rounded-full shadow-lg
             bg-gray-900 border border-black
             flex items-center justify-center
