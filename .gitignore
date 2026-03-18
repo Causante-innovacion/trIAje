@@ -63,3 +63,5 @@ nul
 # Copilot agent skills (local only)
 .agents/
 .agent/
+skills.json
+skills-lock.json
