@@ -1,10 +1,19 @@
-# 🚀 Guía Maestra de Despliegue: GPT-Legal
+# 🚀 Guía Maestra de Despliegue: trIAje
 
 ¡Bienvenido, Capitán de Despliegue! 👨‍✈️👩‍✈️
 
-Esta guía es tu mapa del tesoro para llevar **GPT-Legal** desde tu computadora ("en local") hasta un servidor real ("producción") usando la magia de los contenedores **Docker**.
+Esta guía es tu mapa del tesoro para llevar **trIAje** desde tu computadora ("en local") hasta un servidor real ("producción") usando la magia de los contenedores **Docker**.
 
 No necesitas ser un experto en DevOps. Solo sigue los pasos. 😉
+
+---
+
+## 🎯 El Objetivo
+
+Esta guía es tu mapa del tesoro para llevar **trIAje** desde tu computadora ("en local") hasta un servidor real ("producción") usando la magia de los contenedores **Docker**. 
+
+La meta: Que cualquier ONG pueda tener **trIAje** vivo y conectado a internet en menos de 30 minutos.
+ 😉
 
 ---
 
@@ -143,12 +152,12 @@ services:
   # 🐍 LA CAJA DEL BACKEND
   backend:
     build: ./backend              # Construye usando la receta de la carpeta backend
-    container_name: gpt_legal_backend
+    container_name: triaje_backend
     ports:
       # - "8000:8000"             # 🔒 COMENTADO POR SEGURIDAD EN PRODUCCIÓN
                                   # Solo descomenta si necesitas probar el backend directo (Swagger)
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/gpt_legal.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/triaje.db
       - CHROMA_MODE=server
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
@@ -162,7 +171,7 @@ services:
   # 🎨 LA CAJA DEL FRONTEND
   frontend:
     build: ./frontend
-    container_name: gpt_legal_frontend
+    container_name: triaje_frontend
     ports:
       - "5173:80"                 # 🌍 ESTE ES EL ÚNICO PUERTO PÚBLICO
     depends_on:
@@ -172,7 +181,7 @@ services:
   # 🧠 LA CAJA DE LA MEMORIA (ChromaDB)
   chromadb:
     image: chromadb/chroma:latest
-    container_name: gpt_legal_chromadb
+    container_name: triaje_chromadb
     ports:
       # - "8001:8000"             # 🔒 CERRADO POR SEGURIDAD. Solo el Backend debe hablar con él.
     volumes:
@@ -184,7 +193,7 @@ services:
   # 👁️ EL VISOR DE MEMORIA (Bonus Track)
   chroma-ui:
     image: ghcr.io/chroma-core/chroma-ui:latest
-    container_name: gpt_legal_chroma_ui
+    container_name: triaje_chroma_ui
     ports:
       - "3000:3000"               # 🔓 ABIERTO PARA DESARROLLO (Cerrar en producción final)
     environment:
@@ -248,7 +257,7 @@ Cuando ya nadie tenga que tocar el código, **edita el `docker-compose.yml`** y 
 
 1.  Abre tu Portainer.
 2.  Ve a **Stacks** ➡️ **Add stack**.
-3.  Ponle nombre: `gpt-legal`.
+3.  Ponle nombre: `triaje`.
 4.  Elige **"Repository"** y pega tu URL de GitHub.
 5.  **Environment variables:** Agrega `OPENAI_API_KEY`.
 6.  **¡Deploy!**
@@ -261,4 +270,4 @@ Si quieres cerrar un puerto temporalmente sin editar el código en GitHub:
 ¡Listo! Puerta cerrada en 5 segundos. 🚪🔒
 
 ---
-✨ **¡Felicidades!** Ya eres un DevOps oficial de GPT-Legal.
+✨ **¡Felicidades!** Ya eres un DevOps oficial de trIAje.

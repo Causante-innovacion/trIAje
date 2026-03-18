@@ -1,6 +1,6 @@
-# Arquitectura del Proyecto GPT-Legal
+# Arquitectura del Proyecto trIAje
 
-Este documento define la estructura y arquitectura técnica del proyecto **GPT-Legal**, diseñada para ser escalable, modular y cumplir con los requisitos de negocio (Causante).
+Este documento define la estructura y arquitectura técnica del proyecto **trIAje**, diseñada para ser escalable, modular y cumplir con los requisitos de negocio (Causante).
 
 ## Stack Tecnológico
 
@@ -21,8 +21,9 @@ Este documento define la estructura y arquitectura técnica del proyecto **GPT-L
 
 ## Estructura de Directorios Propuesta
 
-```text
-gpt-legal/
+```bash
+triaje/
+├── backend/                  # API, lógica de IA y base de datos (Python)
 ├── README.md               # Punto de entrada y documentación general
 ├── docs/                   # Documentación detallada (Arquitectura, Guías)
 │   └── ARCHITECTURE.md

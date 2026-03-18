@@ -13,11 +13,9 @@
 
 ---
 
-## 1. INTRODUCCIÓN Y PROPÓSITO
+## 1. Visión General: ¿Qué es el Sistema RAG?
 
-### ¿Qué es el Sistema RAG?
-
-El sistema RAG (Retrieval Augmented Generation) de GPT Legal es una solución de asistencia legal especializada para ONGs en Perú. A diferencia de una base de datos tradicional, este sistema combina:
+El sistema RAG (Retrieval Augmented Generation) de trIAje es una solución de asistencia legal especializada para ONGs en Perú. A diferencia de una base de datos tradicional, este sistema combina:
 
 - **Búsqueda semántica**: Entiende el significado de las preguntas, no solo las palabras exactas
 - **Generación de respuestas**: Usa modelos de lenguaje (GPT) para crear respuestas personalizadas
