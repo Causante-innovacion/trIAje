@@ -15,7 +15,7 @@ export function useChat() {
     sessionId,
     conversationId,
     addUserMessage,
-    addJustoMessage,
+    addTriajeMessage,
     addErrorMessage,
     setProcessing,
     setTyping,
@@ -50,7 +50,7 @@ export function useChat() {
     const history = messages
       .filter(m =>
         (m.sender === 'user' && m.contentType === 'text' && m.content?.trim()) ||
-        (m.sender === 'justo' &&
+        (m.sender === 'triaje' &&
           (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
           m.content?.trim() && !m.isStreaming)
       )
@@ -225,7 +225,7 @@ export function useChat() {
       }
 
       setTyping(false)
-      addJustoMessage(
+      addTriajeMessage(
         data.message,
         data.options
       )
@@ -236,7 +236,7 @@ export function useChat() {
     } catch (error) {
       console.error('Chat error:', error)
       setTyping(false)
-      addJustoMessage(
+      addTriajeMessage(
         'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.'
       )
     } finally {
@@ -249,7 +249,7 @@ export function useChat() {
     currentStep,
     sendIntelligentMessage,
     addUserMessage,
-    addJustoMessage,
+    addTriajeMessage,
     setProcessing,
     setTyping,
     nextStep,
@@ -274,7 +274,7 @@ export function useChat() {
       const data: ChatResponse = response.data
 
       setTyping(false)
-      addJustoMessage(
+      addTriajeMessage(
         data.message,
         data.options
       )
@@ -285,7 +285,7 @@ export function useChat() {
     } catch (error) {
       console.error('Option selection error:', error)
       setTyping(false)
-      addJustoMessage(
+      addTriajeMessage(
         'Lo siento, hubo un error. Por favor, intenta de nuevo.'
       )
     } finally {
@@ -297,7 +297,7 @@ export function useChat() {
     currentTool,
     currentStep,
     addUserMessage,
-    addJustoMessage,
+    addTriajeMessage,
     setProcessing,
     setTyping,
     nextStep,

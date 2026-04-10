@@ -2,7 +2,7 @@
 
 export type ToolType = 'evaluation' | 'compliance' | 'query' | 'advisor' | 'chat' | null
 
-export type MessageSender = 'justo' | 'user'
+export type MessageSender = 'triaje' | 'user'
 
 export type MessageContentType =
   | 'text'
@@ -252,7 +252,7 @@ export const TOOLS: Tool[] = [
     name: 'Consulta libre',
     description: 'Escribe cualquier consulta legal y nuestro sistema clasificará tu intención y te dará la orientación adecuada.',
     icon: 'message-circle',
-    initialMessage: '¡Hola! Soy **JUSTO**, tu asistente legal inteligente.\n\nPuedes preguntarme cualquier cosa sobre temas legales para organizaciones civiles en Perú: formalización, tributación, contratación, propiedad intelectual, y más.\n\n¿En qué puedo ayudarte hoy?'
+    initialMessage: '¡Hola! Soy **trIAje**, tu asistente legal inteligente.\n\nPuedes preguntarme cualquier cosa sobre temas legales para organizaciones civiles en Perú: formalización, tributación, contratación, propiedad intelectual, y más.\n\n¿En qué puedo ayudarte hoy?'
   },
   {
     id: 'evaluation',

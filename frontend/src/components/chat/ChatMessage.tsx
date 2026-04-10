@@ -100,7 +100,7 @@ function StreamingStatusPill({ status }: { status: string }) {
 }
 
 export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, onSendMessage, animate = false }: ChatMessageProps) {
-  const isJusto = message.sender === 'justo'
+  const isTriaje = message.sender === 'triaje'
   const navigate = useNavigate()
 
   // Render message content based on type
@@ -329,14 +329,14 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
     }
   }
 
-  if (isJusto) {
+  if (isTriaje) {
     return (
       <div className="chat-message">
         <div className="flex items-start gap-4">
           <Avatar size="md" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-              JUSTO
+              trIAje
             </p>
             <div className="chat-bubble overflow-hidden">
               {renderContent()}

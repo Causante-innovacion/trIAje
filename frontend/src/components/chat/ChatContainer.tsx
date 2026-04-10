@@ -56,7 +56,7 @@ export function ChatContainer() {
     messages,
     isTyping,
     addUserMessage,
-    addJustoMessage,
+    addTriajeMessage,
     setTyping,
     nextStep,
     currentStep,
@@ -78,7 +78,7 @@ export function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const hasSentPending = useRef(false)
   const userHasScrolledUp = useRef(false)
-  const lastJustoMessageRef = useRef<HTMLDivElement>(null)
+  const lastTriajeMessageRef = useRef<HTMLDivElement>(null)
   // ID del último mensaje del asistente al que ya scrolleamos el inicio
   const scrolledToStartForId = useRef<string | null>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
@@ -88,9 +88,9 @@ export function ChatContainer() {
     if (el) el.scrollTop = el.scrollHeight
   }, [])
 
-  const scrollToLastJustoMessageStart = useCallback(() => {
+  const scrollToLastTriajeMessageStart = useCallback(() => {
     const container = scrollContainerRef.current
-    const msgEl = lastJustoMessageRef.current
+    const msgEl = lastTriajeMessageRef.current
     if (!container || !msgEl) return
     const msgTop = msgEl.offsetTop - container.offsetTop
     container.scrollTo({ top: Math.max(0, msgTop - 16), behavior: 'smooth' })
@@ -119,7 +119,7 @@ export function ChatContainer() {
     }
 
     if (
-      lastMsg.sender === 'justo' &&
+      lastMsg.sender === 'triaje' &&
       lastMsg.id !== scrolledToStartForId.current
     ) {
       // Nuevo mensaje del asistente: scrollear al inicio UNA Única vez
@@ -129,18 +129,18 @@ export function ChatContainer() {
       // Ejecutar el scroll después de que el DOM haya pintado el nuevo mensaje.
       // doble rAF = espera al menos dos frames de render (el navegador pintó el nodo).
       const doScroll = () => {
-        if (lastJustoMessageRef.current) {
-          scrollToLastJustoMessageStart()
+        if (lastTriajeMessageRef.current) {
+          scrollToLastTriajeMessageStart()
         } else {
           // El elemento aún no existe en el DOM: esperar con ResizeObserver
           const container = scrollContainerRef.current
           if (!container) return
           let fired = false
           const obs = new ResizeObserver(() => {
-            if (fired || !lastJustoMessageRef.current) return
+            if (fired || !lastTriajeMessageRef.current) return
             fired = true
             obs.disconnect()
-            scrollToLastJustoMessageStart()
+            scrollToLastTriajeMessageStart()
           })
           obs.observe(container)
           setTimeout(() => { if (!fired) obs.disconnect() }, 1000)
@@ -153,7 +153,7 @@ export function ChatContainer() {
 
     // Durante el streaming (mismo id) → NO hacer nada.
     // El usuario permanece donde está sin que la vista lo arrastre.
-  }, [messages, scrollToBottom, scrollToLastJustoMessageStart])
+  }, [messages, scrollToBottom, scrollToLastTriajeMessageStart])
 
   // If extractedPlan already in store (e.g. navigating back), rebuild local state
   useEffect(() => {
@@ -192,18 +192,18 @@ export function ChatContainer() {
 
       if (currentTool === 'evaluation' && currentStep === 1) {
         if (value === 'yes') {
-          addJustoMessage(
+          addTriajeMessage(
             'Excelente. Sube tu plan estratégico aquí y extraeré información como:\n\n✓ Descripción del proyecto\n✓ Modelo de financiamiento\n✓ Organizaciones involucradas\n✓ Recursos operativos\n\nDespués solo te preguntaré lo que necesite para completar la evaluación legal.'
           )
           setTimeout(() => {
             useChatStore.getState().addMessage({
-              sender: 'justo',
+              sender: 'triaje',
               content: '',
               contentType: 'file_upload',
             })
           }, 500)
         } else {
-          addJustoMessage(
+          addTriajeMessage(
             'Sin problema, empecemos desde cero.\n\n¿Cuál es el nombre de tu proyecto o iniciativa?'
           )
         }
@@ -286,7 +286,7 @@ export function ChatContainer() {
 
         // Show project info card
         useChatStore.getState().addMessage({
-          sender: 'justo',
+          sender: 'triaje',
           content: 'project_info_card',
           contentType: 'text',
           metadata: { step: currentStep, toolContext: currentTool },
@@ -303,7 +303,7 @@ export function ChatContainer() {
         errorMessage = 'El archivo es demasiado grande y supera el límite permitido.'
       }
 
-      addJustoMessage(
+      addTriajeMessage(
         `No pude procesar el archivo. ${errorMessage}\n\nPor favor intenta con otro archivo .docx, .pdf o .txt, o empecemos desde cero.`
       )
     }
@@ -315,7 +315,7 @@ export function ChatContainer() {
     setTimeout(() => {
       setTyping(false)
       useChatStore.getState().addMessage({
-        sender: 'justo',
+        sender: 'triaje',
         content: 'organizations_detected',
         contentType: 'text',
       })
@@ -352,23 +352,23 @@ export function ChatContainer() {
     sendMessage(content, options)
   }
 
-  // Find the last justo message ID for animation
-  const lastJustoMessageId = [...messages].reverse().find(m => m.sender === 'justo')?.id
+  // Find the last trIAje message ID for animation
+  const lastTriajeMessageId = [...messages].reverse().find(m => m.sender === 'triaje')?.id
 
   const renderMessage = (message: typeof messages[0]) => {
     // Should this message animate?
     // Streamed messages (wasStreamed=true) already showed content building up
     // token by token, so we skip the typewriter re-play after streaming ends.
-    const shouldAnimate = message.id === lastJustoMessageId &&
-      message.sender === 'justo' &&
+    const shouldAnimate = message.id === lastTriajeMessageId &&
+      message.sender === 'triaje' &&
       !message.wasStreamed &&
       !message.hasBeenAnimated
 
-    // Whether this is the last justo message (for scroll anchor)
-    const isLastJusto = message.id === lastJustoMessageId && message.sender === 'justo'
+    // Whether this is the last trIAje message (for scroll anchor)
+    const isLastTriaje = message.id === lastTriajeMessageId && message.sender === 'triaje'
 
     // Special rendering for project info card
-    if (message.content === 'project_info_card' && message.sender === 'justo') {
+    if (message.content === 'project_info_card' && message.sender === 'triaje') {
       const data = projectInfo ?? {
         projectName: 'Cargando...',
         organization: '',
@@ -381,12 +381,12 @@ export function ChatContainer() {
       }
 
       return (
-        <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined} className="chat-message">
+        <div key={message.id} ref={isLastTriaje ? lastTriajeMessageRef : undefined} className="chat-message">
           <div className="flex items-start gap-4">
             <Avatar size="md" />
             <div className="flex-1">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                JUSTO
+                trIAje
               </p>
               <ProjectInfoCard
                 data={data}
@@ -404,7 +404,7 @@ export function ChatContainer() {
     }
 
     // Special rendering for organizations detected
-    if (message.content === 'organizations_detected' && message.sender === 'justo') {
+    if (message.content === 'organizations_detected' && message.sender === 'triaje') {
       const orgs = organizations.length > 0
         ? organizations
         : [{ id: '1', name: 'Organización principal' }]
@@ -422,12 +422,12 @@ export function ChatContainer() {
       })
 
       return (
-        <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined} className="chat-message">
+        <div key={message.id} ref={isLastTriaje ? lastTriajeMessageRef : undefined} className="chat-message">
           <div className="flex items-start gap-4">
             <Avatar size="md" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                JUSTO
+                trIAje
               </p>
               <OrganizationsDetected
                 organizations={orgs}
@@ -446,7 +446,7 @@ export function ChatContainer() {
     }
 
     return (
-      <div key={message.id} ref={isLastJusto ? lastJustoMessageRef : undefined}>
+      <div key={message.id} ref={isLastTriaje ? lastTriajeMessageRef : undefined}>
         <ChatMessage
           message={message}
           onOptionSelect={handleOptionSelect}
@@ -477,7 +477,7 @@ export function ChatContainer() {
                 <Avatar size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                    JUSTO
+                    trIAje
                   </p>
                   <div className="chat-bubble overflow-hidden">
                     <p className="mb-3 text-sm text-gray-600">
@@ -497,7 +497,7 @@ export function ChatContainer() {
                 <Avatar size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                    JUSTO
+                    trIAje
                   </p>
                   <div className="chat-bubble inline-flex items-center gap-1 py-3 px-4 overflow-hidden">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

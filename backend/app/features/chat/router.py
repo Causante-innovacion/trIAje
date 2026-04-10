@@ -141,7 +141,7 @@ async def list_gatillos() -> GatilloListResponse:
     summary="Subir archivo para análisis en el chat",
     description=(
         "Acepta un PDF, DOCX o TXT, extrae su texto y retorna un preview que el frontend "
-        "puede enviar como mensaje al chat para que JUSTO lo analice."
+        "puede enviar como mensaje al chat para que trIAje lo analice."
     ),
 )
 async def upload_chat_file(
@@ -155,7 +155,7 @@ async def upload_chat_file(
     1. Valida tipo y tamaño del archivo.
      2. Extrae texto (PDF via PyMuPDF, DOCX via python-docx, TXT via UTF-8).
     3. Retorna filename + content_preview (hasta 3000 chars) para que el frontend
-       lo pueda re-enviar como mensaje a JUSTO.
+         lo pueda re-enviar como mensaje a trIAje.
     """
     import io
 

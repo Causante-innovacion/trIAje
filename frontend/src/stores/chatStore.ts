@@ -38,7 +38,7 @@ interface ChatStore {
   startTool: (tool: ToolType) => void
   startIntelligentChat: (initialMessage?: string, skipGreeting?: boolean) => void
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
-  addJustoMessage: (content: string, options?: Message['options']) => void
+  addTriajeMessage: (content: string, options?: Message['options']) => void
   addUserMessage: (content: string) => void
   addIntelligentResponse: (
     content: string,
@@ -119,9 +119,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       lastActions: [],
     })
 
-    // Add initial message from JUSTO after a small delay for natural feel
+    // Add initial message from trIAje after a small delay for natural feel
     setTimeout(() => {
-      get().addJustoMessage(toolConfig.initialMessage,
+      get().addTriajeMessage(toolConfig.initialMessage,
         tool === 'evaluation' ? [
           { id: '1', label: 'Sí, tengo un plan del Generador Cívico', value: 'yes', icon: 'check' },
           { id: '2', label: 'No, empiezo desde cero', value: 'no', icon: 'x' }
@@ -148,7 +148,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const toolConfig = TOOLS.find(t => t.id === 'chat')
     if (toolConfig && !initialMessage && !skipGreeting) {
       setTimeout(() => {
-        get().addJustoMessage(toolConfig.initialMessage)
+        get().addTriajeMessage(toolConfig.initialMessage)
       }, 300)
     }
   },
@@ -164,9 +164,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }))
   },
 
-  addJustoMessage: (content, options) => {
+  addTriajeMessage: (content, options) => {
     get().addMessage({
-      sender: 'justo',
+      sender: 'triaje',
       content,
       contentType: options ? 'options' : 'text',
       options,
@@ -190,7 +190,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   addIntelligentResponse: (content, classification, sources, actions, disclaimers) => {
     set({ lastClassification: classification, lastSources: sources, lastActions: actions })
     get().addMessage({
-      sender: 'justo',
+      sender: 'triaje',
       content,
       contentType: 'semaphore_response',
       metadata: {
@@ -205,7 +205,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   addErrorMessage: (content, errorType) => {
     get().addMessage({
-      sender: 'justo',
+      sender: 'triaje',
       content,
       contentType: 'error',
       metadata: { errorType: errorType as 'network' | 'server' | 'validation' | 'timeout' },
@@ -225,7 +225,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ...state.messages,
         {
           id,
-          sender: 'justo' as const,
+          sender: 'triaje' as const,
           content: '',
           contentType: 'semaphore_response' as const,
           timestamp: new Date(),

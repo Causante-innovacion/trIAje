@@ -1353,7 +1353,7 @@ SELF_DESCRIPTION_PATTERNS: List[str] = [
 ]
 
 GREETING_MESSAGE = (
-    "¡Hola! 👋 Soy **JUSTO**, tu asistente legal especializado en derecho peruano "
+    "¡Hola! 👋 Soy **trIAje**, tu asistente legal especializado en derecho peruano "
     "para organizaciones civiles.\n\n"
     "Puedo ayudarte con temas como:\n\n"
     "- Formalización y registros (SUNARP)\n"
@@ -1372,7 +1372,7 @@ GREETING_MESSAGE = (
 )
 
 SELF_DESCRIPTION_MESSAGE = (
-    "Soy **JUSTO**, un asistente legal especializado en derecho peruano para organizaciones civiles.\n\n"
+    "Soy **trIAje**, un asistente legal especializado en derecho peruano para organizaciones civiles.\n\n"
     "Puedo ayudarte de forma breve y práctica con:\n"
     "- Consultas sobre formalización y registros (SUNARP)\n"
     "- RUC, obligaciones tributarias y cumplimiento ante SUNAT\n"
@@ -1638,7 +1638,7 @@ PRE_CLARIFY_SKIP_KEYWORDS: Dict[Intention, List[str]] = {
 
 # Prompt de sistema para el flujo de pre-clarificación
 PRE_CLARIFY_SYSTEM_PROMPT = (
-    "Eres Justo, un asistente legal especializado en derecho peruano para organizaciones civiles. "
+    "Eres trIAje, un asistente legal especializado en derecho peruano para organizaciones civiles. "
     "Tu tarea en este momento NO es responder la consulta, sino hacer UNA o DOS preguntas breves y precisas "
     "para entender mejor el contexto antes de orientar al usuario. "
     "Las preguntas deben ser directas, comprensibles para personas sin conocimientos legales, "

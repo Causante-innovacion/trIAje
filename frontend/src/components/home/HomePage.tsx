@@ -95,7 +95,7 @@ export function HomePage() {
 
       // Add the project info card message
       useChatStore.getState().addMessage({
-        sender: 'justo',
+        sender: 'triaje',
         content: 'project_info_card',
         contentType: 'text',
       })
@@ -217,7 +217,7 @@ export function HomePage() {
             <div className="overflow-y-auto px-6 py-5 text-sm text-gray-600 leading-relaxed space-y-4">
               <p>
                 <strong className="text-gray-900">1. Naturaleza del servicio.</strong>{' '}
-                JUSTO es una herramienta de orientación legal de carácter informativo. Las respuestas generadas no constituyen asesoría legal formal ni reemplazan la consulta con un abogado habilitado.
+                trIAje es una herramienta de orientación legal de carácter informativo. Las respuestas generadas no constituyen asesoría legal formal ni reemplazan la consulta con un abogado habilitado.
               </p>
               <p>
                 <strong className="text-gray-900">2. Limitación de responsabilidad.</strong>{' '}

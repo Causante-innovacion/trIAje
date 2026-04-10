@@ -254,7 +254,7 @@ class QdrantAdapter(VectorStoreAdapter):
                     similarity = point.score if point.score is not None else 0.0
 
                     chunk = RetrievedChunk(
-                        chunk_id=payload.get("chunk_id", str(point.id)),
+                        chunk_id=str(payload.get("chunk_id", str(point.id))),
                         content=payload.get("content", ""),
                         metadata=ChunkMetadata(
                             doc_id=payload.get("doc_id", ""),
@@ -422,7 +422,7 @@ class QdrantAdapter(VectorStoreAdapter):
                     for point in results:
                         payload = point.payload or {}
                         chunk = RetrievedChunk(
-                            chunk_id=payload.get("chunk_id", str(point.id)),
+                            chunk_id=str(payload.get("chunk_id", str(point.id))),
                             content=payload.get("content", ""),
                             metadata=ChunkMetadata(
                                 doc_id=payload.get("doc_id", ""),

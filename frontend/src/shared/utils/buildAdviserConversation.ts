@@ -170,7 +170,7 @@ export function buildAdviserConversation(
           !isFiller(m.content)
         )
       }
-      if (m.sender === 'justo') {
+      if (m.sender === 'triaje') {
         return (
           (m.contentType === 'semaphore_response' || m.contentType === 'text') &&
           m.content?.trim() &&

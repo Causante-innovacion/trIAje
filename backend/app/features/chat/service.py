@@ -160,7 +160,7 @@ def _build_system_prompt(mode: str) -> str:
     - 'amber_partial': Respuesta orientativa AMARILLO antes de recibir contexto completo.
     - 'amber_rag'   : Respuesta AMARILLO tras recibir contexto del usuario + RAG.
     """
-    base = "Eres Justo, un asistente legal especializado en derecho peruano para organizaciones civiles. "
+    base = "Eres trIAje, un asistente legal especializado en derecho peruano para organizaciones civiles. "
 
     if mode == "followup":
         core = (
@@ -226,6 +226,38 @@ class ChatService:
 
     def __init__(self):
         self._ai_router = AIRouter()
+
+    async def _reason_with_fallback(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        history: list | None = None,
+    ) -> str:
+        """
+        Ejecuta razonamiento legal con fallback automático.
+
+        Flujo:
+        1) Intenta modelo de reasoning (principal).
+        2) Si falla, intenta modelo de creatividad (create) para evitar respuesta vacía.
+        """
+        try:
+            response = await self._ai_router.reason(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                history=history,
+            )
+            return response.content
+        except Exception as primary_error:
+            logger.warning(
+                "[REASONING] reason() falló, intentando fallback create(): %s: %s",
+                type(primary_error).__name__,
+                primary_error,
+            )
+            response = await self._ai_router.create(
+                prompt=prompt,
+                system_prompt=system_prompt,
+            )
+            return response.content
 
     async def process_message(self, request: ChatRequest) -> ChatResponse:
         """
@@ -939,12 +971,11 @@ class ChatService:
             )
 
         try:
-            response = await self._ai_router.reason(
+            return await self._reason_with_fallback(
                 prompt=prompt,
                 system_prompt=system_prompt,
                 history=history,
             )
-            return response.content
         except Exception:
             if intention_config:
                 return (
@@ -1108,12 +1139,12 @@ class ChatService:
         )
 
     def _build_self_description_response(self, conversation_id: str) -> ChatResponse:
-        """Respuesta breve para preguntas sobre qué es y qué puede hacer JUSTO."""
+        """Respuesta breve para preguntas sobre qué es y qué puede hacer trIAje."""
         return ChatResponse(
             message=SELF_DESCRIPTION_MESSAGE,
             classification=ChatClassification(
                 intention=Intention.FUERA_DE_ALCANCE,
-                intention_name="Sobre JUSTO",
+                intention_name="Sobre trIAje",
                 semaphore=Semaphore.VERDE,
                 confidence=1.0,
                 gatillos_detected=[],
@@ -1413,12 +1444,11 @@ class ChatService:
             )
 
         try:
-            response = await self._ai_router.reason(
+            return await self._reason_with_fallback(
                 prompt=prompt,
                 system_prompt=system_prompt,
                 history=history,
             )
-            return response.content
         except Exception:
             return await self._generate_basic_response(message, classification, history=history, amber_followup=amber_followup)
 
@@ -1453,14 +1483,13 @@ class ChatService:
             )
 
         try:
-            response = await self._ai_router.reason(
+            return await self._reason_with_fallback(
                 prompt=prompt,
                 system_prompt=system_prompt,
                 history=history,
             )
-            return response.content
         except Exception as e:
-            logger.error("[REASONING] reason() falló: %s: %s", type(e).__name__, e, exc_info=True)
+            logger.error("[REASONING] reason/create falló: %s: %s", type(e).__name__, e, exc_info=True)
             return (
                 f"Tu consulta está relacionada con **{intention_config.name}**. "
                 f"En este momento no puedo procesar la solicitud completamente. "

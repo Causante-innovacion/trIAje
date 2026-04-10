@@ -45,39 +45,28 @@ RAG entiende que es similar a:
 
 ### Diagrama de Flujo Completo
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    USUARIO HACE PREGUNTA                     │
-│  "Quiero crear una ONG educativa, ¿qué necesito?"          │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│        PASO 1: CLASIFICACIÓN DE INTENCIÓN                   │
-│  - Detecta: "crear ONG" → Intención: FORMALIZACION         │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│        PASO 2: BÚSQUEDA SEMÁNTICA EN ChromaDB              │
-│  - Convierte pregunta a vector numérico (embedding)         │
-│  - Busca documentos similares en la base vectorial          │
-│  - Recupera top 5 documentos más relevantes                 │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│        PASO 3: GENERACIÓN DE RESPUESTA CON GPT             │
-│  - Construye prompt con contexto recuperado                 │
-│  - GPT genera respuesta personalizada                       │
-│  - Cita fuentes legales específicas                         │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 RESPUESTA AL USUARIO                         │
-│  Incluye: pasos, costos, tiempos, fuentes legales          │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    U["🙋‍♂️ USUARIO HACE PREGUNTA<br/><i>'Quiero crear una ONG educativa, ¿qué necesito?'</i>"]
+    
+    P1["⚙️ PASO 1: CLASIFICACIÓN DE INTENCIÓN<br/>Detecta: 'crear ONG' ➔ Intención: FORMALIZACION"]
+    
+    P2["🔍 PASO 2: BÚSQUEDA SEMÁNTICA EN ChromaDB<br/>• Convierte pregunta a vector numérico (embedding)<br/>• Busca documentos similares en la base vectorial<br/>• Recupera top 5 documentos más relevantes"]
+    
+    P3["🤖 PASO 3: GENERACIÓN DE RESPUESTA CON GPT<br/>• Construye prompt con contexto recuperado<br/>• GPT genera respuesta personalizada<br/>• Cita fuentes legales específicas"]
+    
+    R["✅ RESPUESTA AL USUARIO<br/>Incluye: pasos, costos, tiempos, fuentes legales"]
+
+    U --> P1
+    P1 --> P2
+    P2 --> P3
+    P3 --> R
+
+    style U fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
+    style P1 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px
+    style P2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px
+    style P3 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style R fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 ### Componentes del Sistema
@@ -146,6 +135,19 @@ Esta es la clase principal que orquesta todo el sistema RAG.
 
 Responsable del proceso ETL (Extract, Transform, Load) de documentos legales.
 
+**Pipeline ETL (Extracción, Transformación y Carga):**
+
+```mermaid
+flowchart LR
+    PDF["📄 Documento PDF<br/>(Ley/Reglamento)"] --> LP["🦙 LlamaParse<br/>Extrae texto a Markdown"]
+    Meta["🏷️ Archivo JSON<br/>(Metadata)"] -.-> Chunks
+    LP --> Chunks["✂️ Text Splitter<br/>Chunks 1000 chars<br/>Overlap 200"]
+    Chunks --> Embed["🧠 Modelo HuggingFace<br/>Genera Embeddings"]
+    Embed --> Chroma[("🗄️ ChromaDB<br/>Base Vectorial")]
+
+    style Chroma fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+```
+
 **Métodos principales:**
 
 1. **`__init__(llama_api_key)`** - Configuración
@@ -210,57 +212,35 @@ Similitud entre Pregunta 1 y 3: 0.96 (muy similar)
 
 **Ejemplo práctico:**
 
-```
-ENTRADA:
-Usuario: "¿Cuáles son los elementos del estatuto?"
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant RAG as Sistema trIAje
+    participant V as ChromaDB
+    participant D as Respuestas Modelo
+    participant GPT as OpenAI GPT
 
-PASO 1 - Búsqueda en PDFs:
-- Busca en ChromaDB (465 documentos)
-- Encuentra 5 artículos relevantes:
-  1. Reglamento de Inscripciones Art. X (score: 0.95)
-  2. Código Civil Art. 82 (score: 0.89)
-  3. DL 1049 chunk 45 (score: 0.85)
-  ...
-
-PASO 2 - Búsqueda respuestas modelo:
-- Lee archivos .md en intenciones/formalizacion/
-- Encuentra 2 respuestas modelo con explicaciones didácticas
-
-PASO 3 - Construcción del prompt:
-Sistema: "Eres un asistente legal especializado en ONGs en Perú"
-
-Contexto de artículos legales:
-[Artículo 1]
-Reglamento de Inscripciones...
-[Artículo 2]
-Código Civil Art. 82...
-
-Respuestas modelo (guía de estructura):
-[constitucion_asociacion.md]
-Los elementos obligatorios son...
-
-Pregunta del usuario:
-¿Cuáles son los elementos del estatuto?
-
-Instrucciones:
-- Responde de forma clara y estructurada
-- Cita artículos legales específicamente
-- Explica paso a paso
-
-PASO 4 - GPT genera respuesta:
-"Los elementos obligatorios del estatuto de una asociación son:
-
-1. Denominación
-2. Duración
-3. Domicilio
-4. Fines
-5. Patrimonio inicial
-...
-
-Según el Artículo 82 del Código Civil..."
-
-SALIDA:
-Respuesta formateada + fuentes consultadas
+    U->>RAG: "¿Cuáles son los elementos del estatuto?"
+    
+    rect rgb(240, 248, 255)
+        Note over RAG,V: PASO 1: Búsqueda Semántica
+        RAG->>V: Buscar documentos similares en BD Vectorial
+        V-->>RAG: Retorna 5 artículos legales (Reglamento PJ, CC)
+    end
+    
+    rect rgb(255, 240, 245)
+        Note over RAG,D: PASO 2: Búsqueda Guiada
+        RAG->>D: Buscar archivos .md en intenciones/formalizacion/
+        D-->>RAG: Retorna explicaciones didácticas
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over RAG,GPT: PASO 3: Generación
+        RAG->>GPT: Prompt = Contexto(Artículos + Modelos) + Instrucciones + Pregunta
+        GPT-->>RAG: Respuesta generada, estructurada y citando fuentes
+    end
+    
+    RAG-->>U: Respuesta formateada enriquecida con fuentes legales
 ```
 
 ### 4.3 Combinación de Fuentes

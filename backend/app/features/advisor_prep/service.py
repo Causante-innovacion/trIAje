@@ -160,7 +160,7 @@ def _format_conversation(conversation: List[Dict[str, str]]) -> str:
         elif role == "user":
             lines.append(f"Usuario: {content}")
         else:
-            lines.append(f"Asistente Legal (JUSTO): {content}")
+            lines.append(f"Asistente Legal (trIAje): {content}")
 
     parts = []
     if context_block:

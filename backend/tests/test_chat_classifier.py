@@ -993,7 +993,7 @@ class TestChatService:
         response = await service.process_message(request)
 
         assert response.classification.intention == Intention.FUERA_DE_ALCANCE
-        assert "soy **justo**" in response.message.lower()
+        assert "soy **triaje**" in response.message.lower()
         assert "puedo ayudarte" in response.message.lower()
         assert "no puedo responder" not in response.message.lower()
 
