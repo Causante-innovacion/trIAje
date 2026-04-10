@@ -14,11 +14,17 @@ services:
       - QDRANT_PORT=6333
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MAPLE_API_KEY=${MAPLE_API_KEY}
-      - MAPLE_API_URL=http://maple-proxy:8080/v1
-      - PROVIDER_REASONING=maple
-      - MODEL_REASONING=deepseek-r1-0528
-      - PROVIDER_INTAKE=openai
-      - MODEL_INTAKE=gpt-4o-mini
+      - MAPLE_API_URL=http://maple-proxy:8080/v1   # override: localhost no funciona dentro de Docker
+      # --- Providers y modelos — se leen del .env raíz ---
+      - AI_PROVIDER_PRIMARY=${AI_PROVIDER_PRIMARY}
+      - PROVIDER_REASONING=${PROVIDER_REASONING}
+      - MODEL_REASONING=${MODEL_REASONING}
+      - MODEL_REASONING_FALLBACK=${MODEL_REASONING_FALLBACK}
+      - PROVIDER_REASONING_FALLBACK=${PROVIDER_REASONING_FALLBACK}
+      - PROVIDER_INTAKE=${PROVIDER_INTAKE}
+      - MODEL_INTAKE=${MODEL_INTAKE}
+      - PROVIDER_CREATIVITY=${PROVIDER_CREATIVITY}
+      - MODEL_CREATIVITY=${MODEL_CREATIVITY}
     volumes:
       - ./backend_data:/app/data  
     depends_on:
@@ -42,7 +48,8 @@ services:
       - default
       - red-externa
 
-  # 🔒 MAPLE PROXY — Puerta de entrada segura a DeepSeek R1 (TEE encriptado)
+  # 🔒 MAPLE PROXY — Puerta de entrada al enclave TEE de Maple/Tinfoil
+  # Modelos disponibles: kimi-k2-5, gpt-oss-120b, llama3-3-70b, gemma4-31b
   # Requiere que el backend apunte a: MAPLE_API_URL=http://maple-proxy:8080/v1
   # Documentación: https://blog.trymaple.ai/maple-proxy-documentation/
   maple-proxy:
