@@ -146,8 +146,8 @@ class IntentionClassifier:
             return None, 0.0
 
         best = max(scores, key=scores.get)  # type: ignore
-        total_keywords = len(INTENTIONS[best].keywords)
-        confidence = min(scores[best] / max(total_keywords * 0.2, 1), 1.0)
+        # Cada acierto de palabra clave aporta 0.40 a la confianza
+        confidence = min(scores[best] * 0.40, 1.0)
 
         return best, confidence
 
@@ -216,6 +216,7 @@ class IntentionClassifier:
         """
         intention, confidence = IntentionClassifier.classify_by_keywords(message)
 
+        # Si hay al menos un keyword match claro (> 0), saltar el lento LLM
         if intention and confidence >= 0.35:
             # Keywords suficientes para intención; semáforo se calcula por reglas (no LLM)
             return intention, confidence, None

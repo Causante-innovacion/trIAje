@@ -85,19 +85,7 @@ function AnimatedText({ text, animate, messageId }: { text: string; animate: boo
   )
 }
 
-/** Status pill shown while a streaming message is in progress */
-function StreamingStatusPill({ status }: { status: string }) {
-  return (
-    <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 w-fit animate-pulse">
-      <span className="flex gap-0.5">
-        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:0ms]" />
-        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:150ms]" />
-        <span className="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:300ms]" />
-      </span>
-      {status}
-    </div>
-  )
-}
+
 
 export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploadRequest, onSendMessage, animate = false }: ChatMessageProps) {
   const isTriaje = message.sender === 'triaje'
@@ -127,7 +115,7 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             {/* Streaming status pill — shown while tokens haven't started yet.
                  Hidden when isGenerating=true since ThinkingBlock already shows 'Analizando…' */}
             {message.isStreaming && message.streamingStatus && !message.content && !isScanning && !isGenerating && (
-              <StreamingStatusPill status={message.streamingStatus} />
+              <ThinkingBlock content="" isThinking={true} title={message.streamingStatus} />
             )}
 
             {/* Lista de documentos encontrando durante RAG */}

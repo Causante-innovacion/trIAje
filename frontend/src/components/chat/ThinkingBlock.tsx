@@ -5,6 +5,8 @@ interface ThinkingBlockProps {
   content: string
   /** Si true, el modelo todavía está razonando (no llegó </think>) */
   isThinking: boolean
+  /** Optional custom title to display instead of 'Analizando...' */
+  title?: string
 }
 
 /**
@@ -29,7 +31,7 @@ function isLikelyEnglish(text: string): boolean {
   return hits >= 3
 }
 
-export function ThinkingBlock({ content, isThinking }: ThinkingBlockProps) {
+export function ThinkingBlock({ content, isThinking, title }: ThinkingBlockProps) {
   const [open, setOpen] = useState(false)
 
   const inEnglish = !isThinking && isLikelyEnglish(content)
@@ -43,7 +45,7 @@ export function ThinkingBlock({ content, isThinking }: ThinkingBlockProps) {
       >
         <Brain className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="font-medium flex-1">
-          {isThinking ? 'Analizando…' : 'Ver razonamiento completo'}
+          {title ? title : (isThinking ? 'Analizando…' : 'Ver razonamiento completo')}
         </span>
 
         {/* Badge de idioma — solo cuando el razonamiento quedó en inglés */}
