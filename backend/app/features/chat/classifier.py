@@ -55,8 +55,7 @@ Responde EXCLUSIVAMENTE en JSON con este formato:
 {{
     "intention": "<id_de_intencion>",
     "semaphore": "<verde|amarillo|rojo>",
-    "confidence": <0.0 a 1.0>,
-    "reasoning": "<explicación breve>"
+    "confidence": <0.0 a 1.0>
 }}"""
 
 
@@ -165,8 +164,7 @@ class IntentionClassifier:
             "properties": {
                 "intention": {"type": "string"},
                 "semaphore": {"type": "string"},
-                "confidence": {"type": "number"},
-                "reasoning": {"type": "string"},
+                "confidence": {"type": "number"}
             },
             "required": ["intention", "semaphore", "confidence"],
         }
