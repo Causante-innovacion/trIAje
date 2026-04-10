@@ -733,7 +733,7 @@ class ChatService:
                 "CUMPLE ESTRICTAMENTE ESTAS REGLAS:\n"
                 "1. NO des ninguna orientación legal, ni asumas escenarios, ni menciones artículos todavía.\n"
                 "2. Saluda brevemente e incluye el emoji 🟡 al principio de tu mensaje, explicando que necesitas más detalles para poder ayudarle.\n"
-                "3. Pregúntale explícitamente los temas faltantes listados en el prompt como viñetas.\n"
+                "3. Sintetiza los temas faltantes (que recibirás en el prompt) convirtiéndolos en viñetas CORTAS, simples y muy fáciles de leer. Pon máximo una o dos preguntas breves por viñeta. NUNCA agrupes un párrafo largo de preguntas en una sola viñeta.\n"
                 "4. Indícale que si desconoce alguna de las respuestas o no tiene los datos a la mano, no hay problema y que igual le brindarás una orientación general.\n"
                 "5. Responde con un tono cálido, empático y estructurado en español.\n"
                 "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar escrito enteramente en español. "
@@ -743,8 +743,9 @@ class ChatService:
             prompt = (
                 f"Consulta original del usuario: {eff_message}\n\n"
                 f"Temas clave que DEBES preguntarle al usuario para aclarar su caso:\n{questions_text}\n\n"
-                "Redacta tu mensaje de indagación guiándote de estos temas faltantes. "
-                "RECUERDA: No respondas a su consulta principal todavía. Solo hazle las preguntas necesarias."
+                "Basándote en los temas de arriba, redacta tus preguntas para el usuario. "
+                "RECUERDA fragmentar la información: si un tema tiene muchas sub-preguntas, divídelo en varias viñetas cortas o resume lo más importante. ¡Que sea agradable a la vista! "
+                "No respondas a su consulta principal todavía. Solo hazle las preguntas necesarias."
             )
 
             try:
