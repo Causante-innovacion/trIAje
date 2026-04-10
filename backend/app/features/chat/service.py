@@ -724,41 +724,27 @@ class ChatService:
                        "message": "Preparando orientación..."})
 
             # Stream la respuesta parcial
-            system_prompt = (
-                "Eres un asistente legal especializado en derecho peruano para organizaciones civiles. "
-                "El usuario tiene una situación específica pero faltan datos clave para precisar la orientación. "
-                "Proporciona orientación general sobre el marco normativo aplicable usando lenguaje condicional. "
-                "IMPORTANTE: Al final de tu respuesta incluye una sección '📋 **Supuestos que estoy aplicando:**' "
-                "donde listes explícitamente los supuestos que estás asumiendo sobre el caso del usuario. "
-                "No des recomendaciones definitivas hasta que el usuario confirme esos supuestos. "
-                "Responde en español, con estructura clara y concisa. "
-                "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar escrito enteramente en español. "
-                "Nunca uses inglés, ni siquiera para razonar internamente. "
-                "Cuando menciones siglas o acrónimos (por ejemplo: Registro Único de Contribuyentes, Registro Nacional de Grandes Contribuyentes, "
-                "Agencia de Cooperación Internacional del Perú, Sistema de Administración Tributaria), "
-                "escríbelos siempre en su forma completa la primera vez que aparezcan en la respuesta."
-            ) + "\n\n" + _CITATION_RULES
-            intention_config = INTENTIONS.get(classification.intention)
-            if rag_context:
-                prompt = (
-                    f"Intención: {intention_config.name if intention_config else ''}\n"
-                    f"Consulta: {eff_message}\n\nNormativa relevante:\n{rag_context}\n\n"
-                    "Proporciona orientación general citando los artículos aplicables. "
-                    "Señala qué aspectos dependen del caso concreto."
-                )
-            else:
-                prompt = (
-                    f"Área: {intention_config.name if intention_config else ''}\n"
-                    f"Consulta: {eff_message}\n\n"
-                    "Da orientación general sobre el marco normativo en Perú. "
-                    "Señala qué información adicional cambiaría la respuesta."
-                )
+            questions_text = "\n".join(f"- {q}" for q in context_needed[:3])
 
-            questions_text = "\n".join(f"• {q}" for q in context_needed[:3])
-            amber_suffix = (
-                f"\n\n---\n\n🟡 **Para orientarte mejor sobre tu caso específico:**\n\n"
-                f"{questions_text}\n\n"
-                "Con esta información podré ajustar la orientación a tu situación concreta."
+            system_prompt = (
+                "Eres un asistente legal especializado en derecho peruano. "
+                "El usuario tiene una consulta, pero NO HA DADO DATOS SUFICIENTES para darle una orientación precisa o segura. "
+                "Tu tarea EXCLUSIVA en este momento es INDAGAR. "
+                "CUMPLE ESTRICTAMENTE ESTAS REGLAS:\n"
+                "1. NO des ninguna orientación legal, ni asumas escenarios, ni menciones artículos todavía.\n"
+                "2. Saluda brevemente e incluye el emoji 🟡 al principio de tu mensaje, explicando que necesitas más detalles para poder ayudarle.\n"
+                "3. Pregúntale explícitamente los temas faltantes listados en el prompt como viñetas.\n"
+                "4. Indícale que si desconoce alguna de las respuestas o no tiene los datos a la mano, no hay problema y que igual le brindarás una orientación general.\n"
+                "5. Responde con un tono cálido, empático y estructurado en español.\n"
+                "CRÍTICO: Tu razonamiento interno (dentro de las etiquetas <think>) DEBE estar escrito enteramente en español. "
+                "Nunca uses inglés, ni siquiera para razonar internamente."
+            )
+            
+            prompt = (
+                f"Consulta original del usuario: {eff_message}\n\n"
+                f"Temas clave que DEBES preguntarle al usuario para aclarar su caso:\n{questions_text}\n\n"
+                "Redacta tu mensaje de indagación guiándote de estos temas faltantes. "
+                "RECUERDA: No respondas a su consulta principal todavía. Solo hazle las preguntas necesarias."
             )
 
             try:
@@ -769,8 +755,6 @@ class ChatService:
             except Exception:
                 fallback = await self._generate_amber_partial(message, classification, rag_context, history=history)
                 yield sse({"type": "token", "text": fallback})
-
-            yield sse({"type": "token", "text": amber_suffix})
 
             # Si el usuario pidió explícitamente preparar preguntas para un asesor,
             # o si el caso tiene alta complejidad (muchos datos faltantes), añadir la acción.
