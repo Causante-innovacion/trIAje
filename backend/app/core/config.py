@@ -47,7 +47,9 @@ class Settings(BaseSettings):
 
     # AI Models (configurables)
     MODEL_INTAKE: str = "gpt-4o-mini"      # Tareas simples, clasificación
-    MODEL_REASONING: str = "gpt-4o"         # Análisis legal
+    MODEL_REASONING: str = "gpt-4o"         # Análisis legal (primario)
+    MODEL_REASONING_FALLBACK: str | None = None  # Fallback si el primario falla (ej: gpt-oss-120b)
+    PROVIDER_REASONING_FALLBACK: str | None = None  # Provider del fallback (si difiere del primario)
     MODEL_CREATIVITY: str = "gpt-4o"        # Redacción (claude-sonnet-4-20250514 si hay ANTHROPIC_API_KEY)
 
     # Embeddings (local = HuggingFace sentence-transformers, alineado con RAG/)

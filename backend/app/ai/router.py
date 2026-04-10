@@ -10,12 +10,16 @@ Agregar un nuevo provider = añadir un elif en `_build_llm()` y configurar
 la API key / URL en config.py. El resto del código no cambia.
 
 Módulos:
-  INTAKE     → MODEL_INTAKE     (gpt-4o-mini por defecto, temp 0.3)  → OpenAI
-  REASONING  → MODEL_REASONING  (deepseek-r1 vía Maple, temp 0.5)    → Maple
-  CREATIVITY → MODEL_CREATIVITY (configurable, temp 0.7)
+  INTAKE     → MODEL_INTAKE              (gpt-4o-mini, temp 0.3)         → OpenAI
+  REASONING  → MODEL_REASONING           (kimi-k2-5, temp 0.5)            → Maple  [primario]
+             → MODEL_REASONING_FALLBACK  (gpt-oss-120b, temp 0.5)         → Maple  [fallback automático]
+  CREATIVITY → MODEL_CREATIVITY          (configurable, temp 0.7)
+
+Modelos disponibles en Maple/Tinfoil: kimi-k2-5, gpt-oss-120b, llama3-3-70b, gemma4-31b, qwen3-vl-30b
 """
 
 import json
+import logging
 from typing import Dict, Any, List, AsyncGenerator
 
 from langchain_core.language_models import BaseChatModel
@@ -23,6 +27,8 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Base
 
 from app.core.config import settings
 from .providers.base import AIResponse
+
+_log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -138,11 +144,9 @@ def _to_messages(
     return msgs
 
 
-# Prefill en español para DeepSeek-R1 y modelos similares con CoT visible.
-# Al añadir un AIMessage parcial que COMIENZA el bloque <think> en español,
-# el modelo lo continúa en ese idioma (no puede "retroceder" en su cadena de tokens).
-# Compatible con endpoints OpenAI-like (Maple/DeepSeek). Ignorado silenciosamente
-# por modelos que no soportan prefill (el assistant message se trata como contexto).
+# Prefill en español — SOLO para modelos DeepSeek-R1 que soportan CoT con <think>.
+# Otros modelos (kimi, llama, gpt-oss, etc.) NO usan bloques <think> y
+# rechazarán o ignorarán el AIMessage de prefill de forma impredecible.
 _SPANISH_THINK_PREFILL = (
     "<think>\n"
     "[IDIOMA DEL RAZONAMIENTO: ESPAÑOL OBLIGATORIO]\n"
@@ -151,16 +155,19 @@ _SPANISH_THINK_PREFILL = (
     "Analizando la consulta en español:\n"
 )
 
-# Encabezado que se antepone a TODOS los system prompts cuando el provider es Maple/DeepSeek.
-# Se coloca ANTES de cualquier otra instrucción para que sea lo primero que el modelo procese.
+# Encabezado de idioma que se antepone al system prompt para forzar respuesta en español.
+# Se usa para TODOS los modelos vía Maple (no solo DeepSeek).
 _SPANISH_SYSTEM_HEADER = (
     "INSTRUCCIÓN DE IDIOMA — PRIORIDAD MÁXIMA: "
     "Debes razonar y responder EXCLUSIVAMENTE en español. "
-    "Tu bloque de razonamiento interno (<think>...</think>) DEBE estar escrito "
-    "íntegramente en español desde la primera palabra. "
-    "Está PROHIBIDO usar inglés, chino u otro idioma incluso para razonar internamente. "
+    "Está PROHIBIDO usar inglés, chino u otro idioma. "
     "Si tu tendencia es razonar en inglés, traduce cada pensamiento al español antes de continuar.\n\n"
 )
+
+
+def _is_deepseek_model(model: str) -> bool:
+    """Detecta si el modelo es DeepSeek-R1 (el único que soporta prefill <think>)."""
+    return "deepseek" in model.lower()
 
 
 def _inject_spanish_header(system_prompt: str | None) -> str:
@@ -227,9 +234,9 @@ class AIRouter:
 
     def __init__(self):
         # Resolver provider por módulo (con fallback a AI_PROVIDER_PRIMARY)
-        intake_provider = _resolve_provider(settings.PROVIDER_INTAKE)
-        reason_provider = _resolve_provider(settings.PROVIDER_REASONING)
-        create_provider = _resolve_provider(settings.PROVIDER_CREATIVITY)
+        intake_provider  = _resolve_provider(settings.PROVIDER_INTAKE)
+        reason_provider  = _resolve_provider(settings.PROVIDER_REASONING)
+        create_provider  = _resolve_provider(settings.PROVIDER_CREATIVITY)
 
         self._intake_llm: BaseChatModel = _build_llm(
             settings.MODEL_INTAKE, temperature=0.3, provider=intake_provider,
@@ -241,10 +248,31 @@ class AIRouter:
             settings.MODEL_CREATIVITY, temperature=0.7, provider=create_provider,
         )
 
+        # --- Fallback para REASONING -------------------------------------------
+        # Si MODEL_REASONING_FALLBACK está configurado, construimos un segundo LLM
+        # que se usará automáticamente si el primario falla (cualquier excepción).
+        self._reason_fallback_llm: BaseChatModel | None = None
+        self._reason_fallback_model: str | None = None
+        self._reason_fallback_provider: str | None = None
+
+        if settings.MODEL_REASONING_FALLBACK:
+            fb_provider = _resolve_provider(
+                settings.PROVIDER_REASONING_FALLBACK or settings.PROVIDER_REASONING
+            )
+            self._reason_fallback_llm = _build_llm(
+                settings.MODEL_REASONING_FALLBACK, temperature=0.5, provider=fb_provider,
+            )
+            self._reason_fallback_model    = settings.MODEL_REASONING_FALLBACK
+            self._reason_fallback_provider = fb_provider
+            _log.info(
+                "[AIRouter] REASONING dual-model activo: primario=%s | fallback=%s",
+                settings.MODEL_REASONING, settings.MODEL_REASONING_FALLBACK,
+            )
+
         # Guardar providers resueltos para metadata en responses
-        self._intake_provider = intake_provider
-        self._reason_provider = reason_provider
-        self._create_provider = create_provider
+        self._intake_provider  = intake_provider
+        self._reason_provider  = reason_provider
+        self._create_provider  = create_provider
 
     # ------------------------------------------------------------------
     # INTAKE — modelo ligero para clasificación y extracción
@@ -276,26 +304,46 @@ class AIRouter:
     ) -> AIResponse:
         """
         Análisis legal. Soporte de historial para memoria multi-turno.
-        Usa prefill en español para Maple/DeepSeek-R1 para forzar razonamiento en español.
+        Intenta primero MODEL_REASONING (kimi-k2-5); si falla, usa MODEL_REASONING_FALLBACK (gpt-oss-120b).
         """
-        use_prefill = self._reason_provider == "maple"
-        effective_system = _inject_spanish_header(system_prompt) if use_prefill else system_prompt
-        msgs = (
-            _to_messages_with_prefill(prompt, effective_system, history)
-            if use_prefill
-            else _to_messages(prompt, system_prompt, history)
-        )
-        result = await self._reason_llm.ainvoke(msgs)
-        content = str(result.content)
-        # Si usamos prefill, el modelo omite el <think>\n inicial (ya lo dimos nosotros).
-        # Lo re-inyectamos para que el parser del frontend lo detecte correctamente.
-        if use_prefill and not content.startswith("<think>"):
-            content = _SPANISH_THINK_PREFILL + content
-        return AIResponse(
-            content=content,
-            model=settings.MODEL_REASONING,
-            provider=self._reason_provider,
-        )
+        def _build_msgs(provider: str, model: str):
+            use_prefill      = provider == "maple" and _is_deepseek_model(model)
+            use_spanish_hdr  = provider == "maple"
+            eff_system = _inject_spanish_header(system_prompt) if use_spanish_hdr else system_prompt
+            return (
+                _to_messages_with_prefill(prompt, eff_system, history) if use_prefill
+                else _to_messages(prompt, eff_system, history)
+            ), use_prefill
+
+        # --- Intento primario ---
+        try:
+            msgs, use_prefill = _build_msgs(self._reason_provider, settings.MODEL_REASONING)
+            result = await self._reason_llm.ainvoke(msgs)
+            content = str(result.content)
+            if use_prefill and not content.startswith("<think>"):
+                content = _SPANISH_THINK_PREFILL + content
+            return AIResponse(content=content, model=settings.MODEL_REASONING, provider=self._reason_provider)
+
+        except Exception as primary_exc:
+            # --- Fallback automático ---
+            if self._reason_fallback_llm is None:
+                raise  # Sin fallback configurado, re-lanzar la excepción original
+
+            _log.warning(
+                "[AIRouter] reason(): primario '%s' falló (%s: %s). Reintentando con fallback '%s'.",
+                settings.MODEL_REASONING, type(primary_exc).__name__, primary_exc,
+                self._reason_fallback_model,
+            )
+            msgs, use_prefill = _build_msgs(self._reason_fallback_provider, self._reason_fallback_model)
+            result = await self._reason_fallback_llm.ainvoke(msgs)
+            content = str(result.content)
+            if use_prefill and not content.startswith("<think>"):
+                content = _SPANISH_THINK_PREFILL + content
+            return AIResponse(
+                content=content,
+                model=self._reason_fallback_model,
+                provider=self._reason_fallback_provider,
+            )
 
     async def reason_stream(
         self,
@@ -304,25 +352,62 @@ class AIRouter:
         history: List[Dict[str, str]] | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        Análisis legal en streaming. Yield token a token vía LangChain .astream().
-        Usa prefill en español para Maple/DeepSeek-R1.
+        Análisis legal en streaming. Yield token a token.
+        Si el modelo primario falla ANTES de emitir tokens, cambia al fallback transparentemente.
+        Si ya emitió tokens parciales, el fallback NO se activa (el stream ya empezó).
         """
-        use_prefill = self._reason_provider == "maple"
-        effective_system = _inject_spanish_header(system_prompt) if use_prefill else system_prompt
-        msgs = (
-            _to_messages_with_prefill(prompt, effective_system, history)
-            if use_prefill
-            else _to_messages(prompt, system_prompt, history)
-        )
-        first_chunk = True
-        async for chunk in self._reason_llm.astream(msgs):
-            if chunk.content:
-                text = str(chunk.content)
-                # Re-inyectar el prefill al inicio del stream si el modelo lo omitió
-                if first_chunk and use_prefill and not text.startswith("<think>"):
-                    yield _SPANISH_THINK_PREFILL
-                first_chunk = False
-                yield text
+        def _build_msgs(provider: str, model: str):
+            use_prefill     = provider == "maple" and _is_deepseek_model(model)
+            use_spanish_hdr = provider == "maple"
+            eff_system = _inject_spanish_header(system_prompt) if use_spanish_hdr else system_prompt
+            return (
+                _to_messages_with_prefill(prompt, eff_system, history) if use_prefill
+                else _to_messages(prompt, eff_system, history)
+            ), use_prefill
+
+        async def _stream(
+            llm: BaseChatModel,
+            msgs: List[BaseMessage],
+            use_prefill: bool,
+        ) -> AsyncGenerator[str, None]:
+            """Itera el stream del LLM dado y aplica prefill si corresponde."""
+            first_chunk = True
+            async for chunk in llm.astream(msgs):
+                if chunk.content:
+                    text = str(chunk.content)
+                    if first_chunk and use_prefill and not text.startswith("<think>"):
+                        yield _SPANISH_THINK_PREFILL
+                    first_chunk = False
+                    yield text
+
+        # --- Intento primario ---
+        msgs, use_prefill = _build_msgs(self._reason_provider, settings.MODEL_REASONING)
+        tokens_emitted = 0
+        try:
+            async for token in _stream(self._reason_llm, msgs, use_prefill):
+                tokens_emitted += 1
+                yield token
+            return  # stream primario completado sin error
+
+        except Exception as primary_exc:
+            if self._reason_fallback_llm is None or tokens_emitted > 0:
+                # Sin fallback, o ya emitíamos tokens (no podemos "deshacer" el stream).
+                _log.error(
+                    "[AIRouter] reason_stream(): '%s' falló tras %d tokens. Sin recuperación. Error: %s",
+                    settings.MODEL_REASONING, tokens_emitted, primary_exc,
+                )
+                raise
+
+            # --- Fallback (0 tokens emitidos aún) ---
+            _log.warning(
+                "[AIRouter] reason_stream(): primario '%s' falló antes de emitir tokens (%s: %s). "
+                "Usando fallback '%s'.",
+                settings.MODEL_REASONING, type(primary_exc).__name__, primary_exc,
+                self._reason_fallback_model,
+            )
+            fb_msgs, fb_prefill = _build_msgs(self._reason_fallback_provider, self._reason_fallback_model)
+            async for token in _stream(self._reason_fallback_llm, fb_msgs, fb_prefill):
+                yield token
 
     # ------------------------------------------------------------------
     # CREATIVITY — redacción y generación de contenido
@@ -369,8 +454,23 @@ class AIRouter:
         schema: Dict[str, Any],
         system_prompt: str | None = None,
     ) -> Dict[str, Any]:
-        """REASONING con respuesta JSON estructurada."""
-        return await self._call_json(self._reason_llm, prompt, schema, system_prompt, provider=self._reason_provider)
+        """REASONING con respuesta JSON estructurada. Usa fallback si el primario falla."""
+        try:
+            return await self._call_json(
+                self._reason_llm, prompt, schema, system_prompt,
+                provider=self._reason_provider, model=settings.MODEL_REASONING,
+            )
+        except Exception as primary_exc:
+            if self._reason_fallback_llm is None:
+                raise
+            _log.warning(
+                "[AIRouter] reason_json(): primario '%s' falló (%s). Usando fallback '%s'.",
+                settings.MODEL_REASONING, primary_exc, self._reason_fallback_model,
+            )
+            return await self._call_json(
+                self._reason_fallback_llm, prompt, schema, system_prompt,
+                provider=self._reason_fallback_provider, model=self._reason_fallback_model,
+            )
 
     async def _call_json(
         self,
@@ -379,6 +479,7 @@ class AIRouter:
         schema: Dict[str, Any],
         system_prompt: str | None,
         provider: str = "",
+        model: str | None = None,  # nombre del modelo activo (para detectar DeepSeek)
     ) -> Dict[str, Any]:
         """
         Llama al LLM y parsea la respuesta como JSON.
@@ -392,15 +493,16 @@ class AIRouter:
             "(sin texto antes ni después, sin bloques markdown):\n"
             + json.dumps(schema, ensure_ascii=False, indent=2)
         )
-        # Inyectar encabezado de idioma cuando el provider es Maple/DeepSeek
+        # Inyectar encabezado de idioma para todos los modelos Maple
         use_spanish_header = provider == "maple"
         base_system = _inject_spanish_header(system_prompt) if use_spanish_header else (system_prompt or "")
         json_system = base_system + json_instruction
         msgs = _to_messages(prompt, json_system, None)
 
-        # Para DeepSeek-R1, añadir prefill que fuerza el razonamiento en español
-        # y cierra inmediatamente el <think> para no contaminar la salida JSON.
-        if use_spanish_header:
+        # Prefill <think> SOLO para DeepSeek-R1 (cierra el bloque para no contaminar el JSON).
+        # Otros modelos Maple (kimi, gpt-oss, llama, etc.) no soportan esta sintaxis.
+        active_model = model or settings.MODEL_REASONING
+        if use_spanish_header and _is_deepseek_model(active_model):
             msgs.append(AIMessage(content="<think>\nAnalizando en español.\n</think>\n"))
 
         try:
