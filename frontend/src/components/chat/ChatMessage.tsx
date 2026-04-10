@@ -14,25 +14,48 @@ import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
 import { useCitations } from '../../hooks/useCitations'
 
-function RotatingStatus() {
+function RotatingStatus({ type }: { type: 'classify' | 'generate' }) {
   const [index, setIndex] = useState(0)
-  const phrases = [
-    "Consultando jurisprudencia...",
-    "Analizando situación legal...",
-    "Estructurando recomendación...",
-    "Revisando antecedentes...",
-    "Redactando consejo claro..."
-  ]
+  
+  const phrases = type === 'classify' 
+    ? [
+        "Analizando intención principal...",
+        "Identificando el tema legal...",
+        "Calculando variables de contexto...",
+        "Enrutando solicitud a la IA...",
+      ] 
+    : [
+        "Consultando jurisprudencia...",
+        "Analizando marcos legales...",
+        "Estructurando recomendación...",
+        "Revisando antecedentes...",
+        "Redactando un consejo claro..."
+      ]
 
   useEffect(() => {
     const timer = setInterval(() => {
       setIndex(prev => (prev + 1) % phrases.length)
-    }, 3500)
+    }, 2800)
     return () => clearInterval(timer)
-  }, [])
+  }, [type, phrases.length])
 
   return (
-    <span className="animate-fade-in inline-block min-w-40 truncate">{phrases[index]}</span>
+    <span className="animate-fade-in inline-block min-w-[210px] truncate">{phrases[index]}</span>
+  )
+}
+
+function StatusPillBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 text-[13px] text-slate-700 bg-slate-50 border border-slate-200/60 rounded-full px-4 py-2 w-fit shadow-sm my-1">
+      <span className="flex gap-1 items-center">
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:0ms]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:150ms]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:300ms]" />
+      </span>
+      <span className="font-medium">
+        {children}
+      </span>
+    </div>
   )
 }
 
@@ -136,9 +159,11 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
         return (
           <div className="space-y-3">
             {/* Streaming status pill — shown while tokens haven't started yet.
-                 Hidden when isGenerating=true since ThinkingBlock already shows 'Analizando…' */}
+                 If it is in classification phase, show RotatingStatus type="classify". */}
             {message.isStreaming && message.streamingStatus && !message.content && !isScanning && !isGenerating && (
-              <ThinkingBlock content="" isThinking={true} title={message.streamingStatus} />
+              <StatusPillBlock>
+                <RotatingStatus type="classify" />
+              </StatusPillBlock>
             )}
 
             {/* Lista de documentos encontrando durante RAG */}
@@ -166,16 +191,9 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
             {/* FASE de generación "silenciosa" (e.g. kimi-k2-5 o modelos lentos en empezar). 
                 Se muestra cuando se confirmó que ya está resolviendo pero aún no llega ni el primer token. */}
             {isGenerating && !message.content && !thinkContent && !isThinking && (
-              <div className="flex items-center gap-3 text-[13px] text-slate-700 bg-slate-50 border border-slate-200/60 rounded-full px-4 py-2 w-fit shadow-sm my-1">
-                <span className="flex gap-1 items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:0ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:300ms]" />
-                </span>
-                <span className="font-medium">
-                  <RotatingStatus />
-                </span>
-              </div>
+              <StatusPillBlock>
+                <RotatingStatus type="generate" />
+              </StatusPillBlock>
             )}
 
             {/* Bloque de razonamiento <think> (colapsable).
