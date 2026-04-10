@@ -108,6 +108,28 @@ _BASE_RULES = (
     "orientación de forma genérica válida para cualquier tipo de organización civil. "
 )
 
+
+_CITATION_RULES = (
+    "SISTEMA DE CITAS — LEE CON ATENCIÓN:\n"
+    "Cuando menciones normativa (leyes, decretos, artículos), NUNCA escribas su nombre completo "
+    "en el cuerpo del texto. Solo coloca el número de cita [N] al final de la frase.\n"
+    "El detalle completo de cada cita va EXCLUSIVAMENTE en el bloque '## Referencias' al final.\n"
+    "\n"
+    "❌ MAL (PROHIBIDO):\n"
+    "'Según el Artículo 82 del Código Civil (D.Leg. N.º 295), las asociaciones requieren "
+    "inscripción [1].'  ← Aquí escribiste la cita EN EL PÁRRAFO y además pusiste [1]. PROHIBIDO.\n"
+    "\n"
+    "✅ CORRECTO:\n"
+    "'Las asociaciones requieren inscripción [1].'\n"
+    "(El artículo exacto va solo en ## Referencias)\n"
+    "\n"
+    "Al FINAL de toda la respuesta, agrega:\n"
+    "## Referencias\n"
+    "[1] Inscripción de asociaciones — Código Civil, Art. 82, D.Leg. N.º 295.\n"
+    "[2] Exoneración del Impuesto a la Renta — Ley del IR, Art. 19 inc. b), D.S. N.º 179-2004-EF.\n"
+    "Si no citas ninguna norma específica, omite el bloque ## Referencias.\n"
+)
+
 _STRUCTURE_RULES = (
     # Estructura estándar de respuesta
     "\n\nESTRUCTURA OBLIGATORIA DE TU RESPUESTA:\n"
@@ -129,26 +151,8 @@ _STRUCTURE_RULES = (
     "cuánto podría cobrar ni ningún rango de precio. "
     "Sí puedes mencionar costos oficiales de trámites (aranceles registrales, tasas SUNAT, "
     "costos de publicación, etc.) cuando sean datos concretos y verificables.\n\n"
-    # Instrucciones de citas — REGLA CRÍTICA de no redundancia
-    "SISTEMA DE CITAS — LEE CON ATENCIÓN:\n"
-    "Cuando menciones normativa (leyes, decretos, artículos), NUNCA escribas su nombre completo "
-    "en el cuerpo del texto. Solo coloca el número de cita [N] al final de la frase.\n"
-    "El detalle completo de cada cita va EXCLUSIVAMENTE en el bloque '## Referencias' al final.\n"
-    "\n"
-    "❌ MAL (PROHIBIDO):\n"
-    "'Según el Artículo 82 del Código Civil (D.Leg. N.º 295), las asociaciones requieren "
-    "inscripción [1].'  ← Aquí escribiste la cita EN EL PÁRRAFO y además pusiste [1]. PROHIBIDO.\n"
-    "\n"
-    "✅ CORRECTO:\n"
-    "'Las asociaciones requieren inscripción [1].'\n"
-    "(El artículo exacto va solo en ## Referencias)\n"
-    "\n"
-    "Al FINAL de toda la respuesta, agrega:\n"
-    "## Referencias\n"
-    "[1] Inscripción de asociaciones — Código Civil, Art. 82, D.Leg. N.º 295.\n"
-    "[2] Exoneración del Impuesto a la Renta — Ley del IR, Art. 19 inc. b), D.S. N.º 179-2004-EF.\n"
-    "Si no citas ninguna norma específica, omite el bloque ## Referencias.\n"
-)
+) + _CITATION_RULES
+
 
 
 
@@ -733,7 +737,7 @@ class ChatService:
                 "Cuando menciones siglas o acrónimos (por ejemplo: Registro Único de Contribuyentes, Registro Nacional de Grandes Contribuyentes, "
                 "Agencia de Cooperación Internacional del Perú, Sistema de Administración Tributaria), "
                 "escríbelos siempre en su forma completa la primera vez que aparezcan en la respuesta."
-            )
+            ) + "\n\n" + _CITATION_RULES
             intention_config = INTENTIONS.get(classification.intention)
             if rag_context:
                 prompt = (
