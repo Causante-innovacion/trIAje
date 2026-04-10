@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Avatar } from '../ui/Avatar'
 import { Message } from '../../types/chat'
 import { OptionButtons } from './OptionButtons'
@@ -13,6 +13,29 @@ import { ThinkingBlock, parseThinkContent } from './ThinkingBlock'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../../stores/chatStore'
 import { useCitations } from '../../hooks/useCitations'
+
+function RotatingStatus() {
+  const [index, setIndex] = useState(0)
+  const phrases = [
+    "Consultando jurisprudencia...",
+    "Analizando situación legal...",
+    "Estructurando recomendación...",
+    "Revisando antecedentes...",
+    "Redactando consejo claro..."
+  ]
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex(prev => (prev + 1) % phrases.length)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <span className="animate-fade-in inline-block min-w-40 truncate">{phrases[index]}</span>
+  )
+}
+
 
 /** Detect file-attachment messages and extract just the filename */
 function parseFileAttachment(content: string): string | null {
@@ -140,14 +163,27 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
               </div>
             )}
 
+            {/* FASE de generación "silenciosa" (e.g. kimi-k2-5 o modelos lentos en empezar). 
+                Se muestra cuando se confirmó que ya está resolviendo pero aún no llega ni el primer token. */}
+            {isGenerating && !message.content && !thinkContent && !isThinking && (
+              <div className="flex items-center gap-3 text-[13px] text-slate-700 bg-slate-50 border border-slate-200/60 rounded-full px-4 py-2 w-fit shadow-sm my-1">
+                <span className="flex gap-1 items-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 animate-bounce [animation-delay:300ms]" />
+                </span>
+                <span className="font-medium">
+                  <RotatingStatus />
+                </span>
+              </div>
+            )}
+
             {/* Bloque de razonamiento <think> (colapsable).
-                 Si el modelo emite <think> tags (ej. DeepSeek-R1), se muestra el contenido real.
-                 Si no (ej. kimi-k2-5 que razona internamente), se muestra la animación "Analizando…"
-                 hasta que llega el primer token de la respuesta. */}
-            {(thinkContent || isThinking || isGenerating) && (
+                 Si el modelo emite <think> tags (ej. DeepSeek-R1), se muestra aquí. */}
+            {(!!thinkContent || isThinking) && (
               <ThinkingBlock
                 content={thinkContent}
-                isThinking={!!(isThinking || isGenerating)}
+                isThinking={isThinking}
               />
             )}
 
