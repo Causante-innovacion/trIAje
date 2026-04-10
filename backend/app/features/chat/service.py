@@ -111,8 +111,11 @@ _BASE_RULES = (
 _STRUCTURE_RULES = (
     # Estructura estándar de respuesta
     "\n\nESTRUCTURA OBLIGATORIA DE TU RESPUESTA:\n"
-    "1. **Resumen ejecutivo** (máximo 3 líneas): respuesta directa a la pregunta principal.\n"
-    "2. **Desarrollo** (secciones numeradas o con encabezados ##): normativa aplicable, "
+    "1. **Respuesta directa** (máximo 3 líneas, SIN encabezado ni etiqueta): "
+    "empieza directamente con la respuesta a la pregunta principal. "
+    "NO escribas 'Resumen ejecutivo', 'Respuesta directa' ni ningún título en este primer bloque — "
+    "simplemente comienza con el contenido.\n"
+    "2. **Desarrollo** (secciones con encabezados ##): normativa aplicable, "
     "pasos o requisitos, consideraciones importantes.\n"
     "3. **⚠️ Consideraciones clave** (si aplica): riesgos, plazos críticos, excepciones.\n"
     "4. **📌 Próximo paso recomendado**: UNA acción concreta y específica que el usuario "
@@ -147,6 +150,38 @@ _STRUCTURE_RULES = (
     "Si no citas ninguna norma específica, omite el bloque ## Referencias.\n"
 )
 
+
+
+# =============================================================================
+# SYSTEM PROMPT — MODO EJEMPLO
+# Se usa cuando el usuario pide "explícame con un ejemplo".
+# Sin estructura legal rígida; tono narrativo y cotidiano.
+# =============================================================================
+
+_EXAMPLE_SYSTEM_PROMPT = (
+    "Eres trIAje, un asistente legal especializado en derecho peruano. "
+    "El usuario ya recibió una explicación legal y ahora te pide que ilustres el concepto "
+    "con un ejemplo práctico e inventado.\n\n"
+
+    "ESTRUCTURA OBLIGATORIA DE TU RESPUESTA:\n"
+    "1. Comienza siempre con el encabezado: "
+    "'💡 **Ejemplo práctico** *(caso ficticio — inventado solo para ilustrar el concepto)*'\n"
+    "2. Narra una historia breve y cotidiana (3-5 párrafos) usando personajes concretos "
+    "con nombres inventados (Luis, María, la señora Rosa, don Carlos, etc.) y situaciones "
+    "del día a día en Perú. Usa un tono conversacional, cercano y fácil de entender. "
+    "No uses terminología legal compleja — explica como si le contaras a un familiar.\n"
+    "3. Cierra con una sección corta titulada '**¿Qué nos enseña este ejemplo?**' "
+    "donde conectas la historia con el principio legal real en 2-3 líneas simples.\n\n"
+
+    "REGLAS CRÍTICAS:\n"
+    "- NUNCA uses la estructura de resumen ejecutivo / desarrollo / consideraciones / próximo paso.\n"
+    "- No uses listas con viñetas formales. Usa párrafos narrativos fluidos.\n"
+    "- El ejemplo debe ser completamente inventado. Acláralo al inicio.\n"
+    "- No repitas la explicación legal anterior. Solo ilustra el concepto.\n"
+    "- Lenguaje simple, cálido y cercano. Nada de jerga técnica.\n"
+    "- No menciones tarifas, costos de profesionales ni rangos de precios.\n"
+    "- Responde exclusivamente en español.\n"
+)
 
 
 def _build_system_prompt(mode: str) -> str:
@@ -456,7 +491,50 @@ class ChatService:
                        "disclaimers": resp.disclaimers,
                        "conversation_id": conversation_id})
             return
+
+        # ── MODO EJEMPLO: el usuario pide "explícame con un ejemplo" ─────────
+        # Salta toda la pipeline (clasificación, RAG, semáforo) y genera
+        # directamente una historia narrativa sin _STRUCTURE_RULES.
+        is_explanation = bool((request.context or {}).get("is_explanation"))
+
+        if is_explanation:
+            yield sse({"type": "status", "stage": "generating",
+                       "message": "Preparando ejemplo..."})
+
+            # Extraer la última respuesta del asistente del historial para dar contexto.
+            last_ai_answer = ""
+            for turn in reversed(request.history or []):
+                if turn.role == "assistant" and turn.content.strip():
+                    last_ai_answer = turn.content.strip()
+                    break
+
+            example_prompt = _build_prompt(
+                (
+                    f"Mi explicación legal anterior fue:\n\n{last_ai_answer}\n\n"
+                    if last_ai_answer else ""
+                ) +
+                "Ahora ilustra ese concepto con un ejemplo práctico cotidiano e inventado, "
+                "siguiendo exactamente las instrucciones de tu system prompt."
+            )
+
+            try:
+                async for token in self._ai_router.reason_stream(
+                    prompt=example_prompt,
+                    system_prompt=_EXAMPLE_SYSTEM_PROMPT,
+                    history=None,  # No historial para no confundir el modo narrativo
+                ):
+                    yield sse({"type": "token", "text": token})
+            except Exception as exc:
+                logger.warning("[EXAMPLE] Error en modo ejemplo: %s", exc)
+                yield sse({"type": "token",
+                           "text": "Lo siento, no pude generar el ejemplo en este momento. Intenta de nuevo."})
+
+            yield sse({"type": "done", "actions": [], "disclaimers": [],
+                       "conversation_id": conversation_id})
+            return
+
         # ── Pending AMARILLO: usuario responde pregunta de contexto ───────────────
+
         _amber_intention = None
         eff_message = message  # query usado para RAG y LLM (puede ser enriquecido)
         history: list | None = [{

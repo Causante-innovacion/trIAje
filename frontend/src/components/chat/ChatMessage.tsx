@@ -112,11 +112,21 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
         const { thinkContent, answer, isThinking } = parseThinkContent(message.content ?? '')
         const scanningDocs = message.metadata?.scanningDocs ?? []
         const isScanning = message.isStreaming && !message.content && scanningDocs.length > 0
+        // Feedback visual mientras el modelo razona internamente (antes del primer token).
+        // kimi-k2-5 piensa en silencio (como o1) sin emitir <think> tags, por eso
+        // mostramos el ThinkingBlock animado durante la fase "generating" sin contenido.
+        const isGenerating = (
+          message.isStreaming &&
+          !message.content &&
+          !isScanning &&
+          (message.streamingStatus ?? '').toLowerCase().includes('generando')
+        )
 
         return (
           <div className="space-y-3">
-            {/* Streaming status pill — shown while tokens haven't started yet */}
-            {message.isStreaming && message.streamingStatus && !message.content && !isScanning && (
+            {/* Streaming status pill — shown while tokens haven't started yet.
+                 Hidden when isGenerating=true since ThinkingBlock already shows 'Analizando…' */}
+            {message.isStreaming && message.streamingStatus && !message.content && !isScanning && !isGenerating && (
               <StreamingStatusPill status={message.streamingStatus} />
             )}
 
@@ -142,9 +152,15 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
               </div>
             )}
 
-            {/* Bloque de razonamiento <think> (colapsable) */}
-            {(thinkContent || isThinking) && (
-              <ThinkingBlock content={thinkContent} isThinking={isThinking} />
+            {/* Bloque de razonamiento <think> (colapsable).
+                 Si el modelo emite <think> tags (ej. DeepSeek-R1), se muestra el contenido real.
+                 Si no (ej. kimi-k2-5 que razona internamente), se muestra la animación "Analizando…"
+                 hasta que llega el primer token de la respuesta. */}
+            {(thinkContent || isThinking || isGenerating) && (
+              <ThinkingBlock
+                content={thinkContent}
+                isThinking={!!(isThinking || isGenerating)}
+              />
             )}
 
             {/* Main message text — typewriter for completed, raw for streaming */}

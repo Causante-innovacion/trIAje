@@ -81,14 +81,20 @@ export function useChat() {
           message: content,
           conversation_id: conversationId || undefined,
           history,
-          ...(pendingAmber ? {
-            context: {
-              pending_amber: {
+          // Build context: merge pending_amber and is_explanation flags if present
+          ...(() => {
+            const ctx: Record<string, unknown> = {}
+            if (pendingAmber) {
+              ctx.pending_amber = {
                 intention: pendingAmber.intention,
                 original_query: pendingAmber.originalMessage,
-              },
-            },
-          } : {}),
+              }
+            }
+            if (options?.isExplanation) {
+              ctx.is_explanation = true
+            }
+            return Object.keys(ctx).length > 0 ? { context: ctx } : {}
+          })(),
         }),
       })
 
