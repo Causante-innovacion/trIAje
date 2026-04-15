@@ -112,15 +112,21 @@ export function parseThinkContent(raw: string): {
   answer: string
   isThinking: boolean
 } {
-  if (!raw.includes('<think>')) {
+  const hasThink = raw.includes('<think>')
+  const hasThinking = raw.includes('<thinking>')
+
+  if (!hasThink && !hasThinking) {
     return { thinkContent: '', answer: raw, isThinking: false }
   }
 
-  const thinkStart = raw.indexOf('<think>') + '<think>'.length
-  const thinkEnd = raw.indexOf('</think>')
+  const openTag = hasThinking ? '<thinking>' : '<think>'
+  const closeTag = hasThinking ? '</thinking>' : '</think>'
+
+  const thinkStart = raw.indexOf(openTag) + openTag.length
+  const thinkEnd = raw.indexOf(closeTag)
 
   if (thinkEnd === -1) {
-    // Todavía dentro del bloque <think> (streaming)
+    // Todavía dentro del bloque <think> o <thinking> (streaming)
     return {
       thinkContent: raw.slice(thinkStart).trimStart(),
       answer: '',
@@ -130,7 +136,7 @@ export function parseThinkContent(raw: string): {
 
   return {
     thinkContent: raw.slice(thinkStart, thinkEnd).trim(),
-    answer: raw.slice(thinkEnd + '</think>'.length).trimStart(),
+    answer: raw.slice(thinkEnd + closeTag.length).trimStart(),
     isThinking: false,
   }
 }

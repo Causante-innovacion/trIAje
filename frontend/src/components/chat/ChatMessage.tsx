@@ -382,8 +382,18 @@ export function ChatMessage({ message, onOptionSelect, onFileUpload, onFileUploa
         )
 
       // ── Default text ──
-      default:
+      default: {
+        const { thinkContent, answer, isThinking } = parseThinkContent(message.content ?? '')
+        if (thinkContent || isThinking) {
+          return (
+            <div className="space-y-3">
+              <ThinkingBlock content={thinkContent} isThinking={isThinking} />
+              <AnimatedText text={answer} animate={animate} messageId={message.id} />
+            </div>
+          )
+        }
         return <AnimatedText text={message.content} animate={animate} messageId={message.id} />
+      }
     }
   }
 
